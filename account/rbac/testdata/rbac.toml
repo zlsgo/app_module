@@ -1,0 +1,12 @@
+[admin]
+mode = 0
+
+[[admin.permission]]
+target = "/api/*"
+priority = 1
+
+[[admin.permission]]
+action = "GET"
+target = "/api/test1"
+priority = 2
+deny = true

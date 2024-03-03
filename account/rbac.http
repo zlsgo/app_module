@@ -1,0 +1,34 @@
+
+### 登录
+POST {{host}}/manage/base/login
+Content-Type: application/json
+
+{
+  "account": "manage",
+  "password": "qw123456."
+}
+
+> {% if (response.status == 200) client.global.set("token", response.body.data.token); %}
+> {% if (response.status == 200) client.global.set("refresh_token", response.body.data.refresh_token); %}
+
+### 当前用户信息
+GET {{host}}/manage/base/me
+Content-Type: application/json
+Authorization: Basic {{token}}
+
+### 退出
+POST {{host}}/manage/base/logout
+Content-Type: application/json
+Authorization: Basic {{token}}
+
+### 刷新 token
+POST {{host}}/manage/base/refresh-token
+Content-Type: application/json
+Authorization: Basic {{token}}
+
+{
+  "refresh_token": "{{refresh_token}}"
+}
+
+### Ping
+GET {{host}}/ping
