@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func TestSet(t *testing.T) {
 			Name:    "lowcode_logs",
 			Comment: "日志表",
 		},
-		Options: Options{
+		ModelOptions: ModelOptions{
 			Timestamps: true,
 			CryptID:    true,
 		},
@@ -54,7 +54,7 @@ func TestSet(t *testing.T) {
 			Label:   "状态",
 			Size:    9,
 			Default: "1",
-			Options: FieldOption{
+			ModelOptions: FieldOption{
 				// Quote: true,
 				Enum: []FieldEnum{
 					{Value: "1", Label: "未读"},
@@ -93,9 +93,9 @@ func TestSet(t *testing.T) {
 
 	_, _ = Insert(m, map[string]interface{}{"action": "demo", "ip": "127.0.0.3", "status": "1"})
 
-	row, err := FindOne(m, ztype.Map{}, func(options *CondOptions) error {
-		options.OrderBy = [][]string{{IDKey, "DESC"}}
-		options.Fields = []string{IDKey, "status"}
+	row, err := FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
+		ModelOptions.OrderBy = [][]string{{IDKey, "DESC"}}
+		ModelOptions.Fields = []string{IDKey, "status"}
 		return nil
 	})
 	tt.NoError(err)
@@ -105,8 +105,8 @@ func TestSet(t *testing.T) {
 	tt.NoError(err)
 	tt.Log(total)
 
-	row, err = FindOne(m, ztype.Map{}, func(options *CondOptions) error {
-		options.OrderBy = [][]string{{IDKey, "DESC"}}
+	row, err = FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
+		ModelOptions.OrderBy = [][]string{{IDKey, "DESC"}}
 		return nil
 	})
 	tt.NoError(err)

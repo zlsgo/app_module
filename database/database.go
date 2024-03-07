@@ -10,11 +10,13 @@ import (
 
 type InitFunc func(di zdi.Invoker) (*zdb.DB, error)
 
+var options Options
+
 func New(o ...Options) *Plugin {
 	if len(o) > 0 {
-		service.DefaultConf = append(service.DefaultConf, o[0])
+		options = o[0]
 	} else {
-		service.DefaultConf = append(service.DefaultConf, Options{
+		options = Options{
 			disableWrite: true,
 			Driver:       "sqlite",
 			Sqlite: Sqlite{
@@ -36,8 +38,10 @@ func New(o ...Options) *Plugin {
 				Password: "",
 				DBName:   "zls",
 			},
-		})
+		}
 	}
+
+	service.DefaultConf = append(service.DefaultConf, options)
 	return &Plugin{}
 }
 

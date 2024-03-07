@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"github.com/sohaha/zlsgo/zarray"
@@ -53,10 +53,10 @@ func parseViewLists(m *Model) ztype.Map {
 		}
 		layout := data.Get("layouts").Get(name).Map()
 		columns[name] = ztype.Map{
-			"title":   column.Label,
-			"type":    column.Type,
-			"options": column.Options,
-			"layout":  layout,
+			"title":        column.Label,
+			"type":         column.Type,
+			"ModelOptions": column.Options,
+			"layout":       layout,
 		}
 		if m.model.Options.CryptID && name == IDKey {
 			columns[name]["type"] = "string"
@@ -102,13 +102,13 @@ func parseViewInfo(m *Model) ztype.Map {
 		}
 		layout := layouts.Get(name).Map()
 		columns[name] = ztype.Map{
-			"label":    column.Label,
-			"type":     column.Type,
-			"readonly": column.Options.ReadOnly,
-			"size":     column.Size,
-			"layout":   layout,
-			"disabled": m.isInlayField(name),
-			"options":  column.Options,
+			"label":        column.Label,
+			"type":         column.Type,
+			"readonly":     column.Options.ReadOnly,
+			"size":         column.Size,
+			"layout":       layout,
+			"disabled":     m.isInlayField(name),
+			"ModelOptions": column.Options,
 		}
 
 		if m.model.Options.CryptID && name == IDKey {

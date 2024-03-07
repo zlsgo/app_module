@@ -2,7 +2,7 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/database/model"
+	"github.com/zlsgo/app_module/restapi"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -13,7 +13,7 @@ func initModel(p *Module) error {
 		adminDefaultPassword = "qw123456."
 	}
 	inlayUser := append(ztype.Maps{{
-		model.IDKey:     1,
+		restapi.IDKey:   1,
 		"inlay":         true,
 		"administrator": true,
 		"avatar":        "data:image/svg+xml,%3Csvg viewBox='0 0 36 36' fill='none' role='img' xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Ctitle%3EMary Roebling%3C/title%3E%3Cmask id='mask__beam' maskUnits='userSpaceOnUse' x='0' y='0' width='36' height='36'%3E%3Crect width='36' height='36' fill='%23FFFFFF'%3E%3C/rect%3E%3C/mask%3E%3Cg mask='url(%23mask__beam)'%3E%3Crect width='36' height='36' fill='%23f0f0d8'%3E%3C/rect%3E%3Crect x='0' y='0' width='36' height='36' transform='translate(5 -1) rotate(155 18 18) scale(1.2)' fill='%23000000' rx='6'%3E%3C/rect%3E%3Cg transform='translate(3 -4) rotate(-5 18 18)'%3E%3Cpath d='M15 21c2 1 4 1 6 0' stroke='%23FFFFFF' fill='none' stroke-linecap='round'%3E%3C/path%3E%3Crect x='14' y='14' width='1.5' height='2' rx='1' stroke='none' fill='%23FFFFFF'%3E%3C/rect%3E%3Crect x='20' y='14' width='1.5' height='2' rx='1' stroke='none' fill='%23FFFFFF'%3E%3C/rect%3E%3C/g%3E%3C/g%3E%3C/svg%3E",
@@ -40,21 +40,21 @@ func initModel(p *Module) error {
 
 const accountName = "account"
 
-func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
-	_, err := ms.Reg(accountName, model.Define{
+func accountModel(ms *restapi.Models, inlayUser ztype.Maps) error {
+	_, err := ms.Reg(accountName, restapi.Define{
 		Name: accountName,
-		Options: model.Options{
+		Options: restapi.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]model.Field{
+		Fields: map[string]restapi.Field{
 			"avatar": {
 				Label:    "头像",
 				Nullable: true,
 				Default:  "",
 				Type:     schema.String,
 				Size:     1024 * 2,
-				Validations: []model.Validations{
+				Validations: []restapi.Validations{
 					{
 						Method: "regex",
 						Args:   "^(data:image/|http://|https://|/)",
@@ -70,8 +70,8 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 				Type:  schema.Int8,
 				Size:  9,
 				Label: "状态",
-				Options: model.FieldOption{
-					Enum: []model.FieldEnum{
+				Options: restapi.FieldOption{
+					Enum: []restapi.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -87,7 +87,7 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 			"login_at": {
 				Type:     schema.Time,
 				Nullable: true,
-				Options:  model.FieldOption{},
+				Options:  restapi.FieldOption{},
 				Label:    "登录时间",
 			},
 			"inlay": {
@@ -114,7 +114,7 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "绑定角色",
-				Options: model.FieldOption{
+				Options: restapi.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -128,7 +128,7 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 				Label:  "账号",
 				Type:   schema.String,
 				Unique: true,
-				Validations: []model.Validations{
+				Validations: []restapi.Validations{
 					{
 						Method: "minLength",
 						Args:   3,
@@ -142,10 +142,10 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 			"password": {
 				Label: "密码",
 				Type:  schema.String,
-				Options: model.FieldOption{
+				Options: restapi.FieldOption{
 					Crypt: "PASSWORD",
 				},
-				Validations: []model.Validations{
+				Validations: []restapi.Validations{
 					{
 						Method: "minLength",
 						Args:   3,
@@ -164,14 +164,14 @@ func accountModel(ms *model.Models, inlayUser ztype.Maps) error {
 
 const roleName = "role"
 
-func roleModel(ms *model.Models) error {
-	_, err := ms.Reg(roleName, model.Define{
+func roleModel(ms *restapi.Models) error {
+	_, err := ms.Reg(roleName, restapi.Define{
 		Name: roleName,
-		Options: model.Options{
+		Options: restapi.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]model.Field{
+		Fields: map[string]restapi.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -183,7 +183,7 @@ func roleModel(ms *model.Models) error {
 				Comment: "必须唯一",
 				Unique:  true,
 				Default: "",
-				Validations: []model.Validations{
+				Validations: []restapi.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -196,8 +196,8 @@ func roleModel(ms *model.Models) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: model.FieldOption{
-					Enum: []model.FieldEnum{
+				Options: restapi.FieldOption{
+					Enum: []restapi.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -228,7 +228,7 @@ func roleModel(ms *model.Models) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含角色",
-				Options: model.FieldOption{
+				Options: restapi.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -237,19 +237,19 @@ func roleModel(ms *model.Models) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含权限",
-				Options: model.FieldOption{
+				Options: restapi.FieldOption{
 					IsArray: true,
 				},
 			},
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey:  1,
-				"label":      "管理员",
-				"status":     "1",
-				"alias":      "admin",
-				"inlay":      true,
-				"permission": []uint{1},
+				restapi.IDKey: 1,
+				"label":       "管理员",
+				"status":      "1",
+				"alias":       "admin",
+				"inlay":       true,
+				"permission":  []uint{1},
 			},
 		},
 	}, false)
@@ -258,13 +258,13 @@ func roleModel(ms *model.Models) error {
 
 const permName = "permission"
 
-func permModel(ms *model.Models) error {
-	_, err := ms.Reg(permName, model.Define{
+func permModel(ms *restapi.Models) error {
+	_, err := ms.Reg(permName, restapi.Define{
 		Name: permName,
-		Options: model.Options{
+		Options: restapi.ModelOptions{
 			Timestamps: true,
 		},
-		Fields: map[string]model.Field{
+		Fields: map[string]restapi.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -276,7 +276,7 @@ func permModel(ms *model.Models) error {
 				Comment:  "如果不为空，必须唯一",
 				Nullable: true,
 				Unique:   true,
-				Validations: []model.Validations{
+				Validations: []restapi.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -289,8 +289,8 @@ func permModel(ms *model.Models) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: model.FieldOption{
-					Enum: []model.FieldEnum{
+				Options: restapi.FieldOption{
+					Enum: []restapi.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -338,14 +338,14 @@ func permModel(ms *model.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey: 1,
-				"label":     "全局访问",
-				"remark":    "可访问全部接口",
-				"status":    "1",
-				"alias":     "global_allow",
-				"inlay":     true,
-				"target":    "*",
-				"action":    "/*",
+				restapi.IDKey: 1,
+				"label":       "全局访问",
+				"remark":      "可访问全部接口",
+				"status":      "1",
+				"alias":       "global_allow",
+				"inlay":       true,
+				"target":      "*",
+				"action":      "/*",
 			},
 		},
 	}, false)
@@ -354,13 +354,13 @@ func permModel(ms *model.Models) error {
 
 const logsName = "logs"
 
-func logModel(ms *model.Models) error {
-	_, err := ms.Reg(logsName, model.Define{
+func logModel(ms *restapi.Models) error {
+	_, err := ms.Reg(logsName, restapi.Define{
 		Name: logsName,
-		Options: model.Options{
+		Options: restapi.ModelOptions{
 			CryptID: true,
 		},
-		Fields: map[string]model.Field{
+		Fields: map[string]restapi.Field{
 			"account": {
 				Type:  schema.String,
 				Size:  120,

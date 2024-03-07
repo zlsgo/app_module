@@ -12,7 +12,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
-	"github.com/zlsgo/app_module/database/model"
+	"github.com/zlsgo/app_module/restapi"
 	"github.com/zlsgo/zdb"
 )
 
@@ -20,7 +20,7 @@ type Module struct {
 	service.App
 	service.ModuleLifeCycle
 	db          *zdb.DB
-	ms          *model.Models
+	ms          *restapi.Models
 	Options     Options
 	controllers []service.Controller
 }
@@ -37,14 +37,15 @@ func (p *Module) Name() string {
 type Options struct {
 	InitDB               func() (*zdb.DB, error) `json:"-"`
 	key                  string
-	InlayRBAC            ztype.Map  `json:"-"`
-	RBACFile             string     `json:"rbac_file"`
-	Prefix               string     `json:"prefix"`
-	InlayUser            ztype.Maps `json:"inlay_user"`
-	AdminDefaultPassword string     `json:"admin_default_password"`
-	Expire               int        `json:"expire"`
-	Only                 bool       `json:"only"`
-	NoLogIP              bool       `json:"no_ip"`
+	InlayRBAC            ztype.Map        `json:"-"`
+	RBACFile             string           `json:"rbac_file"`
+	Prefix               string           `json:"prefix"`
+	InlayUser            ztype.Maps       `json:"inlay_user"`
+	AdminDefaultPassword string           `json:"admin_default_password"`
+	Expire               int              `json:"expire"`
+	Only                 bool             `json:"only"`
+	NoLogIP              bool             `json:"no_ip"`
+	Models               []restapi.Define `json:"-"`
 }
 
 func (o Options) ConfKey() string {
@@ -78,9 +79,9 @@ func (p *Module) Tasks() []service.Task {
 				}
 
 				t := time.Now().AddDate(0, -1, 0)
-				_, err := model.DeleteMany(lm, ztype.Map{
+				_, err := restapi.DeleteMany(lm, ztype.Map{
 					"record_at <": ztime.FormatTime(t),
-				}, func(so *model.CondOptions) error {
+				}, func(so *restapi.CondOptions) error {
 					return nil
 				})
 				if err != nil {
@@ -123,7 +124,7 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 	if err != nil || p.db == nil {
 		return zerror.With(err, "init db error")
 	}
-	p.ms = model.New(model.NewSQL(p.db), func(o *model.ModelOptions) {
+	p.ms = restapi.NewModels(restapi.NewSQL(p.db), func(o *restapi.ModelsOptions) {
 		o.Prefix = "model_"
 	})
 

@@ -5,7 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
-	"github.com/zlsgo/app_module/database/model"
+	"github.com/zlsgo/app_module/restapi"
 )
 
 var (
@@ -19,11 +19,11 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 	m, _ := h.plugin.ms.Get(logsName)
 
 	page, pagesize, _ := common.VarPages(c)
-	return model.Pages(m, page, pagesize, ztype.Map{})
+	return restapi.Pages(m, page, pagesize, ztype.Map{})
 }
 
 // 记录日志
-func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
+func logRequest(c *znet.Context, m *restapi.Model, u ztype.Map) {
 	c.Next()
 
 	msg, ok := c.Value(logOptionMsgKey)
@@ -40,7 +40,7 @@ func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
 	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
 }
 
-func insertLog(c *znet.Context, m *model.Model, account string, status int32, msg string, remark ...[]byte) (interface{}, error) {
+func insertLog(c *znet.Context, m *restapi.Model, account string, status int32, msg string, remark ...[]byte) (interface{}, error) {
 	var r []byte
 	if len(remark) > 0 {
 		r = remark[0]
@@ -51,7 +51,7 @@ func insertLog(c *znet.Context, m *model.Model, account string, status int32, ms
 		ip = c.GetClientIP()
 	}
 
-	return model.Insert(m, ztype.Map{
+	return restapi.Insert(m, ztype.Map{
 		"account":   account,
 		"ip":        ip,
 		"method":    c.Request.Method,

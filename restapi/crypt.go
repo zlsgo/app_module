@@ -1,9 +1,10 @@
-package model
+package restapi
 
 import (
 	"errors"
-	"github.com/zlsgo/app_module/database/hashid"
 	"strings"
+
+	"github.com/zlsgo/app_module/database/hashid"
 
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"

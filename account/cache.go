@@ -4,8 +4,7 @@ import (
 	"errors"
 
 	"github.com/zlsgo/app_module/account/jwt"
-
-	"github.com/zlsgo/app_module/database/model"
+	"github.com/zlsgo/app_module/restapi"
 
 	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
@@ -14,9 +13,9 @@ import (
 
 var userCache = zcache.NewFast()
 
-func getUserForCache(m *model.Model, uid string) (ztype.Map, error) {
+func getUserForCache(m *restapi.Model, uid string) (ztype.Map, error) {
 	user, ok := userCache.ProvideGet(uid, func() (interface{}, bool) {
-		f, err := model.FindOne(m, uid, func(so *model.CondOptions) error {
+		f, err := restapi.FindOne(m, uid, func(so *restapi.CondOptions) error {
 			return nil
 		})
 		if err != nil {
@@ -40,7 +39,7 @@ func deleteUserForCache(uid string) {
 
 var jwtCache = zcache.NewFast()
 
-func getJWTForCache(m *model.Model, token, jwtKey string) (string, error) {
+func getJWTForCache(m *restapi.Model, token, jwtKey string) (string, error) {
 	uid, ok := jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {
@@ -49,7 +48,7 @@ func getJWTForCache(m *model.Model, token, jwtKey string) (string, error) {
 
 		salt := info.Info[:saltLen]
 		uid := info.Info[saltLen:]
-		f, err := model.FindCols(m, "salt", uid)
+		f, err := restapi.FindCols(m, "salt", uid)
 		if err != nil || f.Index(0).String() != salt {
 			return "", false
 		}

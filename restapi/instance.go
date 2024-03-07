@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"errors"
@@ -11,25 +11,25 @@ import (
 type Models struct {
 	m *zarray.Maper[string, *Model]
 	// db      *zdb.DB
-	storage Storageer
-	options ModelOptions
+	storage       Storageer
+	ModelsOptions ModelsOptions
 }
 
-type ModelOptions struct {
+type ModelsOptions struct {
 	// 前缀
 	Prefix string
 }
 
-func New(s Storageer, opt ...func(*ModelOptions)) *Models {
-	o := ModelOptions{}
+func NewModels(s Storageer, opt ...func(*ModelsOptions)) *Models {
+	o := ModelsOptions{}
 	for _, v := range opt {
 		v(&o)
 	}
 
 	return &Models{
-		storage: s,
-		m:       zarray.NewHashMap[string, *Model](),
-		options: o,
+		storage:       s,
+		m:             zarray.NewHashMap[string, *Model](),
+		ModelsOptions: o,
 	}
 }
 
@@ -69,7 +69,7 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 
 	m := &Model{
 		Storage:     ms.storage,
-		tablePrefix: ms.options.Prefix,
+		tablePrefix: ms.ModelsOptions.Prefix,
 		model:       data,
 	}
 	err := ms.set(name, m, force)

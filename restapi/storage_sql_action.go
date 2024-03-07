@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"errors"
@@ -182,7 +182,7 @@ func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions) erro
 
 		if hasJoin {
 			for _, v := range o.Join {
-				b.JoinWithOption(v.Options, b.As(v.Table, v.As), v.Expr)
+				b.JoinWithOption(v.ModelOptions, b.As(v.Table, v.As), v.Expr)
 			}
 		}
 
@@ -252,7 +252,7 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 
 		if hasJoin {
 			for _, v := range o.Join {
-				b.JoinWithOption(v.Options, b.As(v.Table, v.As), v.Expr)
+				b.JoinWithOption(v.ModelOptions, b.As(v.Table, v.As), v.Expr)
 			}
 		}
 

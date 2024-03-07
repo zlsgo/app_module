@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
@@ -13,10 +13,10 @@ const (
 
 type StorageType uint8
 type StorageJoin struct {
-	Table   string
-	As      string
-	Expr    string
-	Options builder.JoinOption
+	Table        string
+	As           string
+	Expr         string
+	ModelOptions builder.JoinOption
 }
 
 // type StorageWhere struct {
@@ -26,7 +26,7 @@ type StorageJoin struct {
 // 	Value interface{}
 // }
 
-type StorageOptions struct {
+type StorageModelOptions struct {
 }
 
 type CondOptions struct {

@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"errors"
@@ -132,16 +132,16 @@ func VerifiData(data ztype.Map, columns Fields, active activeType) (ztype.Map, e
 	return d, nil
 }
 
-// func parseColumnOptions(c *Column) {
-// 	if len(c.Options) > 0 {
-// 		c.Options = zarray.Var(c.Options, func(_ int, v ColumnEnum) ColumnEnum {
+// func parseColumnModelOptions(c *Column) {
+// 	if len(c.ModelOptions) > 0 {
+// 		c.ModelOptions = zarray.Var(c.ModelOptions, func(_ int, v ColumnEnum) ColumnEnum {
 // 			if v.Label == "" {
 // 				v.Label = v.Value
 // 			}
 // 			return v
 // 		})
 
-// 		c.validRules = c.validRules.EnumString(zarray.Var(c.Options, func(_ int, v ColumnEnum) string {
+// 		c.validRules = c.validRules.EnumString(zarray.Var(c.ModelOptions, func(_ int, v ColumnEnum) string {
 // 			return v.Value
 // 		}))
 // 	}

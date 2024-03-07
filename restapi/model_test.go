@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ func TestDefine(t *testing.T) {
 			// 	Label: "新的",
 			// },
 		},
-		Options: Options{DisabledMigrator: true},
+		ModelOptions: ModelOptions{DisabledMigrator: true},
 	}
 	s := New(nil)
 

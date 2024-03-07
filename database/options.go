@@ -7,7 +7,7 @@ type (
 		MySQL        Mysql    `json:"mysql"`
 		Postgres     Postgres `json:"postgres"`
 		disableWrite bool     `json:"-"`
-		Model        Model    `json:"model"`
+		Mode         Mode     `json:"mode"`
 	}
 
 	Mysql struct {
@@ -31,7 +31,7 @@ type (
 		Path       string `json:"path"`
 		Parameters string `json:"parameters"`
 	}
-	Model struct {
+	Mode struct {
 		DelteColumn bool `json:"delete_column"`
 	}
 )

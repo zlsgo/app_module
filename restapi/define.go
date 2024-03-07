@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"database/sql/driver"
@@ -23,8 +23,9 @@ type (
 		Table         Table                            `json:"table"`
 		Name          string                           `json:"name"`
 		Values        ztype.Maps                       `json:"values"`
-		Options       Options                          `json:"options"`
+		Options       ModelOptions                     `json:"options"`
 	}
+
 	Model struct {
 		model         Define
 		Storage       Storageer
@@ -50,7 +51,7 @@ type (
 		Comment string `json:"comment"`
 	}
 
-	Options struct {
+	ModelOptions struct {
 		Salt             string   `json:"crypt_salt"`
 		LowFields        []string `json:"low_fields"`
 		FieldsSort       []string `json:"fields_sort"`

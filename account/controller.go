@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
-	"github.com/zlsgo/app_module/database/model"
+	"github.com/zlsgo/app_module/restapi"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zcache"
@@ -25,9 +25,9 @@ import (
 
 type Index struct {
 	service.App
-	model     *model.Model
-	permModel *model.Model
-	roleModel *model.Model
+	model     *restapi.Model
+	permModel *restapi.Model
+	roleModel *restapi.Model
 	plugin    *Module
 	Path      string
 }
@@ -73,7 +73,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := model.FindCols(h.model, "salt", uid)
+	f, err := restapi.FindCols(h.model, "salt", uid)
 	if err != nil || f.Index(0).String() != salt {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 已失效"))
 	}
@@ -102,7 +102,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetMe 获取当前用户信息
 func (h *Index) GetMe(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := model.FindOne(h.model, common.VarUID(c), func(so *model.CondOptions) error {
+	info, err := restapi.FindOne(h.model, common.VarUID(c), func(so *restapi.CondOptions) error {
 		so.Fields = h.model.GetFields("password", "salt")
 		return nil
 	})
@@ -113,17 +113,17 @@ func (h *Index) GetMe(c *znet.Context) (interface{}, error) {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("用户不存在"))
 	}
 
-	perms, _ := model.FindCols(h.roleModel, "permission", ztype.Map{
+	perms, _ := restapi.FindCols(h.roleModel, "permission", ztype.Map{
 		"alias": info.Get("role").SliceString(),
 	})
 	permIDs := make([]int, 0)
 	for i := range perms {
 		permIDs = append(permIDs, perms[i].SliceInt()...)
 	}
-	permission, _ := model.FindCols(h.permModel, "alias", ztype.Map{
-		model.IDKey: zarray.Unique(permIDs),
-		"alias !=":  "",
-	}, func(o *model.CondOptions) error {
+	permission, _ := restapi.FindCols(h.permModel, "alias", ztype.Map{
+		restapi.IDKey: zarray.Unique(permIDs),
+		"alias !=":    "",
+	}, func(o *restapi.CondOptions) error {
 		o.Fields = []string{"alias"}
 		return nil
 	})
@@ -181,7 +181,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := model.FindOne(h.model, ztype.Map{
+	user, err := restapi.FindOne(h.model, ztype.Map{
 		"account": account,
 	})
 	if err != nil {
@@ -221,7 +221,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		salt = zstring.Rand(saltLen)
 	}
 
-	uid := user.Get(model.IDKey).String()
+	uid := user.Get(restapi.IDKey).String()
 	err = updateUser(h.model, uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
@@ -291,8 +291,8 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := common.VarUID(c)
-	user, _ := model.FindOne(h.model, uid, func(so *model.CondOptions) error {
-		so.Fields = []string{model.IDKey, "password", "salt"}
+	user, _ := restapi.FindOne(h.model, uid, func(so *restapi.CondOptions) error {
+		so.Fields = []string{restapi.IDKey, "password", "salt"}
 		return nil
 	})
 	if user.IsEmpty() {
@@ -358,7 +358,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 	return res[0].Path, err
 }
 
-func updateUser(m *model.Model, id string, data ztype.Map) error {
-	_, err := model.Update(m, id, data)
+func updateUser(m *restapi.Model, id string, data ztype.Map) error {
+	_, err := restapi.Update(m, id, data)
 	return err
 }

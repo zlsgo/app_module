@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"github.com/zlsgo/zdb"

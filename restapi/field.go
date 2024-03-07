@@ -1,4 +1,4 @@
-package model
+package restapi
 
 import (
 	"errors"
@@ -25,7 +25,7 @@ type (
 		Label       string          `json:"label"`
 		Type        schema.DataType `json:"type"`
 		Validations []Validations   `json:"validations"`
-		Options     FieldOption     `json:"options"`
+		Options     FieldOption     `json:"ModelOptions"`
 		Before      []string        `json:"before"`
 		After       []string        `json:"after"`
 		validRules  zvalid.Engine
@@ -121,7 +121,7 @@ func (m *Model) getField(name string) (*Field, bool) {
 	// 			Nullable: true,
 	// 			Default:  "",
 	// 			Size:     120,
-	// 			Options: FieldOption{
+	// 			ModelOptions: FieldOption{
 	// 				ReadOnly: true,
 	// 			},
 	// 			Label: "创建人 ID"}, true
@@ -236,11 +236,11 @@ func parseField(m *Model, name string, f *Field) error {
 	}
 
 	parseFieldValidRule(name, f)
-	parseFieldOptions(name, f)
+	parseFieldModelOptions(name, f)
 	return nil
 }
 
-func parseFieldOptions(name string, c *Field) {
+func parseFieldModelOptions(name string, c *Field) {
 	if len(c.Options.Enum) > 0 {
 		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v FieldEnum) FieldEnum {
 			if v.Label == "" {

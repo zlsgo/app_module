@@ -1,4 +1,4 @@
-package model
+package restapi
 
 type inside struct {
 	oldColumn DealOldColumn
