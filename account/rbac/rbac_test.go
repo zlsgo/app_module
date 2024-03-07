@@ -16,7 +16,19 @@ func TestNew(t *testing.T) {
 	err := r.AddRole("admin", admin)
 	tt.NoError(err)
 
-	ok, err := r.Can("admin", "GET", "/api/test")
+	newRole := NewRole(MatchSomeDeny)
+	newRole.AddGlobPermission(1, "GET", "/web/user")
+	r.MergerRole("admin", newRole)
+
+	ok, err := r.Can("admin", "GET", "/web/user")
+	tt.NoError(err)
+	tt.EqualTrue(ok)
+
+	ok, err = r.Can("admin", "POST", "/web/user")
+	tt.NoError(err)
+	tt.EqualTrue(!ok)
+
+	ok, err = r.Can("admin", "GET", "/api/test")
 	tt.NoError(err)
 	tt.EqualTrue(ok)
 

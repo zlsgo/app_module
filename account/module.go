@@ -11,6 +11,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/account/rbac"
 	"github.com/zlsgo/app_module/database/model"
 	"github.com/zlsgo/zdb"
 )
@@ -36,6 +37,7 @@ func (p *Module) Name() string {
 type Options struct {
 	InitDB               func() (*zdb.DB, error) `json:"-"`
 	key                  string
+	RBACFile             string     `json:"rbac_file,omitempty"`
 	Prefix               string     `json:"prefix"`
 	InlayUser            ztype.Maps `json:"inlay_user"`
 	AdminDefaultPassword string     `json:"admin_default_password"`
@@ -137,7 +139,11 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 	index.permModel, _ = p.ms.Get(permName)
 	index.roleModel, _ = p.ms.Get(roleName)
 
-	if err = p.initMiddleware(); err != nil {
+	permission := rbac.New()
+
+	// o.RBACFile
+
+	if err = p.initMiddleware(permission); err != nil {
 		return err
 	}
 

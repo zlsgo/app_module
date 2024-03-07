@@ -74,6 +74,21 @@ func (r *RBAC) AddRole(roleName string, role *Role) error {
 	return nil
 }
 
+func (r *RBAC) MergerRole(roleName string, role *Role) error {
+	if !r.roles.Has(roleName) {
+		return r.AddRole(roleName, role)
+	}
+
+	userRole, _ := r.roles.Get(roleName)
+	for i, p := range role.permissions.permission {
+		for _, v := range p {
+			userRole.permissions.add(i, v)
+		}
+	}
+
+	return nil
+}
+
 func (r *RBAC) RemoveRole(roleName string) error {
 	r.roles.Delete(roleName)
 	return nil

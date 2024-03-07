@@ -25,7 +25,7 @@ func (p *Module) RegMiddleware(r *znet.Engine) error {
 	return nil
 }
 
-func (p *Module) initMiddleware() error {
+func (p *Module) initMiddleware(permission *rbac.RBAC) error {
 	permissionDenied := zerror.WrapTag(zerror.PermissionDenied)
 
 	userModel, ok := p.ms.Get(accountName)
@@ -56,7 +56,6 @@ func (p *Module) initMiddleware() error {
 		return err
 	}
 
-	permission := rbac.New()
 	// 添加权限规则
 	for _, r := range roles {
 		role := rbac.NewRole(rbac.MatchPriorityDeny)
@@ -74,7 +73,7 @@ func (p *Module) initMiddleware() error {
 		for _, perm := range perms {
 			role.AddGlobPermission(perm.Get("priority").Int(), perm.Get("action").String(), perm.Get("target").String())
 		}
-		err = permission.AddRole(r.Get("name").String(), role)
+		err = permission.MergerRole(r.Get("name").String(), role)
 		if err != nil {
 			return err
 		}
