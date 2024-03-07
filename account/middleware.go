@@ -16,9 +16,22 @@ var (
 	verifyPermissions func(c *znet.Context) error
 )
 
-func (p *Module) RegMiddleware(r *znet.Engine) error {
+func (p *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
 		return errors.New("jwt key is empty")
+	}
+
+	if len(ignore) > 0 {
+		r.Use(func(c *znet.Context) error {
+			for _, v := range ignore {
+				if c.Request.URL.Path == v {
+					c.Next()
+					return nil
+				}
+			}
+			return verifyPermissions(c)
+		})
+		return nil
 	}
 
 	r.Use(verifyPermissions)
