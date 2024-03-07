@@ -5,12 +5,23 @@ import (
 )
 
 type SQL struct {
-	db *zdb.DB
+	db      *zdb.DB
+	Options SQLOptions
+}
+type SQLOptions struct {
+	Prefix string
 }
 
-func NewSQL(db *zdb.DB) Storageer {
+func NewSQL(db *zdb.DB, o ...func(*SQLOptions)) Storageer {
+	opt := SQLOptions{
+		Prefix: "model_",
+	}
+	for _, f := range o {
+		f(&opt)
+	}
 	return &SQL{
-		db: db,
+		db:      db,
+		Options: opt,
 	}
 }
 

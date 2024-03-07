@@ -23,9 +23,9 @@ func New(o ...func(*Options)) (p *Module) {
 			OnDone: func(di zdi.Invoker) error {
 				return di.InvokeWithErrorOnly(func(db *zdb.DB) error {
 
-					mod := NewModels(NewSQL(db), func(o *ModelsOptions) {
+					mod := NewModels(NewSQL(db, func(o *SQLOptions) {
 						o.Prefix = "model_"
-					})
+					}))
 					for _, d := range opt.ModelsDefine {
 						_, err := mod.Reg(d.Name, d, false)
 						if err != nil {

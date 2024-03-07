@@ -124,9 +124,7 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 	if err != nil || p.db == nil {
 		return zerror.With(err, "init db error")
 	}
-	p.ms = restapi.NewModels(restapi.NewSQL(p.db), func(o *restapi.ModelsOptions) {
-		o.Prefix = "model_"
-	})
+	p.ms = restapi.NewModels(restapi.NewSQL(p.db))
 
 	if err = initModel(p); err != nil {
 		return zerror.With(err, "init model error")

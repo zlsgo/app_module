@@ -11,25 +11,13 @@ import (
 type Models struct {
 	m *zarray.Maper[string, *Model]
 	// db      *zdb.DB
-	storage       Storageer
-	ModelsOptions ModelsOptions
+	storage Storageer
 }
 
-type ModelsOptions struct {
-	// 前缀
-	Prefix string
-}
-
-func NewModels(s Storageer, opt ...func(*ModelsOptions)) *Models {
-	o := ModelsOptions{}
-	for _, v := range opt {
-		v(&o)
-	}
-
+func NewModels(s Storageer) *Models {
 	return &Models{
-		storage:       s,
-		m:             zarray.NewHashMap[string, *Model](),
-		ModelsOptions: o,
+		storage: s,
+		m:       zarray.NewHashMap[string, *Model](),
 	}
 }
 
@@ -67,10 +55,15 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 		return nil, errors.New("model " + name + " has been registered")
 	}
 
+	var tablePrefix string
+	if s, ok := ms.storage.(*SQL); ok {
+		tablePrefix = s.Options.Prefix
+	}
+
 	m := &Model{
 		Storage:     ms.storage,
-		tablePrefix: ms.ModelsOptions.Prefix,
 		model:       data,
+		tablePrefix: tablePrefix,
 	}
 	err := ms.set(name, m, force)
 	if err != nil {
