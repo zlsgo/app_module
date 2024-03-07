@@ -74,7 +74,8 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 	}
 	err := ms.set(name, m, force)
 	if err != nil {
-		return nil, errors.New("model " + name + " register error: " + err.Error())
+		err = zerror.With(err, "model "+name+" register error")
+		return nil, err
 	}
 
 	if m.Define().Options.DisabledMigrator {
@@ -83,7 +84,8 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 
 	err = m.Migration().Auto(Inside.oldColumn)
 	if err != nil {
-		return nil, errors.New("model " + name + " migration error: " + err.Error())
+		err = zerror.With(err, "model "+name+" migration error")
+		return nil, err
 	}
 
 	return m, nil

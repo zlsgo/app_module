@@ -65,6 +65,7 @@ func (m *Migration) InitValue(first bool) error {
 		// if !ok {
 		// 	return errors.New("初始化数据格式错误")
 		// }
+
 		if !first {
 			if _, ok := data[IDKey]; ok {
 				continue
