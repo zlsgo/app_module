@@ -47,6 +47,30 @@ func TestNew(t *testing.T) {
 	tt.Equal(false, ok)
 }
 
+func TestMerge(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	admin := testRole(MatchPriorityDeny)
+	e := New()
+	e.AddRole("admin", admin)
+
+	r := New()
+	newRole := NewRole(MatchSomeDeny)
+	newRole.AddGlobPermission(1, "GET", "/web/user")
+	err := r.AddRole("admin2", newRole)
+	tt.NoError(err)
+
+	e.Merge(r)
+
+	ok, err := e.Can("admin2", "GET", "/web/user")
+	tt.NoError(err)
+	tt.EqualTrue(ok)
+
+	ok, err = e.Can("admin", "GET", "/api/test")
+	tt.NoError(err)
+	tt.EqualTrue(ok)
+}
+
 func TestNewGo(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 	admin := testRole(MatchPriorityDeny)
@@ -80,8 +104,9 @@ func TestNewGo(t *testing.T) {
 
 func TestParseConfig(t *testing.T) {
 	tt := zlsgo.NewTest(t)
+
 	path := zfile.RootPath() + "testdata/rbac.toml"
-	r, err := ParseConfig(path)
+	r, err := ParseFile(path)
 	tt.Log(path)
 	tt.NoError(err, true)
 

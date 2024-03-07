@@ -37,7 +37,8 @@ func (p *Module) Name() string {
 type Options struct {
 	InitDB               func() (*zdb.DB, error) `json:"-"`
 	key                  string
-	RBACFile             string     `json:"rbac_file,omitempty"`
+	InlayRBAC            ztype.Map  `json:"-"`
+	RBACFile             string     `json:"rbac_file"`
 	Prefix               string     `json:"prefix"`
 	InlayUser            ztype.Maps `json:"inlay_user"`
 	AdminDefaultPassword string     `json:"admin_default_password"`
@@ -132,16 +133,29 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 
 	m, ok := p.ms.Get(accountName)
 	if !ok {
-		return errors.New("账号模型不存在")
+		return errors.New("account model not found")
 	}
 
 	index.model = m
 	index.permModel, _ = p.ms.Get(permName)
 	index.roleModel, _ = p.ms.Get(roleName)
 
-	permission := rbac.New()
+	permission, err := rbac.Parse(p.Options.InlayRBAC)
+	if err != nil {
+		return err
+	}
 
-	// o.RBACFile
+	if p.Options.RBACFile != "" {
+		fPermission, err := rbac.ParseFile(p.Options.RBACFile)
+		if err != nil {
+			return zerror.With(err, "parse rbac file error")
+		}
+
+		err = permission.Merge(fPermission)
+		if err != nil {
+			return zerror.With(err, "merge rbac file error")
+		}
+	}
 
 	if err = p.initMiddleware(permission); err != nil {
 		return err

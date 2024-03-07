@@ -19,18 +19,16 @@ func New() *RBAC {
 	}
 }
 
-func ParseConfig(path string) (*RBAC, error) {
-	c := conf.New(zfile.RealPath(path))
-	err := c.Read()
-	if err != nil {
-		return nil, err
-	}
-
-	r := &RBAC{
+func Parse(rules ztype.Map) (r *RBAC, err error) {
+	r = &RBAC{
 		roles: zarray.NewHashMap[string, *Role](),
 	}
 
-	ztype.ToMap(c.GetAll()).ForEach(func(key string, value ztype.Type) bool {
+	if rules == nil {
+		return
+	}
+
+	rules.ForEach(func(key string, value ztype.Type) bool {
 		m := value.Get("mode").Uint()
 		if m > uint(MatchSomeAllow) {
 			m = uint(MatchPriorityDeny)
@@ -62,7 +60,17 @@ func ParseConfig(path string) (*RBAC, error) {
 		return err == nil
 	})
 
-	return r, err
+	return
+}
+
+func ParseFile(path string) (*RBAC, error) {
+	c := conf.New(zfile.RealPath(path))
+	err := c.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	return Parse(ztype.ToMap(c.GetAll()))
 }
 
 func (r *RBAC) AddRole(roleName string, role *Role) error {
@@ -86,6 +94,14 @@ func (r *RBAC) MergerRole(roleName string, role *Role) error {
 		}
 	}
 
+	return nil
+}
+
+func (r *RBAC) Merge(rd *RBAC) error {
+	rd.roles.ForEach(func(key string, value *Role) bool {
+		r.MergerRole(key, value)
+		return true
+	})
 	return nil
 }
 
