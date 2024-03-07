@@ -37,7 +37,7 @@ func (p *Module) Name() string {
 type Options struct {
 	InitDB               func() (*zdb.DB, error) `json:"-"`
 	key                  string
-	InlayRBAC            ztype.Map        `json:"-"`
+	InlayRBAC            *rbac.RBAC       `json:"-"`
 	RBACFile             string           `json:"rbac_file"`
 	Prefix               string           `json:"prefix"`
 	InlayUser            ztype.Maps       `json:"inlay_user"`
@@ -141,9 +141,9 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 	index.permModel, _ = p.ms.Get(permName)
 	index.roleModel, _ = p.ms.Get(roleName)
 
-	permission, err := rbac.Parse(p.Options.InlayRBAC)
-	if err != nil {
-		return err
+	permission := p.Options.InlayRBAC
+	if permission == nil {
+		permission = rbac.New()
 	}
 
 	if p.Options.RBACFile != "" {
