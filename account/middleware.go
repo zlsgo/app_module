@@ -8,8 +8,15 @@ import (
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/restapi"
+)
+
+const (
+	contextWithUID          = "account::uid"
+	contextWithRole         = "account::role"
+	contextWithIsInlayAdmin = "account::administrator"
 )
 
 var (
@@ -18,13 +25,13 @@ var (
 
 func (p *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
-		return errors.New("jwt key is empty")
+		return errors.New("middleware not initialized, please call Init first")
 	}
 
 	if len(ignore) > 0 {
 		r.Use(func(c *znet.Context) error {
 			for _, v := range ignore {
-				if c.Request.URL.Path == v {
+				if zstring.Match(c.Request.URL.Path, v) {
 					c.Next()
 					return nil
 				}
@@ -107,7 +114,7 @@ func (p *Module) initMiddleware(permission *rbac.RBAC) error {
 			return err
 		}
 
-		c.WithValue("uid", uid)
+		c.WithValue(contextWithUID, uid)
 
 		u, err := getUserForCache(userModel, uid)
 		if err != nil {
@@ -120,11 +127,15 @@ func (p *Module) initMiddleware(permission *rbac.RBAC) error {
 
 		logRequest(c, logModel, u)
 
-		if u.Get("administrator").Bool() {
+		isInlayAdmin := u.Get("administrator").Bool()
+		c.WithValue(contextWithIsInlayAdmin, isInlayAdmin)
+		if isInlayAdmin {
 			return nil
 		}
 
-		for _, r := range u.Get("role").SliceString() {
+		roles := u.Get("role").SliceString()
+		c.WithValue(contextWithRole, roles)
+		for _, r := range roles {
 			isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
 			if isAllow {
 				return nil
