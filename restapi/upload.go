@@ -9,17 +9,19 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
 type UploadOptions struct {
-	MaxSize    uint64
-	MaxFiles   int
-	AllowTypes []string
-	AllowExts  []string
-	FormName   string
-	Dir        string
-	SafeDir    bool
+	MaxSize       uint64
+	MaxFiles      int
+	AllowTypes    []string
+	AllowExts     []string
+	FormName      string
+	Dir           string
+	SafeDir       bool
+	ConveFilePath func(file, name, dir string) string
 }
 
 // Upload Upload file
@@ -31,6 +33,18 @@ func Upload(c *znet.Context, o ...func(options *UploadOptions)) (files []string,
 		AllowExts:  []string{"jpg", "jpeg", "png", "gif"},
 		FormName:   "file",
 		SafeDir:    true,
+		ConveFilePath: func(file, name, dir string) string {
+			n, err := zstring.Md5File(file)
+			if err != nil {
+				return file
+			}
+
+			ext := filepath.Ext(name)
+			if len(ext) > 0 {
+				n += ext
+			}
+			return dir + n
+		},
 	}
 	for _, f := range o {
 		f(&opt)
@@ -63,6 +77,7 @@ func Upload(c *znet.Context, o ...func(options *UploadOptions)) (files []string,
 
 	for _, fileHeader := range filesHeader {
 		path := uploadDir + fileHeader.Filename
+
 		err = fileAllow(fileHeader, opt.MaxSize, opt.AllowTypes, opt.AllowExts)
 		if err != nil {
 			return
@@ -73,6 +88,9 @@ func Upload(c *znet.Context, o ...func(options *UploadOptions)) (files []string,
 			return
 		}
 
+		if opt.ConveFilePath != nil {
+			path = opt.ConveFilePath(path, fileHeader.Filename, uploadDir)
+		}
 		files = append(files, path)
 	}
 
