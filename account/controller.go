@@ -102,13 +102,14 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetMe 获取当前用户信息
 func (h *Index) GetMe(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := restapi.FindOne(h.accoutModel, common.VarUID(c), func(so *restapi.CondOptions) error {
+	info, err := restapi.FindOne(h.accoutModel, Ctx.UID(c), func(so *restapi.CondOptions) error {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	if info.IsEmpty() {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("用户不存在"))
 	}
@@ -251,7 +252,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 
 // AnyLogout 用户退出
 func (h *Index) AnyLogout(c *znet.Context) (any, error) {
-	uid := common.VarUID(c)
+	uid := Ctx.UID(c)
 	if uid == "" {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
@@ -291,7 +292,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		return nil, invalidInput(err)
 	}
 
-	uid := common.VarUID(c)
+	uid := Ctx.UID(c)
 	user, _ := restapi.FindOne(h.accoutModel, uid, func(so *restapi.CondOptions) error {
 		so.Fields = []string{restapi.IDKey, "password", "salt"}
 		return nil
@@ -328,7 +329,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 
 // PatchMe 修改当前用户信息
 func (h *Index) PatchMe(c *znet.Context) (any, error) {
-	uid := common.VarUID(c)
+	uid := Ctx.UID(c)
 	data, _ := c.GetJSONs()
 	keys := []string{"avatar", "nickname"}
 	update := make(ztype.Map, 0)
@@ -344,7 +345,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 
 // POSTAvatar 上传用户头像
 func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
-	uid := common.VarUID(c)
+	uid := Ctx.UID(c)
 	res, err := common.Upload(c, "account", func(o *common.UploadOption) {
 		o.Dir = "/avatar"
 		o.MimeType = []string{"image/*"}

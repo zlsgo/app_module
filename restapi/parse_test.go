@@ -18,7 +18,7 @@ func TestSet(t *testing.T) {
 			Name:    "lowcode_logs",
 			Comment: "日志表",
 		},
-		ModelOptions: ModelOptions{
+		Options: ModelOptions{
 			Timestamps: true,
 			CryptID:    true,
 		},
@@ -54,7 +54,7 @@ func TestSet(t *testing.T) {
 			Label:   "状态",
 			Size:    9,
 			Default: "1",
-			ModelOptions: FieldOption{
+			Options: FieldOption{
 				// Quote: true,
 				Enum: []FieldEnum{
 					{Value: "1", Label: "未读"},
@@ -69,9 +69,7 @@ func TestSet(t *testing.T) {
 		Memory:     true,
 		Parameters: "_pragma=busy_timeout(3000)",
 	})
-	model := New(NewSQL(db), func(o *ModelOptions) {
-		o.Prefix = "model_"
-	})
+	model := NewModels(NewSQL(db))
 
 	m, err := model.Reg("test_model", data, false)
 	tt.NoError(err)
@@ -94,7 +92,7 @@ func TestSet(t *testing.T) {
 	_, _ = Insert(m, map[string]interface{}{"action": "demo", "ip": "127.0.0.3", "status": "1"})
 
 	row, err := FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
-		ModelOptions.OrderBy = [][]string{{IDKey, "DESC"}}
+		ModelOptions.OrderBy = map[string]string{IDKey: "DESC"}
 		ModelOptions.Fields = []string{IDKey, "status"}
 		return nil
 	})
@@ -106,7 +104,7 @@ func TestSet(t *testing.T) {
 	tt.Log(total)
 
 	row, err = FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
-		ModelOptions.OrderBy = [][]string{{IDKey, "DESC"}}
+		ModelOptions.OrderBy = map[string]string{IDKey: "DESC"}
 		return nil
 	})
 	tt.NoError(err)

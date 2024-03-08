@@ -56,9 +56,7 @@ func (m *Model) DeCrypt(row ztype.Map) (err error) {
 			}
 		}
 	}
-
 	return
-
 }
 
 // EnCrypt  加密 ID

@@ -23,7 +23,7 @@ func getUserForCache(m *restapi.Model, uid string) (ztype.Map, error) {
 		}
 		if m.Define().Options.CryptID {
 			id, _ := m.DeCryptID(uid)
-			f.Set("raw_id", id)
+			_ = f.Set("raw_id", id)
 		}
 		return f, true
 	})

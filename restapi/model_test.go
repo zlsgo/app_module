@@ -24,9 +24,9 @@ func TestDefine(t *testing.T) {
 			// 	Label: "新的",
 			// },
 		},
-		ModelOptions: ModelOptions{DisabledMigrator: true},
+		Options: ModelOptions{DisabledMigrator: true},
 	}
-	s := New(nil)
+	s := NewModels(nil)
 
 	var wg zsync.WaitGroup
 	for i := 0; i < 2; i++ {
@@ -37,5 +37,5 @@ func TestDefine(t *testing.T) {
 		})
 
 	}
-	wg.Wait()
+	_ = wg.Wait()
 }
