@@ -44,7 +44,7 @@ type Options struct {
 	AdminDefaultPassword string           `json:"admin_default_password"`
 	Expire               int              `json:"expire"`
 	Only                 bool             `json:"only"`
-	NoLogIP              bool             `json:"no_ip"`
+	DisabledLogIP        bool             `json:"disabled_ip"`
 	Models               []restapi.Define `json:"-"`
 }
 
@@ -165,7 +165,7 @@ func (m *Module) Start(zdi.Invoker) (err error) {
 		return err
 	}
 
-	noLogIP = m.Options.NoLogIP
+	noLogIP = m.Options.DisabledLogIP
 	return
 }
 

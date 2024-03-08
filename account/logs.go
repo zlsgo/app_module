@@ -9,9 +9,7 @@ import (
 )
 
 var (
-	logOptionMsgKey    = "~account::log::msg"
-	logOptionRemarkKey = "~account::log::remark"
-	noLogIP            = false
+	noLogIP = false
 )
 
 // GetLogs 操作日志
@@ -24,24 +22,25 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 
 // 记录日志
 func logRequest(c *znet.Context, m *restapi.Model, u ztype.Map) {
+
 	c.Next()
 
-	msg, ok := c.Value(logOptionMsgKey)
+	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return
 	}
 
-	var remark []byte
+	var remark string
 
-	if r, ok := c.Value(logOptionRemarkKey); ok {
-		remark = r.([]byte)
+	if r, ok := c.Value(ctxWithLogRemark); ok {
+		remark = ztype.ToString(r)
 	}
 
 	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
 }
 
-func insertLog(c *znet.Context, m *restapi.Model, account string, status int32, msg string, remark ...[]byte) (interface{}, error) {
-	var r []byte
+func insertLog(c *znet.Context, m *restapi.Model, account string, status int32, msg string, remark ...string) (interface{}, error) {
+	var r string
 	if len(remark) > 0 {
 		r = remark[0]
 	}
@@ -62,16 +61,4 @@ func insertLog(c *znet.Context, m *restapi.Model, account string, status int32, 
 		"params":    c.Request.URL.Query().Encode(),
 		"record_at": ztime.Now(),
 	})
-}
-
-// WithLog 记录日志
-func WithLog(c *znet.Context, message string, remark ...[]byte) {
-	lastMsg := c.MustValue(logOptionMsgKey, "").(string)
-	if lastMsg != "" {
-		message = lastMsg + ": " + message
-	}
-	c.WithValue(logOptionMsgKey, message)
-	if len(remark) > 0 {
-		c.WithValue(logOptionRemarkKey, remark[0])
-	}
 }

@@ -270,11 +270,12 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	defer func() {
 		if err != nil {
-			WithLog(c, "修改密码", []byte(err.Error()))
+			Ctx.WithLog(c, "修改密码", err.Error())
 		} else {
-			WithLog(c, "修改密码", []byte("修改成功"))
+			Ctx.WithLog(c, "修改密码", "修改成功")
 		}
 	}()
+
 	var (
 		old      string
 		password string
