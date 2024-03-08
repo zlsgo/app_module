@@ -16,7 +16,7 @@ var (
 
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
-	m, _ := h.plugin.ms.Get(logsName)
+	m, _ := h.plugin.mods.Get(logsName)
 
 	page, pagesize, _ := common.VarPages(c)
 	return restapi.Pages(m, page, pagesize, ztype.Map{})

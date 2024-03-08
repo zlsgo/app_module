@@ -26,10 +26,10 @@ func initModel(p *Module) error {
 	}}, p.Options.InlayUser...)
 
 	for _, err := range []error{
-		accountModel(p.ms, inlayUser),
-		roleModel(p.ms),
-		permModel(p.ms),
-		logModel(p.ms),
+		accountModel(p.mods, inlayUser),
+		roleModel(p.mods),
+		permModel(p.mods),
+		logModel(p.mods),
 	} {
 		if err != nil {
 			return err

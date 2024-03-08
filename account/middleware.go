@@ -23,7 +23,7 @@ var (
 	verifyPermissions func(c *znet.Context) error
 )
 
-func (p *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
+func (m *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
 		return errors.New("middleware not initialized, please call Init first")
 	}
@@ -45,27 +45,27 @@ func (p *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
 	return nil
 }
 
-func (p *Module) initMiddleware(permission *rbac.RBAC) error {
+func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	permissionDenied := zerror.WrapTag(zerror.PermissionDenied)
 
-	userModel, ok := p.ms.Get(accountName)
+	userModel, ok := m.mods.Get(accountName)
 	if !ok {
-		return errors.New(accountName + " model not found")
+		return errors.New(accountName + " accoutModel not found")
 	}
 
-	logModel, ok := p.ms.Get(logsName)
+	logModel, ok := m.mods.Get(logsName)
 	if !ok {
-		return errors.New(logsName + " model not found")
+		return errors.New(logsName + " accoutModel not found")
 	}
 
-	roleModel, ok := p.ms.Get(roleName)
+	roleModel, ok := m.mods.Get(roleName)
 	if !ok {
-		return errors.New(roleName + " model not found")
+		return errors.New(roleName + " accoutModel not found")
 	}
 
-	permModel, ok := p.ms.Get(permName)
+	permModel, ok := m.mods.Get(permName)
 	if !ok {
-		return errors.New(permName + " model not found")
+		return errors.New(permName + " accoutModel not found")
 	}
 
 	// TODO: 可能需要独立出来方便做缓存
@@ -106,10 +106,10 @@ func (p *Module) initMiddleware(permission *rbac.RBAC) error {
 		}
 
 		if userModel == nil {
-			return errors.New(accountName + " model not found")
+			return errors.New(accountName + " accoutModel not found")
 		}
 
-		uid, err := getJWTForCache(userModel, token, p.Options.key)
+		uid, err := getJWTForCache(userModel, token, m.Options.key)
 		if err != nil {
 			return err
 		}

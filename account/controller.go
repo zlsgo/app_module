@@ -25,11 +25,11 @@ import (
 
 type Index struct {
 	service.App
-	model     *restapi.Model
-	permModel *restapi.Model
-	roleModel *restapi.Model
-	plugin    *Module
-	Path      string
+	accoutModel *restapi.Model
+	permModel   *restapi.Model
+	roleModel   *restapi.Model
+	plugin      *Module
+	Path        string
 }
 
 var (
@@ -73,13 +73,13 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := restapi.FindCols(h.model, "salt", uid)
+	f, err := restapi.FindCols(h.accoutModel, "salt", uid)
 	if err != nil || f.Index(0).String() != salt {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 已失效"))
 	}
 
 	salt = zstring.Rand(saltLen)
-	err = updateUser(h.model, uid, ztype.Map{
+	err = updateUser(h.accoutModel, uid, ztype.Map{
 		"salt": salt,
 	})
 	if err != nil {
@@ -102,8 +102,8 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetMe 获取当前用户信息
 func (h *Index) GetMe(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := restapi.FindOne(h.model, common.VarUID(c), func(so *restapi.CondOptions) error {
-		so.Fields = h.model.GetFields("password", "salt")
+	info, err := restapi.FindOne(h.accoutModel, common.VarUID(c), func(so *restapi.CondOptions) error {
+		so.Fields = h.accoutModel.GetFields("password", "salt")
 		return nil
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := restapi.FindOne(h.model, ztype.Map{
+	user, err := restapi.FindOne(h.accoutModel, ztype.Map{
 		"account": account,
 	})
 	if err != nil {
@@ -222,7 +222,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	uid := user.Get(restapi.IDKey).String()
-	err = updateUser(h.model, uid, ztype.Map{
+	err = updateUser(h.accoutModel, uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
@@ -238,7 +238,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return nil, err
 	}
 
-	if mLog, ok := h.plugin.ms.Get(logsName); ok {
+	if mLog, ok := h.plugin.mods.Get(logsName); ok {
 		_, _ = insertLog(c, mLog, user.Get("account").String(), 200, "登录成功")
 	}
 
@@ -256,7 +256,7 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
 
-	err := updateUser(h.model, uid, ztype.Map{
+	err := updateUser(h.accoutModel, uid, ztype.Map{
 		"salt": "",
 	})
 
@@ -291,7 +291,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := common.VarUID(c)
-	user, _ := restapi.FindOne(h.model, uid, func(so *restapi.CondOptions) error {
+	user, _ := restapi.FindOne(h.accoutModel, uid, func(so *restapi.CondOptions) error {
 		so.Fields = []string{restapi.IDKey, "password", "salt"}
 		return nil
 	})
@@ -305,7 +305,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	salt := zstring.Rand(saltLen)
-	err = updateUser(h.model, uid, ztype.Map{
+	err = updateUser(h.accoutModel, uid, ztype.Map{
 		"salt":     salt,
 		"password": password,
 	})
@@ -337,7 +337,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 		}
 		update[k] = v
 	}
-	err := updateUser(h.model, uid, update)
+	err := updateUser(h.accoutModel, uid, update)
 	return nil, err
 }
 
@@ -352,7 +352,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 		return nil, err
 	}
 
-	err = updateUser(h.model, uid, ztype.Map{
+	err = updateUser(h.accoutModel, uid, ztype.Map{
 		"avatar": res[0].Path,
 	})
 	return res[0].Path, err

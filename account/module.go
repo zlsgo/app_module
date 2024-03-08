@@ -20,7 +20,7 @@ type Module struct {
 	service.App
 	service.ModuleLifeCycle
 	db          *zdb.DB
-	ms          *restapi.Models
+	mods        *restapi.Models
 	Options     Options
 	controllers []service.Controller
 }
@@ -30,7 +30,7 @@ var (
 	_                = reflect.TypeOf(&Module{})
 )
 
-func (p *Module) Name() string {
+func (m *Module) Name() string {
 	return "Account"
 }
 
@@ -39,7 +39,7 @@ type Options struct {
 	key                  string
 	InlayRBAC            *rbac.RBAC       `json:"-"`
 	RBACFile             string           `json:"rbac_file"`
-	Prefix               string           `json:"prefix"`
+	ApiPrefix            string           `json:"prefix"`
 	InlayUser            ztype.Maps       `json:"inlay_user"`
 	AdminDefaultPassword string           `json:"admin_default_password"`
 	Expire               int              `json:"expire"`
@@ -56,7 +56,7 @@ var options = Options{}
 
 func New(key string, opt ...func(o *Options)) *Module {
 	options.key = key
-	options.Prefix = "/manage"
+	options.ApiPrefix = "/manage"
 
 	for _, f := range opt {
 		f(&options)
@@ -69,11 +69,11 @@ func New(key string, opt ...func(o *Options)) *Module {
 	return p
 }
 
-func (p *Module) Tasks() []service.Task {
+func (m *Module) Tasks() []service.Task {
 	return []service.Task{
 		{
 			Run: func() {
-				lm, ok := p.ms.Get(logsName)
+				lm, ok := m.mods.Get(logsName)
 				if !ok {
 					return
 				}
@@ -98,54 +98,59 @@ var index = &Index{
 	// Path: "/manage/base",
 }
 
-func (p *Module) Load(zdi.Invoker) (any, error) {
-	return nil, p.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
-		p.Options = options
-		if p.Options.key == "" {
+func (m *Module) Load(zdi.Invoker) (any, error) {
+	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
+		m.Options = options
+		if m.Options.key == "" {
 			return errors.New("not account key")
 		}
-		index.Path = p.Options.Prefix + "/base"
-		p.Options.key = zstring.Pad(p.Options.key, 32, "0", zstring.PadLeft)
+		index.Path = m.Options.ApiPrefix + "/base"
+		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadLeft)
 
-		index.plugin = p
-		p.controllers = []service.Controller{
+		index.plugin = m
+		m.controllers = []service.Controller{
 			index,
 		}
 		return nil
 	})
 }
 
-func (p *Module) Start(zdi.Invoker) (err error) {
-	if p.Options.InitDB != nil {
-		p.db, err = p.Options.InitDB()
+func (m *Module) Start(zdi.Invoker) (err error) {
+	if m.Options.InitDB != nil {
+		m.db, err = m.Options.InitDB()
 	} else {
-		err = p.DI.Resolve(&p.db)
+		err = m.DI.Resolve(&m.db)
 	}
-	if err != nil || p.db == nil {
+	if err != nil || m.db == nil {
 		return zerror.With(err, "init db error")
 	}
-	p.ms = restapi.NewModels(restapi.NewSQL(p.db))
+	m.mods = restapi.NewModels(restapi.NewSQL(m.db, func(o *restapi.SQLOptions) {
+		var restapiModule *restapi.Module
+		if err := m.DI.Resolve(&restapiModule); err == nil {
+			o.Prefix = restapiModule.Options.Prefix
+		}
+	}))
 
-	if err = initModel(p); err != nil {
-		return zerror.With(err, "init model error")
+	if err = initModel(m); err != nil {
+		return zerror.With(err, "init accoutModel error")
 	}
 
-	m, ok := p.ms.Get(accountName)
+	mod, ok := m.mods.Get(accountName)
 	if !ok {
-		return errors.New("account model not found")
+		return errors.New("account accoutModel not found")
 	}
 
-	index.model = m
-	index.permModel, _ = p.ms.Get(permName)
-	index.roleModel, _ = p.ms.Get(roleName)
+	index.accoutModel = mod
+	index.permModel, _ = m.mods.Get(permName)
+	index.roleModel, _ = m.mods.Get(roleName)
 
-	permission := p.Options.InlayRBAC
+	permission := m.Options.InlayRBAC
 	if permission == nil {
 		permission = rbac.New()
 	}
 
-	if p.Options.RBACFile != "" {
-		fPermission, err := rbac.ParseFile(p.Options.RBACFile)
+	if m.Options.RBACFile != "" {
+		fPermission, err := rbac.ParseFile(m.Options.RBACFile)
 		if err != nil {
 			return zerror.With(err, "parse rbac file error")
 		}
@@ -156,22 +161,22 @@ func (p *Module) Start(zdi.Invoker) (err error) {
 		}
 	}
 
-	if err = p.initMiddleware(permission); err != nil {
+	if err = m.initMiddleware(permission); err != nil {
 		return err
 	}
 
-	noLogIP = p.Options.NoLogIP
+	noLogIP = m.Options.NoLogIP
 	return
 }
 
-func (p *Module) Done(zdi.Invoker) (err error) {
+func (m *Module) Done(zdi.Invoker) (err error) {
 	return nil
 }
 
-func (p *Module) Controller() []service.Controller {
-	return p.controllers
+func (m *Module) Controller() []service.Controller {
+	return m.controllers
 }
 
-func (p *Module) Stop() error {
+func (m *Module) Stop() error {
 	return nil
 }
