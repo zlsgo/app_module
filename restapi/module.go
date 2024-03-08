@@ -9,6 +9,7 @@ import (
 type (
 	Module struct {
 		service.ModuleLifeCycle
+		Options Options
 	}
 )
 

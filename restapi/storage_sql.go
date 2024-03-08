@@ -1,6 +1,8 @@
 package restapi
 
 import (
+	"strings"
+
 	"github.com/zlsgo/zdb"
 )
 
@@ -36,25 +38,25 @@ func (s *SQL) Migration(model *Model) Migrationer {
 	}
 }
 
-func sqlOrderBy(orderBy [][]string) (o []string) {
+func sqlOrderBy(orderBy map[string]string, fieldPrefix string) (o []string) {
 	l := len(orderBy)
 	if l == 0 {
 		return nil
 	}
 
 	o = make([]string, 0, l)
-	for i := range orderBy {
-		if len(orderBy[i]) < 2 {
-			o = append(o, orderBy[i][0])
-			continue
+	for n := range orderBy {
+		v := orderBy[n]
+		if fieldPrefix != "" && !strings.ContainsRune(n, '.') {
+			n = fieldPrefix + n
 		}
-		switch orderBy[i][1] {
+		switch orderBy[n] {
 		case "-1":
-			o = append(o, orderBy[i][0]+" DESC")
+			o = append(o, n+" DESC")
 		case "1", "0":
-			o = append(o, orderBy[i][0]+" ASC")
+			o = append(o, n+" ASC")
 		default:
-			o = append(o, orderBy[i][0]+" "+orderBy[i][1])
+			o = append(o, n+" "+v)
 		}
 	}
 	return

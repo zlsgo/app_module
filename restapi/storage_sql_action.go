@@ -121,14 +121,7 @@ func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions) er
 			b.Where(exprs...)
 		}
 
-		orderBy := sqlOrderBy(o.OrderBy)
-		for i := range o.OrderBy {
-			if fieldPrefix != "" && !strings.ContainsRune(orderBy[i], '.') {
-				b.OrderBy(fieldPrefix + orderBy[i])
-				continue
-			}
-			b.OrderBy(orderBy[i])
-		}
+		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
 
 		return nil
 	})
@@ -186,14 +179,7 @@ func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions) erro
 			}
 		}
 
-		orderBy := sqlOrderBy(o.OrderBy)
-		for i := range o.OrderBy {
-			if fieldPrefix != "" && !strings.ContainsRune(orderBy[i], '.') {
-				b.OrderBy(fieldPrefix + orderBy[i])
-				continue
-			}
-			b.OrderBy(orderBy[i])
-		}
+		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
@@ -241,14 +227,7 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 			b.Where(exprs...)
 		}
 
-		orderBy := sqlOrderBy(o.OrderBy)
-		for i := range o.OrderBy {
-			if fieldPrefix != "" && !strings.ContainsRune(orderBy[i], '.') {
-				b.OrderBy(fieldPrefix + orderBy[i])
-				continue
-			}
-			b.OrderBy(orderBy[i])
-		}
+		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
 
 		if hasJoin {
 			for _, v := range o.Join {
@@ -303,14 +282,7 @@ func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(
 			b.Limit(o.Limit)
 		}
 
-		orderBy := sqlOrderBy(o.OrderBy)
-		for i := range o.OrderBy {
-			if fieldPrefix != "" && !strings.ContainsRune(orderBy[i], '.') {
-				b.OrderBy(fieldPrefix + orderBy[i])
-				continue
-			}
-			b.OrderBy(orderBy[i])
-		}
+		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
 
 		return nil
 	})

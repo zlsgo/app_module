@@ -28,7 +28,7 @@ package restapi
 // 	}
 
 // 	p.ms = model.New(model.NewSQL(p.db), func(o *model.ModelOptions) {
-// 		o.Prefix = "model_"
+// 		o.ApiPrefix = "model_"
 // 	})
 
 // 	run := func(name string, data model.Define) error {

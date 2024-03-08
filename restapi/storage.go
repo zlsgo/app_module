@@ -32,7 +32,7 @@ type StorageModelOptions struct {
 type CondOptions struct {
 	Fields  []string
 	GroupBy []string
-	OrderBy [][]string
+	OrderBy map[string]string
 	Join    []StorageJoin
 	Limit   int
 }

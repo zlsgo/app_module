@@ -9,23 +9,27 @@ import (
 type (
 	Options struct {
 		ModelsDefine []Define
+		Prefix       string
 	}
 )
 
-func New(o ...func(*Options)) (p *Module) {
-	opt := &Options{}
+func New(o ...func(*Options)) (m *Module) {
+	opt := Options{
+		Prefix: "model_",
+	}
 	for _, f := range o {
-		f(opt)
+		f(&opt)
 	}
 
 	return &Module{
+		Options: opt,
 		ModuleLifeCycle: service.ModuleLifeCycle{
 			OnDone: func(di zdi.Invoker) error {
 				return di.InvokeWithErrorOnly(func(db *zdb.DB) error {
-
 					mod := NewModels(NewSQL(db, func(o *SQLOptions) {
-						o.Prefix = "model_"
+						o.Prefix = m.Options.Prefix
 					}))
+
 					for _, d := range opt.ModelsDefine {
 						_, err := mod.Reg(d.Name, d, false)
 						if err != nil {
