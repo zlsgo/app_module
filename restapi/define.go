@@ -72,6 +72,10 @@ type (
 		Value string `json:"value"`
 		Label string `json:"label"`
 	}
+
+	Operation struct {
+		model *Model
+	}
 )
 
 const (

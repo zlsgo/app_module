@@ -19,10 +19,12 @@ import (
 type Module struct {
 	service.App
 	service.ModuleLifeCycle
-	db          *zdb.DB
-	mods        *restapi.Models
-	Options     Options
-	controllers []service.Controller
+	db           *zdb.DB
+	mods         *restapi.Models
+	Options      Options
+	controllers  []service.Controller
+	messageModel *MessageModel
+	accountModel *AccountModel
 }
 
 var (
