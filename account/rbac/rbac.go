@@ -82,6 +82,12 @@ func (r *RBAC) AddRole(roleName string, role *Role) error {
 	return nil
 }
 
+func (r *RBAC) ForEachRole(fn func(key string, value *Role) bool) {
+	r.roles.ForEach(func(key string, value *Role) bool {
+		return fn(key, value)
+	})
+}
+
 func (r *RBAC) MergerRole(roleName string, role *Role) error {
 	if !r.roles.Has(roleName) {
 		return r.AddRole(roleName, role)

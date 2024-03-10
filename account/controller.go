@@ -48,7 +48,12 @@ func (h *Index) Init(r *znet.Engine) error {
 	// 获取系统信息无需验证
 	r.Any("/refresh-token", h.refreshToken)
 
-	return h.plugin.RegMiddleware(r)
+	err := h.plugin.RegMiddleware(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
@@ -99,8 +104,8 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 	}, nil
 }
 
-// GetMe 获取当前用户信息
-func (h *Index) GetMe(c *znet.Context) (interface{}, error) {
+// GetInfo 获取用户信息
+func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
 	info, err := restapi.FindOne(h.accoutModel, Ctx.UID(c), func(so *restapi.CondOptions) error {
 		so.Fields = h.accoutModel.GetFields("password", "salt")

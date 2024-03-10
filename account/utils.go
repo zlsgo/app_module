@@ -6,7 +6,8 @@ type ctxWith struct {
 }
 
 const (
-	ctxWithUID          = "m::account::uid"
+	ctxWithUID = "m::account::uid"
+	// ctxWithRawUID       = "m::account::rawUID"
 	ctxWithRole         = "m::account::role"
 	ctxWithIsInlayAdmin = "m::account::administrator"
 	// ctxWithDisabledLog  = "m::account::disabledLog"
@@ -24,6 +25,14 @@ func (ctxWith) UID(c *znet.Context) string {
 	}
 	return uid.(string)
 }
+
+// func (ctxWith) RawUID(c *znet.Context) string {
+// 	uid, ok := c.Value(ctxWithRawUID)
+// 	if !ok {
+// 		return ""
+// 	}
+// 	return uid.(string)
+// }
 
 func (ctxWith) Roles(c *znet.Context) []string {
 	roles, ok := c.Value(ctxWithRole)

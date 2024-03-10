@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/restapi"
@@ -66,6 +65,14 @@ func messageModelDefine(m *Module) error {
 	return err
 }
 
+func (m *MessageModel) CountUnread(uid string) (int64, error) {
+	id, err := m.mod.accountModel.DeCryptID(uid)
+	if err != nil {
+		return 0, errors.New("用户 ID 错误")
+	}
+	return m.Count(ztype.Map{"to": id, "status": 0})
+}
+
 const maxCutMessageTitle = 10
 
 func (m *MessageModel) SendMessage(from, to, message string, title ...string) (err error) {
@@ -103,15 +110,10 @@ func (m *MessageModel) SendMessage(from, to, message string, title ...string) (e
 		data["title"] = title
 	}
 
-	zlog.Debug(data)
 	_, err = m.Insert(data)
 	if err != nil {
 		err = zerror.With(err, "发送消息失败")
 	}
 
-	zlog.Debug(m.FindOne(nil, func(co *restapi.CondOptions) error {
-		co.OrderBy = map[string]string{restapi.IDKey: "desc"}
-		return nil
-	}))
 	return
 }

@@ -12,7 +12,10 @@ func (h *Index) getSite(c *znet.Context) (data ztype.Map, err error) {
 
 // GetMessage 站内消息
 func (h *Index) GetMessage(c *znet.Context) (data ztype.Map, err error) {
+	uid := Ctx.UID(c)
+	unread, _ := h.plugin.messageModel.CountUnread(uid)
+
 	return ztype.Map{
-		"unread": 110,
+		"unread": unread,
 	}, err
 }

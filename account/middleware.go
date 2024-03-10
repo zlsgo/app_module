@@ -93,6 +93,14 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		}
 	}
 
+	// 通用权限
+	permission.ForEachRole(func(key string, value *rbac.Role) bool {
+		value.AddGlobPermission(1, "*", "/manage/base/password")
+		value.AddGlobPermission(1, "*", "/manage/base/info")
+		value.AddGlobPermission(1, "*", "/manage/base/message")
+		return true
+	})
+
 	verifyPermissions = func(c *znet.Context) error {
 		token := jwt.GetToken(c)
 		if token == "" {
@@ -109,6 +117,9 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		}
 
 		c.WithValue(ctxWithUID, uid)
+
+		// rawUID, _ := m.accountModel.DeCryptID(uid)
+		// c.WithValue(ctxWithRawUID, rawUID)
 
 		u, err := getUserForCache(userModel, uid)
 		if err != nil {

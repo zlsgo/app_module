@@ -112,6 +112,10 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 		index.plugin = m
 		m.controllers = []service.Controller{
 			index,
+			&Message{
+				plugin: m,
+				Path:   m.Options.ApiPrefix + "/message",
+			},
 		}
 		return nil
 	})

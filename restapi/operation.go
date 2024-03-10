@@ -1,6 +1,7 @@
 package restapi
 
 import (
+	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
@@ -8,6 +9,14 @@ func (m *Model) Operation() *Operation {
 	return &Operation{
 		model: m,
 	}
+}
+
+type Operations struct {
+	m *zarray.Maper[string, *Operation]
+}
+
+func (m *Operations) Get(name string) (*Operation, bool) {
+	return m.m.Get(name)
 }
 
 // EnCryptID 加密 ID
@@ -52,4 +61,23 @@ func (o *Operation) Find(filter ztype.Map, fn ...func(*CondOptions) error) (ztyp
 
 func (o *Operation) FindOne(filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map, error) {
 	return FindOne(o.model, filter, fn...)
+}
+
+func (o *Operation) FindOneForID(id any, fn ...func(*CondOptions) error) (ztype.Map, error) {
+	return FindOne(o.model, ztype.Map{IDKey: id}, fn...)
+}
+
+func (o *Operation) Pages(page, pagesize int, filter ztype.Map, fn ...func(*CondOptions) error) (*PageData, error) {
+	return Pages(o.model, page, pagesize, filter, fn...)
+}
+
+// Update 更新数据
+func (o *Operation) Update(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	return Update(o.model, filter, data, fn...)
+}
+
+// UpdateForID 更新数据
+func (o *Operation) UpdateForID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	filter := ztype.Map{IDKey: id}
+	return Update(o.model, filter, data, fn...)
 }

@@ -1,6 +1,7 @@
 package restapi
 
 import (
+	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/zdb"
@@ -30,15 +31,22 @@ func New(o ...func(*Options)) (m *Module) {
 						o.Prefix = m.Options.Prefix
 					}))
 
+					mapper := di.(zdi.TypeMapper)
+					mops := &Operations{m: zarray.NewHashMap[string, *Operation]()}
 					for _, d := range opt.ModelsDefine {
-						_, err := mod.Reg(d.Name, d, false)
+						m, err := mod.Reg(d.Name, d, false)
 						if err != nil {
 							return err
 						}
+						mops.m.Set(d.Name, m.Operation())
+						mapper.Map(d)
 					}
 
 					_ = di.(zdi.TypeMapper).Map(mod)
+					_ = di.(zdi.TypeMapper).Map(mops)
 
+					m.Models = mod
+					m.Operations = mops
 					return nil
 				})
 			},
