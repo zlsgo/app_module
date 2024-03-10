@@ -15,6 +15,7 @@ type Operations struct {
 	m *zarray.Maper[string, *Operation]
 }
 
+// Get 获取操作对象
 func (m *Operations) Get(name string) (*Operation, bool) {
 	return m.m.Get(name)
 }
@@ -55,18 +56,22 @@ func (o *Operation) FindCols(field string, filter ztype.Map) (ztype.SliceType, e
 	})
 }
 
+// Find 查询数据
 func (o *Operation) Find(filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, error) {
 	return Find(o.model, filter, fn...)
 }
 
+// FindOne 查询一条数据
 func (o *Operation) FindOne(filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map, error) {
 	return FindOne(o.model, filter, fn...)
 }
 
+// FindOneForID 通过ID查询
 func (o *Operation) FindOneForID(id any, fn ...func(*CondOptions) error) (ztype.Map, error) {
 	return FindOne(o.model, ztype.Map{IDKey: id}, fn...)
 }
 
+// Pages 分页查询
 func (o *Operation) Pages(page, pagesize int, filter ztype.Map, fn ...func(*CondOptions) error) (*PageData, error) {
 	return Pages(o.model, page, pagesize, filter, fn...)
 }
@@ -74,6 +79,11 @@ func (o *Operation) Pages(page, pagesize int, filter ztype.Map, fn ...func(*Cond
 // Update 更新数据
 func (o *Operation) Update(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
 	return Update(o.model, filter, data, fn...)
+}
+
+// UpdateMany 更新多条数据
+func (o *Operation) UpdateMany(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	return UpdateMany(o.model, filter, data, fn...)
 }
 
 // UpdateForID 更新数据

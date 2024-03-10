@@ -56,6 +56,12 @@ func messageModelDefine(m *Module) error {
 				Comment: "",
 				Label:   "消息",
 			},
+			"mtype": {
+				Type:     schema.String,
+				Size:     100,
+				Label:    "消息类型",
+				Nullable: true,
+			},
 		},
 	}, false)
 
@@ -70,12 +76,13 @@ func (m *MessageModel) CountUnread(uid string) (int64, error) {
 	if err != nil {
 		return 0, errors.New("用户 ID 错误")
 	}
+
 	return m.Count(ztype.Map{"to": id, "status": 0})
 }
 
 const maxCutMessageTitle = 10
 
-func (m *MessageModel) SendMessage(from, to, message string, title ...string) (err error) {
+func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...string) (err error) {
 	if message == "" {
 		return errors.New("消息内容不能为空")
 	}
@@ -98,16 +105,20 @@ func (m *MessageModel) SendMessage(from, to, message string, title ...string) (e
 		"from":    from,
 		"to":      to,
 		"message": message,
+		"title":   title,
+		"mtype":   "",
 	}
 
-	if len(title) > 0 {
-		data["title"] = title[0]
-	} else {
-		title := zstring.Substr(message, 0, maxCutMessageTitle)
+	if len(title) == 0 {
+		t := zstring.Substr(message, 0, maxCutMessageTitle)
 		if len(message) > maxCutMessageTitle {
-			title += "..."
+			t += "..."
 		}
-		data["title"] = title
+		data["title"] = t
+	}
+
+	if len(mtype) > 0 {
+		data["mtype"] = mtype[0]
 	}
 
 	_, err = m.Insert(data)
