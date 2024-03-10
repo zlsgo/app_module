@@ -22,9 +22,6 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 
 // 记录日志
 func logRequest(c *znet.Context, m *restapi.Model, u ztype.Map) {
-
-	c.Next()
-
 	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return

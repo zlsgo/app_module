@@ -1,6 +1,8 @@
 package account
 
-import "github.com/sohaha/zlsgo/znet"
+import (
+	"github.com/sohaha/zlsgo/znet"
+)
 
 type ctxWith struct {
 }

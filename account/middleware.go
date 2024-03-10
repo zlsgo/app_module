@@ -130,16 +130,18 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			return permissionDenied(errors.New("用户已被禁用"))
 		}
 
-		logRequest(c, logModel, u)
+		defer logRequest(c, logModel, u)
 
 		isInlayAdmin := u.Get("administrator").Bool()
 		c.WithValue(ctxWithIsInlayAdmin, isInlayAdmin)
+
+		roles := u.Get("role").SliceString()
+		c.WithValue(ctxWithRole, roles)
+
 		if isInlayAdmin {
 			return nil
 		}
 
-		roles := u.Get("role").SliceString()
-		c.WithValue(ctxWithRole, roles)
 		for _, r := range roles {
 			isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
 			if isAllow {
