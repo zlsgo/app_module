@@ -28,9 +28,9 @@ func getFilter[T Filter](m *Model, filter T) (filterMap ztype.Map) {
 		filterMap = ztype.Map{
 			IDKey: idVal,
 		}
-	} else {
-		fullFields := make([]string, 0, len(m.fullFields))
-		fullFields = append(fullFields, m.fullFields...)
+		// } else {
+		// 	fullFields := make([]string, 0, len(m.fullFields))
+		// 	fullFields = append(fullFields, m.fullFields...)
 	}
 
 	if m.model.Options.SoftDeletes {

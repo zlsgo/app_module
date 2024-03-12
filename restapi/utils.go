@@ -12,6 +12,9 @@ func fillFilterTablePrefix(f ztype.Map, table string) ztype.Map {
 	}
 
 	for k := range f {
+		if k == "" {
+			continue
+		}
 		if !strings.ContainsRune(k, '.') {
 			f[table+k] = f[k]
 			delete(f, k)

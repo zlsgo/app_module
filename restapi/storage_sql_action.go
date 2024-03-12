@@ -13,6 +13,19 @@ import (
 func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string, err error) {
 	if len(filter) > 0 {
 		for k := range filter {
+			if k == "" {
+				switch val := filter[k].(type) {
+				case func(*builder.BuildCond) string:
+					exprs = append(exprs, val(d))
+				case func() string:
+					exprs = append(exprs, val())
+				default:
+					err = errors.New("Unknown type")
+					return
+				}
+
+				continue
+			}
 			upperKey := strings.ToUpper(k)
 			v := ztype.New(filter[k])
 			if upperKey == "" || upperKey == "$OR" || upperKey == "$AND" {
