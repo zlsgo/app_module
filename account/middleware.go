@@ -98,6 +98,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		value.AddGlobPermission(1, "*", "/manage/base/password")
 		value.AddGlobPermission(1, "*", "/manage/base/info")
 		value.AddGlobPermission(1, "*", "/manage/base/message")
+		value.AddGlobPermission(1, "*", "/manage/base/logout")
 		return true
 	})
 
@@ -154,7 +155,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			return nil
 		}
 
-		return permissionDenied(errors.New("无权访问"))
+		return permissionDenied(errors.New("没有访问权限"))
 	}
 	return nil
 }

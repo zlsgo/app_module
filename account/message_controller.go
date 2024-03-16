@@ -15,7 +15,7 @@ type Message struct {
 }
 
 var (
-	_ = reflect.TypeOf(&Index{})
+	_ = reflect.TypeOf(&Message{})
 )
 
 func (h *Message) Init(r *znet.Engine) error {

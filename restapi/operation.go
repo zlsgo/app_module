@@ -48,6 +48,12 @@ func (o *Operation) Count(filter ztype.Map) (int64, error) {
 	return resp.First().Int64(), nil
 }
 
+// Exists 数据是否存在
+func (o *Operation) Exists(filter ztype.Map) (bool, error) {
+	total, err := o.Count(filter)
+	return total > 0, err
+}
+
 // FindCols 查询指定字段
 func (o *Operation) FindCols(field string, filter ztype.Map) (ztype.SliceType, error) {
 	return FindCols(o.model, field, filter, func(co *CondOptions) error {
@@ -66,8 +72,8 @@ func (o *Operation) FindOne(filter ztype.Map, fn ...func(*CondOptions) error) (z
 	return FindOne(o.model, filter, fn...)
 }
 
-// FindOneForID 通过ID查询
-func (o *Operation) FindOneForID(id any, fn ...func(*CondOptions) error) (ztype.Map, error) {
+// FindOneByID 通过ID查询
+func (o *Operation) FindOneByID(id any, fn ...func(*CondOptions) error) (ztype.Map, error) {
 	return FindOne(o.model, ztype.Map{IDKey: id}, fn...)
 }
 

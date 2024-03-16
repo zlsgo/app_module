@@ -72,7 +72,7 @@ func messageModelDefine(m *Module) error {
 }
 
 func (m *MessageModel) CountUnread(uid string) (int64, error) {
-	id, err := m.mod.accountModel.DeCryptID(uid)
+	id, err := m.mod.AccountModel().DeCryptID(uid)
 	if err != nil {
 		return 0, errors.New("用户 ID 错误")
 	}
@@ -91,12 +91,12 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = m.mod.accountModel.DeCryptID(to)
+	to, err = m.mod.AccountModel().DeCryptID(to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = m.mod.accountModel.DeCryptID(from)
+	from, err = m.mod.AccountModel().DeCryptID(from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}

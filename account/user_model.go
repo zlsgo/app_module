@@ -9,6 +9,7 @@ import (
 type AccountModel struct {
 	*restapi.Operation
 	mod *Module
+	m   *restapi.Model
 }
 
 func (m *Module) AccountModel() *AccountModel {
@@ -90,12 +91,18 @@ func accountModelDefine(p *Module) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
+				Options: restapi.FieldOption{
+					ReadOnly: true,
+				},
 			},
 			"administrator": {
 				Type:     schema.Bool,
 				Label:    "是否超级管理员",
 				Default:  false,
 				Nullable: true,
+				Options: restapi.FieldOption{
+					ReadOnly: true,
+				},
 			},
 			"remark": {
 				Type:     schema.String,
@@ -133,6 +140,9 @@ func accountModelDefine(p *Module) error {
 						Args:   10,
 					},
 				},
+				Options: restapi.FieldOption{
+					ReadOnly: true,
+				},
 			},
 			"password": {
 				Label: "密码",
@@ -156,7 +166,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		p.accountModel = &AccountModel{Operation: mod.Operation(), mod: p}
+		p.accountModel = &AccountModel{Operation: mod.Operation(), mod: p, m: mod}
 	}
 	return err
 }

@@ -116,6 +116,10 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 				plugin: m,
 				Path:   m.Options.ApiPrefix + "/message",
 			},
+			&User{
+				plugin: m,
+				Path:   m.Options.ApiPrefix + "/user",
+			},
 		}
 		return nil
 	})

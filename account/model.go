@@ -69,6 +69,9 @@ func roleModel(ms *restapi.Models) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
+				Options: restapi.FieldOption{
+					ReadOnly: true,
+				},
 			},
 			"remark": {
 				Type:     schema.String,
