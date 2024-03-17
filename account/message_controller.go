@@ -25,7 +25,7 @@ func (h *Message) Init(r *znet.Engine) error {
 // Get 站内通知列表
 func (h *Message) Get(c *znet.Context) (data ztype.Map, err error) {
 	uid := Ctx.UID(c)
-	unread, _ := h.plugin.messageModel.CountUnread(uid)
+	unread, _ := h.plugin.messageModel.Unread(uid)
 
 	return ztype.Map{
 		"unread": unread,

@@ -71,13 +71,27 @@ func messageModelDefine(m *Module) error {
 	return err
 }
 
-func (m *MessageModel) CountUnread(uid string) (int64, error) {
+func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 	id, err := m.mod.AccountModel().DeCryptID(uid)
 	if err != nil {
-		return 0, errors.New("用户 ID 错误")
+		return nil, errors.New("用户 ID 错误")
 	}
 
-	return m.Count(ztype.Map{"to": id, "status": 0})
+	resp, err := m.FindCols(restapi.CreatedAtKey, ztype.Map{"to": id, "status": 0})
+	if err != nil {
+		return nil, err
+	}
+
+	last, unread := int64(0), len(resp)
+	if unread > 0 {
+		t, _ := resp.Last().Time()
+		last = t.Unix()
+	}
+
+	return ztype.Map{
+		"unread":    unread,
+		"last_time": last,
+	}, nil
 }
 
 const maxCutMessageTitle = 10
