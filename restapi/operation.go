@@ -92,8 +92,8 @@ func (o *Operation) UpdateMany(filter ztype.Map, data ztype.Map, fn ...func(*Con
 	return UpdateMany(o.model, filter, data, fn...)
 }
 
-// UpdateForID 更新数据
-func (o *Operation) UpdateForID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+// UpdateByID 更新数据
+func (o *Operation) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
 	filter := ztype.Map{IDKey: id}
 	return Update(o.model, filter, data, fn...)
 }

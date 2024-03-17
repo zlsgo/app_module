@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.2
+	github.com/sohaha/zlsgo v1.7.4
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zlsgo/app_core v0.0.0-20240229070721-1ea3accf2442
 	github.com/zlsgo/conf v0.0.0-20230903064818-b2042f07b255

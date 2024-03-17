@@ -6,7 +6,6 @@ import (
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zjson"
-	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
@@ -91,26 +90,23 @@ func (h *User) UIDPut(c *znet.Context) (err error) {
 	}
 
 	if user.IsEmpty() {
-		return zerror.WrapTag(zerror.InvalidInput)(errors.New("用户不存在"))
+		return zerror.InvalidInput.Text("用户不存在")
 	}
-	// zlog.Error(zerror.WrapTag(zerror.InvalidInput)(errors.New("fixUserData")))
-	// zlog.Error(zerror.InvalidInput.Wrap(err, "fixUserData"))
-	// return zerror.WrapTag(zerror.InvalidInput)(errors.New("fixUserData"))
 
-	e := zerror.InvalidInput.Wrap(err, "fixUserData")
-	tag := zerror.GetTag(e)
-	zlog.Dump(tag, err)
-	return e
-	zlog.Debug(user)
+	// 禁止修改超级管理员
+	if user.Get("administrator").Bool() {
+		return zerror.InvalidInput.Text("不能修改超级管理员")
+	}
+
 	j, _ := c.GetJSONs()
 	data := j.Map()
 	if err = fixUserData(j, &data); err != nil {
-		return zerror.InvalidInput.Wrap(err, "fixUserData")
-		// return zerror.WrapTag(zerror.InvalidInput)(err)
+		return zerror.InvalidInput.Text(err.Error())
 	}
 
-	zlog.Debug(data)
-	return errors.New("未实现")
+	_, err = h.plugin.AccountModel().UpdateByID(id, data)
+
+	return err
 }
 
 // fixUserData 修复并兼容用户数据各种情况
