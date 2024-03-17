@@ -42,7 +42,7 @@ func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
 		co.OrderBy = map[string]string{
 			restapi.IDKey: "desc",
 		}
-		co.Fields = h.plugin.AccountModel().m.GetFields("password")
+		co.Fields = h.plugin.AccountModel().m.GetFields("password", "salt")
 		return nil
 	})
 
@@ -82,40 +82,42 @@ func (h *User) Post(c *znet.Context) (id interface{}, err error) {
 }
 
 // UIDPut 修改用户
-func (h *User) UIDPut(c *znet.Context) (err error) {
+func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 	id := c.GetParam("uid")
 	user, err := h.plugin.AccountModel().FindOneByID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if user.IsEmpty() {
-		return zerror.InvalidInput.Text("用户不存在")
+		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
 
 	// 禁止修改超级管理员
 	if user.Get("administrator").Bool() {
-		return zerror.InvalidInput.Text("不能修改超级管理员")
+		return nil, zerror.InvalidInput.Text("不能修改超级管理员")
 	}
 
 	j, _ := c.GetJSONs()
 	data := j.Map()
 	if err = fixUserData(j, &data); err != nil {
-		return zerror.InvalidInput.Text(err.Error())
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
-
 	_, err = h.plugin.AccountModel().UpdateByID(id, data)
 
-	return err
+	return nil, err
 }
 
 // fixUserData 修复并兼容用户数据各种情况
 func fixUserData(j *zjson.Res, data *ztype.Map) error {
 	// 禁止添加超级管理员
 	_ = data.Delete("administrator")
-
 	// 禁止标记为内置用户
 	_ = data.Delete("inlay")
+	// 验证盐不应该可以人为修改
+	_ = data.Delete("salt")
+	// 登录时间不应该可以人为修改
+	_ = data.Delete("login_at")
 
 	if !j.Get("role").IsArray() {
 		role := data.Get("role").String()

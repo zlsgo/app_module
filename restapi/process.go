@@ -72,7 +72,12 @@ func dateMarshalProcess(format string) func(v interface{}) (string, error) {
 		if t, ok := v.(time.Time); ok {
 			return ztime.FormatTime(t, format), nil
 		}
+
 		s := ztype.ToString(v)
+		if s == "" {
+			return "", nil
+		}
+
 		t, err := ztime.Parse(s)
 		if err != nil {
 			timestamp, err := strconv.Atoi(s)
