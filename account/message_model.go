@@ -77,20 +77,27 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 		return nil, errors.New("用户 ID 错误")
 	}
 
-	resp, err := m.FindCols(restapi.CreatedAtKey, ztype.Map{"to": id, "status": 0})
+	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *restapi.CondOptions) error {
+		co.Fields = []string{restapi.IDKey, restapi.CreatedAtKey, "mtype"}
+		co.OrderBy = map[string]string{restapi.IDKey: "desc"}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	last, unread := int64(0), len(resp)
-	if unread > 0 {
-		t, _ := resp.Last().Time()
+	last, unread, mtype := int64(0), len(resp), ""
+	if !resp.IsEmpty() {
+		first := resp.First()
+		mtype = first.Get("mtype").String()
+		t, _ := first.Get(restapi.CreatedAtKey).Time()
 		last = t.Unix()
 	}
 
 	return ztype.Map{
 		"unread":    unread,
 		"last_time": last,
+		"mtype":     mtype,
 	}, nil
 }
 
