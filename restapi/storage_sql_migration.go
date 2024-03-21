@@ -23,6 +23,10 @@ func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
 		return errors.New("表名不能为空")
 	}
 
+	if err = m.Model.hook("migrationStart"); err != nil {
+		return err
+	}
+
 	exist := m.HasTable()
 
 	defer func() {
@@ -35,8 +39,8 @@ func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
 			err = m.InitValue(!exist)
 		}
 
-		if err == nil && m.Model.model.MigrationDone != nil {
-			err = m.Model.Define().MigrationDone(m.DB, m.Model)
+		if err == nil {
+			err = m.Model.hook("migrationDone")
 		}
 	}()
 
@@ -168,6 +172,7 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 		if !zarray.Contains(oldColumns, DeletedAtKey) {
 			sql, values := table.AddColumn(DeletedAtKey, "int", func(f *schema.Field) {
 				f.Comment = "删除时间戳"
+				f.NotNull = false
 			})
 			_, err := m.DB.Exec(sql, values...)
 			if err != nil {

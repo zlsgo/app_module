@@ -27,7 +27,7 @@ func New(o ...func(*Options)) (m *Module) {
 		ModuleLifeCycle: service.ModuleLifeCycle{
 			OnDone: func(di zdi.Invoker) error {
 				return di.InvokeWithErrorOnly(func(db *zdb.DB) error {
-					mod := NewModels(NewSQL(db, func(o *SQLOptions) {
+					mod := NewModels(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
 						o.Prefix = m.Options.Prefix
 					}))
 

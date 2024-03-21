@@ -1,6 +1,9 @@
 package restapi
 
-import "github.com/sohaha/zlsgo/zarray"
+import (
+	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zdi"
+)
 
 func (m *Model) Name() string {
 	return m.model.Name
@@ -34,4 +37,15 @@ func (m *Model) GetFields(exclude ...string) []string {
 	return zarray.Filter(f, func(_ int, v string) bool {
 		return !zarray.Contains(exclude, v)
 	})
+}
+
+func (m *Model) DI() zdi.Injector {
+	return m.di
+}
+
+func (m *Model) hook(name string) error {
+	if m.model.Hook == nil {
+		return nil
+	}
+	return m.model.Hook(name, m)
 }

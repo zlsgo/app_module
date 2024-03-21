@@ -54,6 +54,10 @@ func (o Options) ConfKey() string {
 	return "account"
 }
 
+func (o Options) DisableWrite() bool {
+	return true
+}
+
 var options = Options{}
 
 func New(key string, opt ...func(o *Options)) *Module {
@@ -125,7 +129,7 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 	})
 }
 
-func (m *Module) Start(zdi.Invoker) (err error) {
+func (m *Module) Start(di zdi.Invoker) (err error) {
 	if m.Options.InitDB != nil {
 		m.db, err = m.Options.InitDB()
 	} else {
@@ -134,7 +138,8 @@ func (m *Module) Start(zdi.Invoker) (err error) {
 	if err != nil || m.db == nil {
 		return zerror.With(err, "init db error")
 	}
-	m.mods = restapi.NewModels(restapi.NewSQL(m.db, func(o *restapi.SQLOptions) {
+
+	m.mods = restapi.NewModels(di.(zdi.Injector), restapi.NewSQL(m.db, func(o *restapi.SQLOptions) {
 		var restapiModule *restapi.Module
 		if err := m.DI.Resolve(&restapiModule); err == nil {
 			o.Prefix = restapiModule.Options.Prefix

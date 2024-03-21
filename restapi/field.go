@@ -107,10 +107,11 @@ func (m *Model) getField(name string) (*Field, bool) {
 	if m.model.Options.SoftDeletes {
 		if name == DeletedAtKey {
 			return &Field{
-				Type:    schema.Int,
-				Size:    11,
-				Default: 0,
-				Label:   "删除时间戳"}, true
+				Type:     schema.Int,
+				Size:     11,
+				Nullable: true,
+				Default:  0,
+				Label:    "删除时间戳"}, true
 		}
 	}
 
@@ -240,7 +241,7 @@ func parseField(m *Model, name string, f *Field) error {
 	return nil
 }
 
-func parseFieldModelOptions(name string, c *Field) {
+func parseFieldModelOptions(_ string, c *Field) {
 	if len(c.Options.Enum) > 0 {
 		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v FieldEnum) FieldEnum {
 			if v.Label == "" {

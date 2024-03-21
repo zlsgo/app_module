@@ -7,27 +7,29 @@ import (
 
 	"github.com/zlsgo/app_module/database/hashid"
 
+	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
 )
 
 type (
 	Define struct {
-		Fields        Fields                           `json:"fields"`
-		Extend        ztype.Map                        `json:"extend"`
-		Relations     map[string]*ModelRelation        `json:"relations"`
-		MigrationDone func(db *zdb.DB, m *Model) error `json:"-"`
-		Table         Table                            `json:"table"`
-		Name          string                           `json:"name"`
-		Values        ztype.Maps                       `json:"values"`
-		Options       ModelOptions                     `json:"options"`
+		Fields    Fields                    `json:"fields"`
+		Extend    ztype.Map                 `json:"extend"`
+		Relations map[string]*ModelRelation `json:"relations"`
+		// MigrationDone func(db *zdb.DB, m *Model) error              `json:"-"`
+		Table   Table                             `json:"table"`
+		Name    string                            `json:"name"`
+		Values  ztype.Maps                        `json:"values"`
+		Options ModelOptions                      `json:"options"`
+		Hook    func(name string, m *Model) error `json:"-"`
 	}
 
 	Model struct {
 		model         Define
+		di            zdi.Injector
 		Storage       Storageer
 		cryptKeys     map[string]CryptProcess
 		Hashid        *hashid.HashID `json:"-"`
@@ -66,6 +68,7 @@ type (
 		Args    interface{} `json:"args"`
 		Method  string      `json:"method"`
 		Message string      `json:"message"`
+		// Trigger ValidTriggerType `json:"trigger"`
 	}
 
 	ColumnEnum struct {

@@ -5,25 +5,23 @@ import (
 	"strings"
 
 	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 )
 
 type Models struct {
-	m *zarray.Maper[string, *Model]
-	// db      *zdb.DB
+	m       *zarray.Maper[string, *Model]
+	di      zdi.Injector
 	storage Storageer
 }
 
-func NewModels(s Storageer) *Models {
+func NewModels(di zdi.Injector, s Storageer) *Models {
 	return &Models{
 		storage: s,
+		di:      di,
 		m:       zarray.NewHashMap[string, *Model](),
 	}
 }
-
-// func (ms *Models) DB() *zdb.DB {
-// 	return ms.db
-// }
 
 func (ms *Models) set(alias string, m *Model, force ...bool) (err error) {
 	if m.model.Table.Name == "" {
@@ -63,6 +61,7 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 	m := &Model{
 		Storage:     ms.storage,
 		model:       data,
+		di:          ms.di,
 		tablePrefix: tablePrefix,
 	}
 	err := ms.set(name, m, force)

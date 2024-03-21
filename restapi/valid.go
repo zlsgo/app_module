@@ -17,6 +17,14 @@ const (
 	activeUpdate
 )
 
+type ValidTriggerType uint
+
+const (
+	ValidTriggerAll ValidTriggerType = iota
+	ValidTriggerCreate
+	ValidTriggerUpdate
+)
+
 // filterDate 过滤数据字段
 func filterDate(data ztype.Map, fields []string) ztype.Map {
 	l := len(fields)

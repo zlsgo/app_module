@@ -92,8 +92,24 @@ func (o *Operation) UpdateMany(filter ztype.Map, data ztype.Map, fn ...func(*Con
 	return UpdateMany(o.model, filter, data, fn...)
 }
 
-// UpdateByID 更新数据
+// UpdateByID 通过ID更新
 func (o *Operation) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
 	filter := ztype.Map{IDKey: id}
 	return Update(o.model, filter, data, fn...)
+}
+
+// Delete 删除数据
+func (o *Operation) Delete(id any, filter ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	return Delete(o.model, filter, fn...)
+}
+
+// DeleteMany 删除多条数据
+func (o *Operation) DeleteMany(id any, filter ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	return DeleteMany(o.model, filter, fn...)
+}
+
+// DeleteByID 通过ID删除数据
+func (o *Operation) DeleteByID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+	filter := ztype.Map{IDKey: id}
+	return Delete(o.model, filter, fn...)
 }
