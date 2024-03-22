@@ -30,14 +30,12 @@ func (h *User) Init(r *znet.Engine) error {
 // Get 用户列表
 func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
 	filter := ztype.Map{}
-	key, _ := c.GetQuery("key")
-	if key != "" {
-		filter["nickname like"] = "%" + key + "%"
-		filter["account like"] = "%" + key + "%"
+	account, _ := c.GetQuery("account")
+	if account != "" {
+		filter["account"] = account + "%"
 	}
-
-	// uid := Ctx.UID(c)
 	page, pagesize, _ := common.VarPages(c)
+
 	data, err = h.plugin.AccountModel().Pages(page, pagesize, filter, func(co *restapi.CondOptions) error {
 		co.OrderBy = map[string]string{
 			restapi.IDKey: "desc",
@@ -45,7 +43,11 @@ func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
 		co.Fields = h.plugin.AccountModel().m.GetFields("password", "salt")
 		return nil
 	})
-
+	data.Items.ForEach(func(i int, item ztype.Map) bool {
+		id, _ := h.plugin.AccountModel().DeCryptID(item.Get(restapi.IDKey).String())
+		_ = item.Set("id", id)
+		return true
+	})
 	return
 }
 

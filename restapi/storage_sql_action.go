@@ -56,20 +56,24 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 			if l != 2 {
 				switch val := v.Value().(type) {
 				case ztype.Maps, []ztype.Map:
-					for _, v := range ztype.ToSlice(val).Maps() {
+					m := ztype.ToSlice(val).Maps()
+					e := make([]string, 0, len(m))
+					for _, v := range m {
 						cexprs, err := s.parseExprs(d, v)
 						if err != nil {
 							return nil, err
 						}
-						exprs = append(exprs, d.Or(cexprs...))
+						e = append(e, cexprs...)
 					}
+
+					exprs = append(exprs, d.Or(e...))
 				case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
 					exprs = append(exprs, d.In(f[0], ztype.ToSlice(val).Value()...))
 				default:
 					exprs = append(exprs, d.EQ(f[0], val))
 				}
 			} else {
-				switch strings.ToLower(f[1]) {
+				switch strings.ToUpper(f[1]) {
 				default:
 					err = errors.New("Unknown operator: " + f[1])
 					return
@@ -85,13 +89,13 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 					exprs = append(exprs, d.LE(f[0], v.Value()))
 				case "!=":
 					exprs = append(exprs, d.NE(f[0], v.Value()))
-				case "like":
+				case "LIKE":
 					exprs = append(exprs, d.Like(f[0], v.Value()))
-				case "in":
+				case "IN":
 					exprs = append(exprs, d.In(f[0], v.Slice().Value()...))
-				case "notin":
+				case "NOTIN":
 					exprs = append(exprs, d.NotIn(f[0], v.Slice().Value()...))
-				case "between":
+				case "BETWEEN":
 					s := v.Slice()
 					exprs = append(exprs, d.Between(f[0], s.Index(0), s.Index(1)))
 				}
