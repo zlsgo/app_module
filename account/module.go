@@ -21,7 +21,7 @@ type Module struct {
 	service.ModuleLifeCycle
 	db           *zdb.DB
 	mods         *restapi.Models
-	Options      Options
+	Options      *Options
 	controllers  []service.Controller
 	messageModel *MessageModel
 	accountModel *AccountModel
@@ -70,9 +70,7 @@ func New(key string, opt ...func(o *Options)) *Module {
 
 	service.DefaultConf = append(service.DefaultConf, &options)
 
-	p := &Module{}
-
-	return p
+	return &Module{}
 }
 
 func (m *Module) Tasks() []service.Task {
@@ -106,7 +104,7 @@ var index = &Index{
 
 func (m *Module) Load(zdi.Invoker) (any, error) {
 	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
-		m.Options = options
+		m.Options = &options
 		if m.Options.key == "" {
 			return errors.New("not account key")
 		}

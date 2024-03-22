@@ -26,7 +26,7 @@ func TestDefine(t *testing.T) {
 		},
 		Options: ModelOptions{DisabledMigrator: true},
 	}
-	s := NewModels(nil)
+	s := NewModels(nil, nil)
 
 	var wg zsync.WaitGroup
 	for i := 0; i < 2; i++ {
