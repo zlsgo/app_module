@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/zdb/schema"
@@ -57,6 +58,13 @@ func VerifiData(data ztype.Map, columns Fields, active activeType) (ztype.Map, e
 			if !ok && active != activeUpdate {
 				if column.Default != nil {
 					v = column.Default
+					if column.Type == schema.JSON {
+						switch v.(type) {
+						case string:
+						default:
+							v, _ = zjson.Marshal(v)
+						}
+					}
 					ok = true
 				}
 			}

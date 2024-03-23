@@ -233,6 +233,7 @@ func Insert(m *Model, data ztype.Map) (lastId interface{}, err error) {
 	if err != nil {
 		return 0, err
 	}
+
 	id, err := m.Storage.Insert(m.TableName(), data)
 	if err == nil && m.model.Options.CryptID {
 		id, err = m.EnCryptID(ztype.ToString(id))

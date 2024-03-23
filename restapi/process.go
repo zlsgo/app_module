@@ -29,7 +29,10 @@ func jsonMarshalProcess(isArray bool) func(s interface{}) (string, error) {
 				return v, nil
 			}
 			return
+		case ztype.Type:
+			s = v.Value()
 		}
+
 		var jb []byte
 		jb, err = zjson.Marshal(s)
 		if err != nil {
