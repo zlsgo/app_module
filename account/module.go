@@ -7,6 +7,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -39,15 +40,17 @@ func (m *Module) Name() string {
 type Options struct {
 	InitDB               func() (*zdb.DB, error) `json:"-"`
 	key                  string
-	InlayRBAC            *rbac.RBAC       `json:"-"`
-	RBACFile             string           `json:"rbac_file"`
-	ApiPrefix            string           `json:"prefix"`
-	InlayUser            ztype.Maps       `json:"inlay_user"`
-	AdminDefaultPassword string           `json:"admin_default_password"`
-	Expire               int              `json:"expire"`
-	Only                 bool             `json:"only"`
-	DisabledLogIP        bool             `json:"disabled_ip"`
-	Models               []restapi.Define `json:"-"`
+	InlayRBAC            *rbac.RBAC               `json:"-"`
+	RBACFile             string                   `json:"rbac_file"`
+	ApiPrefix            string                   `json:"prefix"`
+	InlayUser            ztype.Maps               `json:"inlay_user"`
+	AdminDefaultPassword string                   `json:"admin_default_password"`
+	Expire               int                      `json:"expire"`
+	Only                 bool                     `json:"only"`
+	DisabledLogIP        bool                     `json:"disabled_ip"`
+	Models               []restapi.Define         `json:"-"`
+	SSE                  znet.SSEOption           `json:"-"`
+	SSEReconnect         func(uid, lastID string) `json:"-"`
 }
 
 func (o Options) ConfKey() string {
@@ -111,15 +114,15 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 		index.Path = m.Options.ApiPrefix + "/base"
 		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadLeft)
 
-		index.plugin = m
+		index.module = m
 		m.controllers = []service.Controller{
 			index,
 			&Message{
-				plugin: m,
+				module: m,
 				Path:   m.Options.ApiPrefix + "/message",
 			},
 			&User{
-				plugin: m,
+				module: m,
 				Path:   m.Options.ApiPrefix + "/user",
 			},
 		}

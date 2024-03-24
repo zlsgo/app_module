@@ -17,7 +17,7 @@ var (
 	verifyPermissions func(c *znet.Context) error
 )
 
-func (m *Module) RegMiddleware(r *znet.Engine, ignore ...string) error {
+func PermisMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
 		return errors.New("middleware not initialized, please call Init first")
 	}
@@ -98,6 +98,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		value.AddGlobPermission(1, "*", "/manage/base/password")
 		value.AddGlobPermission(1, "*", "/manage/base/info")
 		value.AddGlobPermission(1, "*", "/manage/base/message")
+		value.AddGlobPermission(1, "*", "/manage/message/realtime")
 		value.AddGlobPermission(1, "*", "/manage/base/logout")
 		return true
 	})

@@ -3,6 +3,7 @@ package account
 import (
 	"reflect"
 
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
@@ -10,7 +11,7 @@ import (
 
 type Message struct {
 	service.App
-	plugin *Module
+	module *Module
 	Path   string
 }
 
@@ -19,15 +20,31 @@ var (
 )
 
 func (h *Message) Init(r *znet.Engine) error {
-	return h.plugin.RegMiddleware(r)
+	return PermisMiddleware(r)
 }
 
 // Get 站内通知列表
 func (h *Message) Get(c *znet.Context) (data ztype.Map, err error) {
-	uid := Ctx.UID(c)
-	unread, _ := h.plugin.messageModel.Unread(uid)
+	uid := Request.UID(c)
+	unread, _ := h.module.messageModel.Unread(uid)
 
 	return ztype.Map{
 		"unread": unread,
 	}, err
+}
+
+// AnyRealtime 实时通知
+func (h *Message) AnyRealtime(c *znet.Context) error {
+	if !c.IsSSE() {
+		return zerror.InvalidInput.Text("不支持的请求类型")
+	}
+
+	sse, remove, err := h.module.newSession(c)
+	if err != nil {
+		return err
+	}
+	defer remove()
+
+	sse.Push()
+	return nil
 }

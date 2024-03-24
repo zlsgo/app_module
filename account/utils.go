@@ -18,7 +18,7 @@ const (
 	ctxWithIgnorePerm = "m::account::IgnorePerm"
 )
 
-var Ctx = &ctxWith{}
+var Request = &ctxWith{}
 
 func (ctxWith) UID(c *znet.Context) string {
 	uid, ok := c.Value(ctxWithUID)

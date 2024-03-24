@@ -28,7 +28,7 @@ type Index struct {
 	accoutModel *restapi.Model
 	permModel   *restapi.Model
 	roleModel   *restapi.Model
-	plugin      *Module
+	module      *Module
 	Path        string
 }
 
@@ -48,7 +48,7 @@ func (h *Index) Init(r *znet.Engine) error {
 	// 获取系统信息无需验证
 	r.Any("/refresh-token", h.refreshToken)
 
-	err := h.plugin.RegMiddleware(r)
+	err := PermisMiddleware(r)
 	if err != nil {
 		return err
 	}
@@ -63,12 +63,12 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 		refreshToken = c.GetJSON("refresh_token").String()
 	}
 
-	_, err := jwt.Parse(token, h.plugin.Options.key)
+	_, err := jwt.Parse(token, h.module.Options.key)
 	if err != nil && !strings.Contains(err.Error(), "expired") {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("旧 token 不合法"))
 	}
 
-	info, err := jwt.Parse(refreshToken, h.plugin.Options.key)
+	info, err := jwt.Parse(refreshToken, h.module.Options.key)
 	if err != nil {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 无效"))
 	}
@@ -93,7 +93,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	clearCache(token, uid)
 
-	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.plugin.Options.key, h.plugin.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := restapi.FindOne(h.accoutModel, Ctx.UID(c), func(so *restapi.CondOptions) error {
+	info, err := restapi.FindOne(h.accoutModel, Request.UID(c), func(so *restapi.CondOptions) error {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
 		return nil
 	})
@@ -223,7 +223,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 
 	salt := user.Get("salt").String()
 
-	if h.plugin.Options.Only || salt == "" {
+	if h.module.Options.Only || salt == "" {
 		salt = zstring.Rand(saltLen)
 	}
 
@@ -238,13 +238,13 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	info := salt + uid
-	accessToken, refreshToken, err := jwt.GenToken(info, h.plugin.Options.key, h.plugin.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if mLog, ok := h.plugin.mods.Get(logsName); ok {
+	if mLog, ok := h.module.mods.Get(logsName); ok {
 		_, _ = insertLog(c, mLog, user.Get("account").String(), 200, "登录成功")
 	}
 
@@ -257,7 +257,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 
 // AnyLogout 用户退出
 func (h *Index) AnyLogout(c *znet.Context) (any, error) {
-	uid := Ctx.UID(c)
+	uid := Request.UID(c)
 	if uid == "" {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
@@ -276,9 +276,9 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	defer func() {
 		if err != nil {
-			Ctx.WithLog(c, "修改密码", err.Error())
+			Request.WithLog(c, "修改密码", err.Error())
 		} else {
-			Ctx.WithLog(c, "修改密码", "修改成功")
+			Request.WithLog(c, "修改密码", "修改成功")
 		}
 	}()
 
@@ -297,7 +297,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		return nil, invalidInput(err)
 	}
 
-	uid := Ctx.UID(c)
+	uid := Request.UID(c)
 	user, _ := restapi.FindOne(h.accoutModel, uid, func(so *restapi.CondOptions) error {
 		so.Fields = []string{restapi.IDKey, "password", "salt"}
 		return nil
@@ -324,7 +324,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	clearCache(jwt.GetToken(c), uid)
 
 	info := salt + uid
-	accessToken, refreshToken, err := jwt.GenToken(info, h.plugin.Options.key, h.plugin.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
 
 	return ztype.Map{
 		"token":         accessToken,
@@ -334,7 +334,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 
 // PatchMe 修改当前用户信息
 func (h *Index) PatchMe(c *znet.Context) (any, error) {
-	uid := Ctx.UID(c)
+	uid := Request.UID(c)
 	data, _ := c.GetJSONs()
 	keys := []string{"avatar", "nickname"}
 	update := make(ztype.Map, 0)
@@ -350,7 +350,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 
 // POSTAvatar 上传用户头像
 func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
-	uid := Ctx.UID(c)
+	uid := Request.UID(c)
 	res, err := common.Upload(c, "account", func(o *common.UploadOption) {
 		o.Dir = "/avatar"
 		o.MimeType = []string{"image/*"}

@@ -15,7 +15,7 @@ import (
 
 type User struct {
 	service.App
-	plugin *Module
+	module *Module
 	Path   string
 }
 
@@ -24,7 +24,7 @@ var (
 )
 
 func (h *User) Init(r *znet.Engine) error {
-	return h.plugin.RegMiddleware(r)
+	return PermisMiddleware(r)
 }
 
 // Get 用户列表
@@ -36,15 +36,15 @@ func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
 	}
 	page, pagesize, _ := common.VarPages(c)
 
-	data, err = h.plugin.AccountModel().Pages(page, pagesize, filter, func(co *restapi.CondOptions) error {
+	data, err = h.module.AccountModel().Pages(page, pagesize, filter, func(co *restapi.CondOptions) error {
 		co.OrderBy = map[string]string{
 			restapi.IDKey: "desc",
 		}
-		co.Fields = h.plugin.AccountModel().m.GetFields("password", "salt")
+		co.Fields = h.module.AccountModel().m.GetFields("password", "salt")
 		return nil
 	})
 	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := h.plugin.AccountModel().DeCryptID(item.Get(restapi.IDKey).String())
+		id, _ := h.module.AccountModel().DeCryptID(item.Get(restapi.IDKey).String())
 		_ = item.Set("id", id)
 		return true
 	})
@@ -74,19 +74,19 @@ func (h *User) Post(c *znet.Context) (id interface{}, err error) {
 	}
 
 	// 检查账号是否存在
-	if exist, _ := h.plugin.AccountModel().Exists(ztype.Map{
+	if exist, _ := h.module.AccountModel().Exists(ztype.Map{
 		"account": account,
 	}); exist {
 		return 0, zerror.WrapTag(zerror.InvalidInput)(errors.New("账号已存在"))
 	}
 
-	return h.plugin.AccountModel().Insert(data)
+	return h.module.AccountModel().Insert(data)
 }
 
 // UIDPut 修改用户
 func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 	id := c.GetParam("uid")
-	user, err := h.plugin.AccountModel().FindOneByID(id)
+	user, err := h.module.AccountModel().FindOneByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 	if err = fixUserData(j, &data); err != nil {
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
-	_, err = h.plugin.AccountModel().UpdateByID(id, data)
+	_, err = h.module.AccountModel().UpdateByID(id, data)
 
 	return nil, err
 }
