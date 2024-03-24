@@ -12,11 +12,17 @@ import (
 
 type MessageModel struct {
 	*restapi.Operation
-	mod *Module
+	model  *restapi.Model
+	module *Module
 }
 
-func (m *Module) MessageModel() *MessageModel {
-	return m.messageModel
+var messageModel *MessageModel
+
+func GetMessageModel() (*MessageModel, error) {
+	if messageModel == nil {
+		return nil, errors.New("message model not define")
+	}
+	return messageModel, nil
 }
 
 func messageModelDefine(m *Module) error {
@@ -66,13 +72,13 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		m.messageModel = &MessageModel{Operation: mod.Operation(), mod: m}
+		messageModel = &MessageModel{model: mod, module: m, Operation: mod.Operation()}
 	}
 	return err
 }
 
 func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
-	id, err := m.mod.AccountModel().DeCryptID(uid)
+	id, err := m.module.AccountModel().DeCryptID(uid)
 	if err != nil {
 		return nil, errors.New("用户 ID 错误")
 	}
@@ -112,12 +118,12 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = m.mod.AccountModel().DeCryptID(to)
+	to, err = m.module.AccountModel().DeCryptID(to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = m.mod.AccountModel().DeCryptID(from)
+	from, err = m.module.AccountModel().DeCryptID(from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}

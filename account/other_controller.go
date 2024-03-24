@@ -13,7 +13,8 @@ func (h *Index) getSite(c *znet.Context) (data ztype.Map, err error) {
 // GetMessage 站内消息
 func (h *Index) GetMessage(c *znet.Context) (data ztype.Map, err error) {
 	uid := Request.UID(c)
-	unread, _ := h.module.messageModel.Unread(uid)
+	m, _ := GetMessageModel()
+	unread, _ := m.Unread(uid)
 
 	return ztype.Map{
 		"unread": unread,
