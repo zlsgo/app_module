@@ -61,3 +61,10 @@ func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 	j, _ := c.GetJSONs()
 	return Inside.UpdateUser(id, j.Map())
 }
+
+// UIDDELETE 删除用户
+func (h *User) UIDDELETE(c *znet.Context) (res interface{}, err error) {
+	id := c.GetParam("uid")
+	_, err = GetAccountModel().DeleteByID(id)
+	return nil, err
+}

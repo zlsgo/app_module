@@ -109,7 +109,7 @@ func (o *Operation) DeleteMany(id any, filter ztype.Map, fn ...func(*CondOptions
 }
 
 // DeleteByID 通过ID删除数据
-func (o *Operation) DeleteByID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func (o *Operation) DeleteByID(id any, fn ...func(*CondOptions) error) (total int64, err error) {
 	filter := ztype.Map{IDKey: id}
 	return Delete(o.model, filter, fn...)
 }
