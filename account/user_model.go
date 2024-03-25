@@ -12,8 +12,14 @@ type AccountModel struct {
 	m   *restapi.Model
 }
 
-func (m *Module) AccountModel() *AccountModel {
-	return m.accountModel
+var accountModel *AccountModel
+
+func GetAccountModel() *AccountModel {
+	if accountModel == nil {
+		panic("account model not define")
+	}
+
+	return accountModel
 }
 
 const accountName = "account"
@@ -137,7 +143,7 @@ func accountModelDefine(p *Module) error {
 					},
 					{
 						Method: "maxLength",
-						Args:   10,
+						Args:   20,
 					},
 				},
 				Options: restapi.FieldOption{
@@ -166,7 +172,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		p.accountModel = &AccountModel{Operation: mod.Operation(), mod: p, m: mod}
+		accountModel = &AccountModel{Operation: mod.Operation(), mod: p, m: mod}
 	}
 	return err
 }

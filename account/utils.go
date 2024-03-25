@@ -4,7 +4,7 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 )
 
-type ctxWith struct {
+type requestWith struct {
 }
 
 const (
@@ -18,9 +18,9 @@ const (
 	ctxWithIgnorePerm = "m::account::IgnorePerm"
 )
 
-var Request = &ctxWith{}
+var Request = &requestWith{}
 
-func (ctxWith) UID(c *znet.Context) string {
+func (requestWith) UID(c *znet.Context) string {
 	uid, ok := c.Value(ctxWithUID)
 	if !ok {
 		return ""
@@ -28,15 +28,13 @@ func (ctxWith) UID(c *znet.Context) string {
 	return uid.(string)
 }
 
-// func (ctxWith) RawUID(c *znet.Context) string {
-// 	uid, ok := c.Value(ctxWithRawUID)
-// 	if !ok {
-// 		return ""
-// 	}
-// 	return uid.(string)
-// }
+func (r requestWith) RealUID(c *znet.Context) string {
+	uid := r.UID(c)
+	nid, _ := GetAccountModel().DeCryptID(uid)
+	return nid
+}
 
-func (ctxWith) Roles(c *znet.Context) []string {
+func (requestWith) Roles(c *znet.Context) []string {
 	roles, ok := c.Value(ctxWithRole)
 	if !ok {
 		return []string{}
@@ -44,7 +42,7 @@ func (ctxWith) Roles(c *znet.Context) []string {
 	return roles.([]string)
 }
 
-func (ctxWith) IsSuperAdmin(c *znet.Context) bool {
+func (requestWith) IsSuperAdmin(c *znet.Context) bool {
 	b, ok := c.Value(ctxWithIsInlayAdmin)
 	if !ok {
 		return false
@@ -52,11 +50,11 @@ func (ctxWith) IsSuperAdmin(c *znet.Context) bool {
 	return b.(bool)
 }
 
-func (ctxWith) IgnorePerm(c *znet.Context) *znet.Context {
+func (requestWith) IgnorePerm(c *znet.Context) *znet.Context {
 	return c.WithValue(ctxWithIgnorePerm, true)
 }
 
-func (ctxWith) WithLog(c *znet.Context, message string, remark ...string) *znet.Context {
+func (requestWith) WithLog(c *znet.Context, message string, remark ...string) *znet.Context {
 	lastMsg := c.MustValue(ctxWithLog, "").(string)
 	if lastMsg != "" {
 		message = lastMsg + ": " + message

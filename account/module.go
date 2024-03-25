@@ -23,7 +23,7 @@ type Module struct {
 	db          *zdb.DB
 	mods        *restapi.Models
 	Options     *Options
-	controllers []service.Controller
+	Controllers []service.Controller
 	// messageModel *MessageModel
 	accountModel *AccountModel
 }
@@ -115,7 +115,7 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadLeft)
 
 		index.module = m
-		m.controllers = []service.Controller{
+		m.Controllers = []service.Controller{
 			index,
 			&Message{
 				module: m,
@@ -190,7 +190,7 @@ func (m *Module) Done(zdi.Invoker) (err error) {
 }
 
 func (m *Module) Controller() []service.Controller {
-	return m.controllers
+	return m.Controllers
 }
 
 func (m *Module) Stop() error {
