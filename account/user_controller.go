@@ -3,6 +3,7 @@ package account
 import (
 	"reflect"
 
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
@@ -26,7 +27,9 @@ func (h *User) Init(r *znet.Engine) error {
 
 // Get 用户列表
 func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
-	filter := ztype.Map{}
+	filter := ztype.Map{
+		"inlay": false,
+	}
 	account, _ := c.GetQuery("account")
 	if account != "" {
 		filter["account"] = account + "%"
@@ -65,6 +68,19 @@ func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 // UIDDELETE 删除用户
 func (h *User) UIDDELETE(c *znet.Context) (res interface{}, err error) {
 	id := c.GetParam("uid")
+	user, err := GetAccountModel().FindOneByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if user.IsEmpty() {
+		return nil, zerror.InvalidInput.Text("用户不存在")
+	}
+
+	if user.Get("inlay").Bool() {
+		return nil, zerror.InvalidInput.Text("不能删除内置用户")
+	}
+
 	_, err = GetAccountModel().DeleteByID(id)
 	return nil, err
 }
