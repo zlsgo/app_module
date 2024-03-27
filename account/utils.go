@@ -2,13 +2,15 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/ztype"
 )
 
 type requestWith struct {
 }
 
 const (
-	ctxWithUID = "m::account::uid"
+	ctxWithUID  = "m::account::uid"
+	ctxWithUser = "m::account::user"
 	// ctxWithRawUID       = "m::account::rawUID"
 	ctxWithRole         = "m::account::role"
 	ctxWithIsInlayAdmin = "m::account::administrator"
@@ -26,6 +28,14 @@ func (requestWith) UID(c *znet.Context) string {
 		return ""
 	}
 	return uid.(string)
+}
+
+func (requestWith) User(c *znet.Context) ztype.Map {
+	uid, ok := c.Value(ctxWithUser)
+	if !ok {
+		return ztype.Map{}
+	}
+	return uid.(ztype.Map)
 }
 
 func (r requestWith) RealUID(c *znet.Context) string {

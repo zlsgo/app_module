@@ -128,6 +128,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			return err
 		}
 
+		c.WithValue(ctxWithUser, u)
 		if u.Get("status").Int() != 1 {
 			return permissionDenied(errors.New("用户已被禁用"))
 		}
