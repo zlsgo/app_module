@@ -55,11 +55,17 @@ func (m *Module) newSession(c *znet.Context) (sse *znet.SSE, remove func(), err 
 
 	return sse, func() {
 		session.removeSession(id)
+		if session.sessions.Len() == 0 {
+			sessionHub.Delete(uid)
+		}
 	}, nil
 }
 
 func SendRealtime(uid string, data string, event ...string) bool {
 	if session, ok := sessionHub.Get(uid); ok {
+		if session.sessions.Len() == 0 {
+			return false
+		}
 		id := ztime.Now()
 		session.sessions.ForEach(func(k int64, v *znet.SSE) bool {
 			_ = v.Send(id, data, event...)
