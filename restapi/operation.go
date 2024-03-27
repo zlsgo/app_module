@@ -35,6 +35,11 @@ func (o *Operation) Insert(data ztype.Map) (lastId interface{}, err error) {
 	return Insert(o.model, data)
 }
 
+// InsertMany 批量插入数据
+func (o *Operation) InsertMany(data ztype.Maps) (lastId interface{}, err error) {
+	return InsertMany(o.model, data)
+}
+
 // Count 统计数量
 func (o *Operation) Count(filter ztype.Map) (int64, error) {
 	resp, err := FindCols(o.model, "count", filter, func(co *CondOptions) error {
