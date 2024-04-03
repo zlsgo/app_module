@@ -6,6 +6,7 @@ import (
 	"github.com/zlsgo/app_module/restapi"
 
 	"github.com/sohaha/zlsgo/zdi"
+	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/zdb"
 )
@@ -36,12 +37,17 @@ func (p *Plugin) Load(zdi.Invoker) (any, error) {
 		}
 
 		dealOldColumn := restapi.DealOldColumnNone
+		if options.Mode == nil {
+			options.Mode = &Mode{}
+		}
 		if options.Mode.DelteColumn {
 			dealOldColumn = restapi.DealOldColumnDelete
 		}
 		restapi.Inside.DeleteOldColumn(dealOldColumn)
 
-		p.db = initDB(c)
+		p.db, err = initDB(c)
+		common.Fatal(err)
+
 		d.Map(p.db)
 
 		return

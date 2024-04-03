@@ -2,12 +2,12 @@ package database
 
 type (
 	Options struct {
-		Sqlite       Sqlite   `json:"sqlite"`
-		Driver       string   `json:"driver"`
-		MySQL        Mysql    `json:"mysql"`
-		Postgres     Postgres `json:"postgres"`
-		disableWrite bool     `json:"-"`
-		Mode         Mode     `json:"mode"`
+		Sqlite       *Sqlite   `json:"sqlite,omitempty"`
+		Driver       string    `json:"driver,omitempty"`
+		MySQL        *Mysql    `json:"mysql,omitempty"`
+		Postgres     *Postgres `json:"postgres,omitempty"`
+		disableWrite bool      `json:"-"`
+		Mode         *Mode     `json:"mode,omitempty"`
 	}
 
 	Mysql struct {
@@ -15,10 +15,11 @@ type (
 		User       string `json:"user"`
 		Password   string `json:"password"`
 		DBName     string `json:"db_name"`
-		Parameters string `json:"parameters"`
-		Charset    string `json:"charset"`
+		Parameters string `json:"parameters,omitempty"`
+		Charset    string `json:"charset,omitempty"`
 		Port       int    `json:"port"`
 	}
+
 	Postgres struct {
 		Host     string `json:"host"`
 		User     string `json:"user"`
@@ -27,12 +28,14 @@ type (
 		SSLMode  string `json:"ssl_mode"`
 		Port     int    `json:"port"`
 	}
+
 	Sqlite struct {
 		Path       string `json:"path"`
-		Parameters string `json:"parameters"`
+		Parameters string `json:"parameters,omitempty"`
 	}
+
 	Mode struct {
-		DelteColumn bool `json:"delete_column"`
+		DelteColumn bool `json:"delete_column,omitempty"`
 	}
 )
 

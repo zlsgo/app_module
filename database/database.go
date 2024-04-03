@@ -19,11 +19,11 @@ func New(o ...Options) *Plugin {
 		options = Options{
 			disableWrite: true,
 			Driver:       "sqlite",
-			Sqlite: Sqlite{
+			Sqlite: &Sqlite{
 				Path:       "db.db",
 				Parameters: "_pragma=busy_timeout(5000)",
 			},
-			MySQL: Mysql{
+			MySQL: &Mysql{
 				Host:       "127.0.0.1",
 				Port:       3306,
 				User:       "root",
@@ -31,7 +31,7 @@ func New(o ...Options) *Plugin {
 				DBName:     "zls",
 				Parameters: "charset=utf8mb4&parseTime=True&loc=Local",
 			},
-			Postgres: Postgres{
+			Postgres: &Postgres{
 				Host:     "127.0.0.1",
 				Port:     5432,
 				User:     "root",
