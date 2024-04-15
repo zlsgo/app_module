@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/sohaha/zlsgo/zdi"
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/zdb"
 )
@@ -43,6 +44,23 @@ func New(o ...Options) *Plugin {
 
 	service.DefaultConf = append(service.DefaultConf, options)
 	return &Plugin{}
+}
+
+func (p *Plugin) Reload(conf *service.Conf) error {
+	var nOptions Options
+	err := conf.Unmarshal(nOptions.ConfKey(), &nOptions)
+	if err != nil {
+		return err
+	}
+
+	db, err := initDB(nOptions)
+	if err != nil {
+		return zerror.With(err, "新配置初始化数据库失败")
+	}
+
+	p.db = db
+	options = nOptions
+	return nil
 }
 
 func (p *Plugin) DB() (*zdb.DB, error) {

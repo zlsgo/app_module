@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/zlsgo/app_core/common"
-	"github.com/zlsgo/app_core/service"
 
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
@@ -16,12 +16,10 @@ import (
 	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
-func initDB(c *service.Conf) (*zdb.DB, error) {
+func initDB(db Options) (*zdb.DB, error) {
 	var (
 		dbConf driver.IfeConfig
-		db     Options
 	)
-	_ = c.Unmarshal((Options{}).ConfKey(), &db)
 
 	d := strings.ToLower(db.Driver)
 	if d == "" {
@@ -92,5 +90,10 @@ func initDB(c *service.Conf) (*zdb.DB, error) {
 
 	builder.DefaultDriver = dbConf.(driver.Dialect)
 
-	return zdb.New(dbConf)
+	e, err := zdb.New(dbConf)
+	if err != nil {
+		return nil, zerror.With(err, "数据库连接失败")
+	}
+
+	return e, nil
 }

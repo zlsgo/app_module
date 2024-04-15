@@ -45,7 +45,7 @@ func (p *Plugin) Load(zdi.Invoker) (any, error) {
 		}
 		restapi.Inside.DeleteOldColumn(dealOldColumn)
 
-		p.db, err = initDB(c)
+		p.db, err = initDB(options)
 		common.Fatal(err)
 
 		d.Map(p.db)

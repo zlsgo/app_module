@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/sohaha/zlsgo v1.7.11
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20240403152258-560bda2b5fc0
+	github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
 	github.com/zlsgo/jet v0.0.0-20230405092905-6a0201f62a64
 	github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c
@@ -41,7 +41,6 @@ require (
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
