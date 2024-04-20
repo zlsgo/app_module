@@ -92,12 +92,15 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 				case "LIKE":
 					exprs = append(exprs, d.Like(f[0], v.Value()))
 				case "IN":
-					exprs = append(exprs, d.In(f[0], v.Slice().Value()...))
+					exprs = append(exprs, d.In(f[0], v.SliceValue()...))
 				case "NOTIN":
-					exprs = append(exprs, d.NotIn(f[0], v.Slice().Value()...))
+					exprs = append(exprs, d.NotIn(f[0], v.SliceValue()...))
 				case "BETWEEN":
-					s := v.Slice()
-					exprs = append(exprs, d.Between(f[0], s.Index(0), s.Index(1)))
+					s := v.SliceValue()
+					if len(s) != 2 {
+						return nil, errors.New("BETWEEN operator need two values")
+					}
+					exprs = append(exprs, d.Between(f[0], s[0], s[1]))
 				}
 			}
 		}
