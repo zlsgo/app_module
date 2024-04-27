@@ -14,14 +14,14 @@ import (
 )
 
 type UploadOptions struct {
-	MaxSize       uint64
-	MaxFiles      int
-	AllowTypes    []string
-	AllowExts     []string
+	ConveFilePath func(file, name, dir string) string
 	FormName      string
 	Dir           string
+	AllowTypes    []string
+	AllowExts     []string
+	MaxSize       uint64
+	MaxFiles      int
 	SafeDir       bool
-	ConveFilePath func(file, name, dir string) string
 }
 
 // Upload Upload file

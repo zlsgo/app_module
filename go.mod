@@ -4,20 +4,20 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.11
+	github.com/sohaha/zlsgo v1.7.12
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
-	github.com/zlsgo/jet v0.0.0-20230405092905-6a0201f62a64
+	github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f
 	github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c
 	golang.org/x/crypto v0.22.0
-	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
-	github.com/CloudyKit/jet/v6 v6.1.0 // indirect
+	github.com/CloudyKit/jet/v6 v6.2.1-0.20240307125431-eb1f1c678ac2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect

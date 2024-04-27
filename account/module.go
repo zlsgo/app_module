@@ -18,14 +18,13 @@ import (
 )
 
 type Module struct {
-	service.App
 	service.ModuleLifeCycle
-	db          *zdb.DB
-	mods        *restapi.Models
-	Options     *Options
-	Controllers []service.Controller
-	// messageModel *MessageModel
+	service.App
+	db           *zdb.DB
+	mods         *restapi.Models
+	Options      *Options
 	accountModel *AccountModel
+	Controllers  []service.Controller
 }
 
 var (
@@ -38,19 +37,19 @@ func (m *Module) Name() string {
 }
 
 type Options struct {
-	InitDB               func() (*zdb.DB, error) `json:"-"`
-	key                  string
-	InlayRBAC            *rbac.RBAC               `json:"-"`
-	RBACFile             string                   `json:"rbac_file"`
-	ApiPrefix            string                   `json:"prefix"`
-	InlayUser            ztype.Maps               `json:"inlay_user"`
-	AdminDefaultPassword string                   `json:"admin_default_password"`
-	Expire               int                      `json:"expire"`
-	Only                 bool                     `json:"only"`
-	DisabledLogIP        bool                     `json:"disabled_ip"`
-	Models               []restapi.Define         `json:"-"`
-	SSE                  znet.SSEOption           `json:"-"`
+	InitDB               func() (*zdb.DB, error)  `json:"-"`
 	SSEReconnect         func(uid, lastID string) `json:"-"`
+	InlayRBAC            *rbac.RBAC               `json:"-"`
+	AdminDefaultPassword string                   `json:"admin_default_password"`
+	ApiPrefix            string                   `json:"prefix"`
+	RBACFile             string                   `json:"rbac_file"`
+	key                  string
+	InlayUser            ztype.Maps       `json:"inlay_user"`
+	Models               []restapi.Define `json:"-"`
+	SSE                  znet.SSEOption   `json:"-"`
+	Expire               int              `json:"expire"`
+	Only                 bool             `json:"only"`
+	DisabledLogIP        bool             `json:"disabled_ip"`
 }
 
 func (o Options) ConfKey() string {

@@ -9,8 +9,8 @@ import (
 
 type (
 	Options struct {
-		ModelsDefine []Define
 		Prefix       string
+		ModelsDefine []Define
 	}
 )
 

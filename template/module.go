@@ -41,10 +41,17 @@ func New(opt ...func(*Options)) *Module {
 						o.Reload = options.Reload
 					})
 
+					if options.Funcs != nil {
+						for k := range options.Funcs {
+							j.AddFunc(k, options.Funcs[k])
+						}
+					}
+
 					r.SetTemplate(j)
 					if err := j.Load(); err != nil {
 						return err
 					}
+
 					return nil
 				})
 			},

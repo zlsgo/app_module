@@ -16,15 +16,14 @@ import (
 
 type (
 	Define struct {
-		Fields    Fields                    `json:"fields"`
-		Extend    ztype.Map                 `json:"extend"`
-		Relations map[string]*ModelRelation `json:"relations"`
-		// MigrationDone func(db *zdb.DB, m *Model) error              `json:"-"`
-		Table   Table                             `json:"table"`
-		Name    string                            `json:"name"`
-		Values  ztype.Maps                        `json:"values"`
-		Options ModelOptions                      `json:"options"`
-		Hook    func(name string, m *Model) error `json:"-"`
+		Fields    Fields                            `json:"fields"`
+		Extend    ztype.Map                         `json:"extend"`
+		Relations map[string]*ModelRelation         `json:"relations"`
+		Hook      func(name string, m *Model) error `json:"-"`
+		Table     Table                             `json:"table"`
+		Name      string                            `json:"name"`
+		Values    ztype.Maps                        `json:"values"`
+		Options   ModelOptions                      `json:"options"`
 	}
 
 	Model struct {

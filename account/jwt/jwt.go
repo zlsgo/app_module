@@ -12,9 +12,9 @@ import (
 )
 
 type Info struct {
+	jwt.StandardClaims
 	Info      string
 	IsRefresh bool
-	jwt.StandardClaims
 }
 
 func GenToken(info string, key string, expire int) (accessToken, refreshToken string, err error) {
