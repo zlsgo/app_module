@@ -9,9 +9,9 @@ import (
 type (
 	Module struct {
 		service.ModuleLifeCycle
-		Operations *Operations
-		Models     *Models
-		Options    Options
+		// Operations *Operations
+		// Models  *Models
+		Options Options
 	}
 )
 
