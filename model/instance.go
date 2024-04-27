@@ -1,4 +1,4 @@
-package restapi
+package model
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/zlsgo/app_module/model/define"
 )
 
 type Models struct {
@@ -48,7 +49,7 @@ func (ms *Models) ForEach(fn func(key string, m *Model) bool) {
 	ms.m.ForEach(fn)
 }
 
-func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
+func (ms *Models) Reg(name string, data define.Define, force bool) (*Model, error) {
 	if !force && ms.m.Has(name) {
 		return nil, errors.New("model " + name + " has been registered")
 	}
@@ -83,7 +84,7 @@ func (ms *Models) Reg(name string, data Define, force bool) (*Model, error) {
 	return m, nil
 }
 
-func (ms *Models) BatchReg(models map[string]Define, force bool) error {
+func (ms *Models) BatchReg(models map[string]define.Define, force bool) error {
 	for name, data := range models {
 		err := zerror.TryCatch(func() error {
 			_, err := ms.Reg(name, data, force)

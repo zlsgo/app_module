@@ -1,4 +1,4 @@
-package restapi
+package model
 
 import (
 	"github.com/sohaha/zlsgo/znet"

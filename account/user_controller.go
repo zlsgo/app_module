@@ -8,7 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
 )
 
 type User struct {
@@ -26,7 +26,7 @@ func (h *User) Init(r *znet.Engine) error {
 }
 
 // Get 用户列表
-func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
+func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	filter := ztype.Map{
 		"inlay": false,
 	}
@@ -36,15 +36,15 @@ func (h *User) Get(c *znet.Context) (data *restapi.PageData, err error) {
 	}
 	page, pagesize, _ := common.VarPages(c)
 
-	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *restapi.CondOptions) error {
+	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) error {
 		co.OrderBy = map[string]string{
-			restapi.IDKey: "desc",
+			model.IDKey: "desc",
 		}
 		co.Fields = GetAccountModel().m.GetFields("password", "salt")
 		return nil
 	})
 	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := GetAccountModel().DeCryptID(item.Get(restapi.IDKey).String())
+		id, _ := GetAccountModel().DeCryptID(item.Get(model.IDKey).String())
 		_ = item.Set("id", id)
 		return true
 	})

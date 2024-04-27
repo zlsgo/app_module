@@ -6,13 +6,14 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb/schema"
 )
 
 type MessageModel struct {
-	*restapi.Operation
-	model  *restapi.Model
+	*model.Operation
+	model  *model.Model
 	module *Module
 }
 
@@ -27,13 +28,13 @@ func GetMessageModel() (*MessageModel, error) {
 
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
-	mod, err := m.mods.Reg(messageName, restapi.Define{
+	mod, err := m.mods.Reg(messageName, define.Define{
 		Name: messageName,
-		Options: restapi.ModelOptions{
+		Options: define.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]restapi.Field{
+		Fields: map[string]define.Field{
 			"from": {
 				Type:  schema.Int64,
 				Label: "发送者",
@@ -83,9 +84,9 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 		return nil, errors.New("用户 ID 错误")
 	}
 
-	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *restapi.CondOptions) error {
-		co.Fields = []string{restapi.IDKey, restapi.CreatedAtKey, "mtype"}
-		co.OrderBy = map[string]string{restapi.IDKey: "desc"}
+	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *model.CondOptions) error {
+		co.Fields = []string{model.IDKey, model.CreatedAtKey, "mtype"}
+		co.OrderBy = map[string]string{model.IDKey: "desc"}
 		return nil
 	})
 	if err != nil {
@@ -96,7 +97,7 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 	if !resp.IsEmpty() {
 		first := resp.First()
 		mtype = first.Get("mtype").String()
-		t, _ := first.Get(restapi.CreatedAtKey).Time()
+		t, _ := first.Get(model.CreatedAtKey).Time()
 		last = t.Unix()
 	}
 

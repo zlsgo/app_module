@@ -1,4 +1,4 @@
-package restapi
+package model
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
 	"github.com/zlsgo/zdb/schema"
@@ -252,10 +253,10 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 	return nil
 }
 
-func (m *Migration) execAddColumn(deleteColumn bool, modelFields Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
+func (m *Migration) execAddColumn(deleteColumn bool, modelFields define.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
 	var (
 		ok    bool
-		field *Field
+		field *define.Field
 	)
 
 	for name := range modelFields {

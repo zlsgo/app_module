@@ -1,4 +1,4 @@
-package restapi
+package model
 
 import (
 	"errors"
@@ -12,45 +12,9 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/sohaha/zlsgo/zvalid"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb/schema"
 )
-
-type (
-	Fields map[string]Field
-	Field  struct {
-		Default     interface{}     `json:"default"`
-		Unique      interface{}     `json:"unique"`
-		Index       interface{}     `json:"index"`
-		Comment     string          `json:"comment"`
-		Label       string          `json:"label"`
-		Type        schema.DataType `json:"type"`
-		Validations []Validations   `json:"validations"`
-		Options     FieldOption     `json:"ModelOptions"`
-		Before      []string        `json:"before"`
-		After       []string        `json:"after"`
-		validRules  zvalid.Engine
-		Size        uint64 `json:"size"`
-		Nullable    bool   `json:"nullable"`
-		// quoteName   string `json:"-"`
-	}
-	FieldEnum struct {
-		Value string `json:"value"`
-		Label string `json:"label"`
-	}
-	FieldOption struct {
-		FormatTime       string      `json:"format_time"`
-		Crypt            string      `json:"crypt"`
-		Enum             []FieldEnum `json:"enum"`
-		IsArray          bool        `json:"is_array"`
-		ReadOnly         bool        `json:"readonly"`
-		DisableMigration bool        `json:"disable_migration"`
-		// Quote      bool        `json:"quote"`
-	}
-)
-
-func (f *Field) GetValidations() *zvalid.Engine {
-	return &f.validRules
-}
 
 func (m *Model) filterFields(fields []string) []string {
 	return zarray.Filter(fields, func(_ int, f string) bool {
@@ -62,15 +26,15 @@ func (m *Model) filterFields(fields []string) []string {
 	})
 }
 
-func (m *Model) GetField(name string) (Field, bool) {
+func (m *Model) GetField(name string) (define.Field, bool) {
 	f, ok := m.getField(name)
 	if !ok {
-		return Field{}, false
+		return define.Field{}, false
 	}
 	return *f, true
 }
 
-func (m *Model) getField(name string) (*Field, bool) {
+func (m *Model) getField(name string) (*define.Field, bool) {
 	for fname := range m.model.Fields {
 		if name == fname {
 			field := m.model.Fields[fname]
@@ -79,11 +43,11 @@ func (m *Model) getField(name string) (*Field, bool) {
 	}
 
 	if name == IDKey {
-		return &Field{
+		return &define.Field{
 			Type:     schema.Int,
 			Nullable: false,
 			Label:    "ID",
-			Options: FieldOption{
+			Options: define.FieldOption{
 				ReadOnly: true,
 			},
 		}, true
@@ -92,12 +56,12 @@ func (m *Model) getField(name string) (*Field, bool) {
 	if m.model.Options.Timestamps {
 		switch name {
 		case CreatedAtKey:
-			return &Field{
+			return &define.Field{
 				Type:     schema.Time,
 				Nullable: true,
 				Label:    "创建时间"}, true
 		case UpdatedAtKey:
-			return &Field{
+			return &define.Field{
 				Type:     schema.Time,
 				Nullable: true,
 				Label:    "更新时间"}, true
@@ -106,7 +70,7 @@ func (m *Model) getField(name string) (*Field, bool) {
 
 	if m.model.Options.SoftDeletes {
 		if name == DeletedAtKey {
-			return &Field{
+			return &define.Field{
 				Type:     schema.Int,
 				Size:     11,
 				Nullable: true,
@@ -132,7 +96,7 @@ func (m *Model) getField(name string) (*Field, bool) {
 	return nil, false
 }
 
-func (m *Model) GetModelFields() Fields {
+func (m *Model) GetModelFields() define.Fields {
 	return m.model.Fields
 }
 
@@ -160,7 +124,7 @@ func perfectField(m *Model) ([]string, error) {
 		})
 	}
 
-	nFields := make(Fields, len(m.model.Fields))
+	nFields := make(define.Fields, len(m.model.Fields))
 	for name := range m.model.Fields {
 		field := m.model.Fields[name]
 		if err := parseField(m, name, &field); err != nil {
@@ -175,7 +139,7 @@ func perfectField(m *Model) ([]string, error) {
 	return fields, nil
 }
 
-func parseField(m *Model, name string, f *Field) error {
+func parseField(m *Model, name string, f *define.Field) error {
 	if f == nil {
 		return nil
 	}
@@ -241,22 +205,22 @@ func parseField(m *Model, name string, f *Field) error {
 	return nil
 }
 
-func parseFieldModelOptions(_ string, c *Field) {
+func parseFieldModelOptions(_ string, c *define.Field) {
 	if len(c.Options.Enum) > 0 {
-		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v FieldEnum) FieldEnum {
+		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v define.FieldEnum) define.FieldEnum {
 			if v.Label == "" {
 				v.Label = v.Value
 			}
 			return v
 		})
 
-		c.validRules = c.validRules.EnumString(zarray.Map(c.Options.Enum, func(_ int, v FieldEnum) string {
+		c.ValidRules = c.ValidRules.EnumString(zarray.Map(c.Options.Enum, func(_ int, v define.FieldEnum) string {
 			return v.Value
 		}))
 	}
 }
 
-func parseFieldValidRule(name string, c *Field) {
+func parseFieldValidRule(name string, c *define.Field) {
 	label := c.Label
 	rule := zvalid.New().SetAlias(label)
 	if c.Type == schema.JSON {
@@ -327,7 +291,7 @@ func parseFieldValidRule(name string, c *Field) {
 		}
 	}
 
-	c.validRules = rule
+	c.ValidRules = rule
 }
 
 func isDisableMigratioField(m *Model, name string) bool {

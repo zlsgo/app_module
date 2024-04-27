@@ -1,4 +1,4 @@
-package restapi
+package model
 
 import (
 	"database/sql/driver"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/database/hashid"
+	"github.com/zlsgo/app_module/model/define"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zstring"
@@ -15,19 +16,8 @@ import (
 )
 
 type (
-	Define struct {
-		Fields    Fields                            `json:"fields"`
-		Extend    ztype.Map                         `json:"extend"`
-		Relations map[string]*ModelRelation         `json:"relations"`
-		Hook      func(name string, m *Model) error `json:"-"`
-		Table     Table                             `json:"table"`
-		Name      string                            `json:"name"`
-		Values    ztype.Maps                        `json:"values"`
-		Options   ModelOptions                      `json:"options"`
-	}
-
 	Model struct {
-		model         Define
+		model         define.Define
 		di            zdi.Injector
 		Storage       Storageer
 		cryptKeys     map[string]CryptProcess
@@ -45,29 +35,6 @@ type (
 		JSON          []byte
 		Fields        []string `json:"-"`
 		StorageType   StorageType
-	}
-
-	Table struct {
-		Name    string `json:"name"`
-		Comment string `json:"comment"`
-	}
-
-	ModelOptions struct {
-		Salt             string   `json:"crypt_salt"`
-		LowFields        []string `json:"low_fields"`
-		FieldsSort       []string `json:"fields_sort"`
-		CryptLen         int      `json:"crypt_len"`
-		DisabledMigrator bool     `json:"disabled_migrator"`
-		SoftDeletes      bool     `json:"soft_deletes"`
-		Timestamps       bool     `json:"timestamps"`
-		CryptID          bool     `json:"crypt_id"`
-	}
-
-	Validations struct {
-		Args    interface{} `json:"args"`
-		Method  string      `json:"method"`
-		Message string      `json:"message"`
-		// Trigger ValidTriggerType `json:"trigger"`
 	}
 
 	ColumnEnum struct {

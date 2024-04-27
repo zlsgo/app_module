@@ -2,7 +2,8 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -23,14 +24,14 @@ func initModel(p *Module) error {
 
 const roleName = "role"
 
-func roleModel(ms *restapi.Models) error {
-	_, err := ms.Reg(roleName, restapi.Define{
+func roleModel(ms *model.Models) error {
+	_, err := ms.Reg(roleName, define.Define{
 		Name: roleName,
-		Options: restapi.ModelOptions{
+		Options: define.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]restapi.Field{
+		Fields: map[string]define.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -42,7 +43,7 @@ func roleModel(ms *restapi.Models) error {
 				Comment: "必须唯一",
 				Unique:  true,
 				Default: "",
-				Validations: []restapi.Validations{
+				Validations: []define.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -55,8 +56,8 @@ func roleModel(ms *restapi.Models) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: restapi.FieldOption{
-					Enum: []restapi.FieldEnum{
+				Options: define.FieldOption{
+					Enum: []define.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -68,7 +69,7 @@ func roleModel(ms *restapi.Models) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -90,7 +91,7 @@ func roleModel(ms *restapi.Models) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含角色",
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -99,19 +100,19 @@ func roleModel(ms *restapi.Models) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含权限",
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					IsArray: true,
 				},
 			},
 		},
 		Values: []ztype.Map{
 			{
-				restapi.IDKey: 1,
-				"label":       "管理员",
-				"status":      "1",
-				"alias":       "admin",
-				"inlay":       true,
-				"permission":  []uint{1},
+				model.IDKey:  1,
+				"label":      "管理员",
+				"status":     "1",
+				"alias":      "admin",
+				"inlay":      true,
+				"permission": []uint{1},
 			},
 		},
 	}, false)
@@ -120,13 +121,13 @@ func roleModel(ms *restapi.Models) error {
 
 const permName = "permission"
 
-func permModel(ms *restapi.Models) error {
-	_, err := ms.Reg(permName, restapi.Define{
+func permModel(ms *model.Models) error {
+	_, err := ms.Reg(permName, define.Define{
 		Name: permName,
-		Options: restapi.ModelOptions{
+		Options: define.ModelOptions{
 			Timestamps: true,
 		},
-		Fields: map[string]restapi.Field{
+		Fields: map[string]define.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -138,7 +139,7 @@ func permModel(ms *restapi.Models) error {
 				Comment:  "如果不为空，必须唯一",
 				Nullable: true,
 				Unique:   true,
-				Validations: []restapi.Validations{
+				Validations: []define.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -151,8 +152,8 @@ func permModel(ms *restapi.Models) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: restapi.FieldOption{
-					Enum: []restapi.FieldEnum{
+				Options: define.FieldOption{
+					Enum: []define.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -200,14 +201,14 @@ func permModel(ms *restapi.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				restapi.IDKey: 1,
-				"label":       "全局访问",
-				"remark":      "可访问全部接口",
-				"status":      "1",
-				"alias":       "global_allow",
-				"inlay":       true,
-				"target":      "*",
-				"action":      "/*",
+				model.IDKey: 1,
+				"label":     "全局访问",
+				"remark":    "可访问全部接口",
+				"status":    "1",
+				"alias":     "global_allow",
+				"inlay":     true,
+				"target":    "*",
+				"action":    "/*",
 			},
 		},
 	}, false)
@@ -216,13 +217,13 @@ func permModel(ms *restapi.Models) error {
 
 const logsName = "logs"
 
-func logModel(ms *restapi.Models) error {
-	_, err := ms.Reg(logsName, restapi.Define{
+func logModel(ms *model.Models) error {
+	_, err := ms.Reg(logsName, define.Define{
 		Name: logsName,
-		Options: restapi.ModelOptions{
+		Options: define.ModelOptions{
 			CryptID: true,
 		},
-		Fields: map[string]restapi.Field{
+		Fields: map[string]define.Field{
 			"account": {
 				Type:  schema.String,
 				Size:  120,

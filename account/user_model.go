@@ -2,14 +2,15 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb/schema"
 )
 
 type AccountModel struct {
-	*restapi.Operation
+	*model.Operation
 	mod *Module
-	m   *restapi.Model
+	m   *model.Model
 }
 
 var accountModel *AccountModel
@@ -31,7 +32,7 @@ func accountModelDefine(p *Module) error {
 		adminDefaultPassword = "qw123456."
 	}
 	inlayUser := append(ztype.Maps{{
-		restapi.IDKey:   1,
+		model.IDKey:     1,
 		"inlay":         true,
 		"administrator": true,
 		"avatar":        "data:image/svg+xml,%3Csvg viewBox='0 0 36 36' fill='none' role='img' xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Ctitle%3EMary Roebling%3C/title%3E%3Cmask id='mask__beam' maskUnits='userSpaceOnUse' x='0' y='0' width='36' height='36'%3E%3Crect width='36' height='36' fill='%23FFFFFF'%3E%3C/rect%3E%3C/mask%3E%3Cg mask='url(%23mask__beam)'%3E%3Crect width='36' height='36' fill='%23f0f0d8'%3E%3C/rect%3E%3Crect x='0' y='0' width='36' height='36' transform='translate(5 -1) rotate(155 18 18) scale(1.2)' fill='%23000000' rx='6'%3E%3C/rect%3E%3Cg transform='translate(3 -4) rotate(-5 18 18)'%3E%3Cpath d='M15 21c2 1 4 1 6 0' stroke='%23FFFFFF' fill='none' stroke-linecap='round'%3E%3C/path%3E%3Crect x='14' y='14' width='1.5' height='2' rx='1' stroke='none' fill='%23FFFFFF'%3E%3C/rect%3E%3Crect x='20' y='14' width='1.5' height='2' rx='1' stroke='none' fill='%23FFFFFF'%3E%3C/rect%3E%3C/g%3E%3C/g%3E%3C/svg%3E",
@@ -43,20 +44,20 @@ func accountModelDefine(p *Module) error {
 		"role":     []string{"admin"},
 	}}, p.Options.InlayUser...)
 
-	mod, err := p.mods.Reg(accountName, restapi.Define{
+	mod, err := p.mods.Reg(accountName, define.Define{
 		Name: accountName,
-		Options: restapi.ModelOptions{
+		Options: define.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]restapi.Field{
+		Fields: map[string]define.Field{
 			"avatar": {
 				Label:    "头像",
 				Nullable: true,
 				Default:  "",
 				Type:     schema.String,
 				Size:     1024 * 2,
-				Validations: []restapi.Validations{
+				Validations: []define.Validations{
 					{
 						Method: "regex",
 						Args:   "^(data:image/|http://|https://|/)",
@@ -72,8 +73,8 @@ func accountModelDefine(p *Module) error {
 				Type:  schema.Int8,
 				Size:  9,
 				Label: "状态",
-				Options: restapi.FieldOption{
-					Enum: []restapi.FieldEnum{
+				Options: define.FieldOption{
+					Enum: []define.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -89,7 +90,7 @@ func accountModelDefine(p *Module) error {
 			"login_at": {
 				Type:     schema.Time,
 				Nullable: true,
-				Options:  restapi.FieldOption{},
+				Options:  define.FieldOption{},
 				Label:    "登录时间",
 			},
 			"inlay": {
@@ -97,7 +98,7 @@ func accountModelDefine(p *Module) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -106,7 +107,7 @@ func accountModelDefine(p *Module) error {
 				Label:    "是否超级管理员",
 				Default:  false,
 				Nullable: true,
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -122,7 +123,7 @@ func accountModelDefine(p *Module) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "绑定角色",
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -136,7 +137,7 @@ func accountModelDefine(p *Module) error {
 				Label:  "账号",
 				Type:   schema.String,
 				Unique: true,
-				Validations: []restapi.Validations{
+				Validations: []define.Validations{
 					{
 						Method: "minLength",
 						Args:   3,
@@ -146,17 +147,17 @@ func accountModelDefine(p *Module) error {
 						Args:   20,
 					},
 				},
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					ReadOnly: true,
 				},
 			},
 			"password": {
 				Label: "密码",
 				Type:  schema.String,
-				Options: restapi.FieldOption{
+				Options: define.FieldOption{
 					Crypt: "PASSWORD",
 				},
-				Validations: []restapi.Validations{
+				Validations: []define.Validations{
 					{
 						Method: "minLength",
 						Args:   3,

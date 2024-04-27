@@ -13,7 +13,8 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb"
 )
 
@@ -21,7 +22,7 @@ type Module struct {
 	service.ModuleLifeCycle
 	service.App
 	db           *zdb.DB
-	mods         *restapi.Models
+	mods         *model.Models
 	Options      *Options
 	accountModel *AccountModel
 	Controllers  []service.Controller
@@ -44,12 +45,12 @@ type Options struct {
 	ApiPrefix            string                   `json:"prefix"`
 	RBACFile             string                   `json:"rbac_file"`
 	key                  string
-	InlayUser            ztype.Maps       `json:"inlay_user"`
-	Models               []restapi.Define `json:"-"`
-	SSE                  znet.SSEOption   `json:"-"`
-	Expire               int              `json:"expire"`
-	Only                 bool             `json:"only"`
-	DisabledLogIP        bool             `json:"disabled_ip"`
+	InlayUser            ztype.Maps      `json:"inlay_user"`
+	Models               []define.Define `json:"-"`
+	SSE                  znet.SSEOption  `json:"-"`
+	Expire               int             `json:"expire"`
+	Only                 bool            `json:"only"`
+	DisabledLogIP        bool            `json:"disabled_ip"`
 }
 
 func (o Options) ConfKey() string {
@@ -85,9 +86,9 @@ func (m *Module) Tasks() []service.Task {
 				}
 
 				t := time.Now().AddDate(0, -1, 0)
-				_, err := restapi.DeleteMany(lm, ztype.Map{
+				_, err := model.DeleteMany(lm, ztype.Map{
 					"record_at <": ztime.FormatTime(t),
-				}, func(so *restapi.CondOptions) error {
+				}, func(so *model.CondOptions) error {
 					return nil
 				})
 				if err != nil {
@@ -139,8 +140,8 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.mods = restapi.NewModels(di.(zdi.Injector), restapi.NewSQL(m.db, func(o *restapi.SQLOptions) {
-		var restapiModule *restapi.Module
+	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
+		var restapiModule *model.Module
 		if err := m.DI.Resolve(&restapiModule); err == nil {
 			o.Prefix = restapiModule.Options.Prefix
 		}

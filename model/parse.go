@@ -1,9 +1,10 @@
-package restapi
+package model
 
 import (
 	"errors"
 
 	"github.com/zlsgo/app_module/database/hashid"
+	"github.com/zlsgo/app_module/model/define"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zstring"
@@ -91,14 +92,14 @@ func perfect(alias string, m *Model) (err error) {
 			}
 		}
 
-		newRelations := make(map[string]*ModelRelation, len(m.model.Relations))
+		newRelations := make(map[string]*define.ModelRelation, len(m.model.Relations))
 		for k := range m.model.Relations {
 			v := m.model.Relations[k]
 			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
 		}
 		m.model.Relations = newRelations
 	} else {
-		m.model.Relations = make(map[string]*ModelRelation)
+		m.model.Relations = make(map[string]*define.ModelRelation)
 	}
 
 	// if m.model.Options.CreatedBy {

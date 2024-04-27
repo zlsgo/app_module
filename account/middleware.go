@@ -10,7 +10,7 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/restapi"
+	"github.com/zlsgo/app_module/model"
 )
 
 var (
@@ -63,7 +63,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	}
 
 	// TODO: 可能需要独立出来方便做缓存
-	roles, err := restapi.Find(roleModel, ztype.Map{
+	roles, err := model.Find(roleModel, ztype.Map{
 		"status": 1,
 	})
 	if err != nil {
@@ -73,10 +73,10 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	// 添加权限规则
 	for _, r := range roles {
 		role := rbac.NewRole(rbac.MatchPriorityDeny)
-		perms, err := restapi.Find(permModel, ztype.Map{
-			restapi.IDKey: r.Get("permission").SliceInt(),
-			"status":      1,
-		}, func(o *restapi.CondOptions) error {
+		perms, err := model.Find(permModel, ztype.Map{
+			model.IDKey: r.Get("permission").SliceInt(),
+			"status":    1,
+		}, func(o *model.CondOptions) error {
 			o.Fields = []string{"action", "alias", "target", "priority"}
 			return nil
 		})
