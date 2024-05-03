@@ -13,7 +13,6 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
-	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/app_module/quick"
 	"github.com/zlsgo/app_module/quick/sqlstorage"
@@ -24,7 +23,6 @@ type Module struct {
 	service.ModuleLifeCycle
 	service.App
 	db          *zdb.DB
-	mods        *model.Models
 	Options     *Options
 	Controllers []service.Controller
 	quick       *quick.Models
@@ -82,16 +80,14 @@ func (m *Module) Tasks() []service.Task {
 	return []service.Task{
 		{
 			Run: func() {
-				lm, ok := m.mods.Get(logsName)
+				lm, ok := m.quick.Get(logsName)
 				if !ok {
 					return
 				}
 
 				t := time.Now().AddDate(0, -1, 0)
-				_, err := model.DeleteMany(lm, ztype.Map{
+				_, err := lm.DeleteMany(ztype.Map{
 					"record_at <": ztime.FormatTime(t),
-				}, func(so *model.CondOptions) error {
-					return nil
 				})
 				if err != nil {
 					return
@@ -142,15 +138,21 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	sqlStorage := sqlstorage.NewSQL(m.db)
-	m.quick = quick.NewModels(sqlStorage)
+	// var (
+	// 	restapiModule *restapi.Module
+	// 	prefix        string
+	// )
+	// if err := m.DI.Resolve(&restapiModule); err == nil {
+	// 	prefix = restapiModule.Options.Prefix
+	// }
 
-	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
-		var restapiModule *model.Module
-		if err := m.DI.Resolve(&restapiModule); err == nil {
-			o.Prefix = restapiModule.Options.Prefix
-		}
-	}))
+	sqlStorage := sqlstorage.NewSQL(m.db)
+	m.quick = quick.NewModels(sqlStorage, func(o quick.ModelsOptions) quick.ModelsOptions {
+		// if prefix != "" {
+		// 	o.Prefix = prefix
+		// }
+		return o
+	})
 
 	if err = initModel(m); err != nil {
 		return zerror.With(err, "init accout model error")
@@ -162,8 +164,8 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	}
 
 	index.accoutModel = mod
-	index.permModel, _ = m.mods.Get(permName)
-	index.roleModel, _ = m.mods.Get(roleName)
+	index.permModel, _ = m.quick.Get(permName)
+	index.roleModel, _ = m.quick.Get(roleName)
 
 	permission := m.Options.InlayRBAC
 	if permission == nil {

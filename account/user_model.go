@@ -43,6 +43,7 @@ func accountModelDefine(p *Module) (err error) {
 		Options: qdefine.Options{
 			CryptID:    true,
 			Timestamps: true,
+			Salt:       p.Options.key,
 		},
 		Fields: map[string]qdefine.Field{
 			"avatar": {

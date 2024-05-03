@@ -74,8 +74,6 @@ func TestSet(t *testing.T) {
 	m, err := model.Reg("test_model", data, false)
 	tt.NoError(err)
 
-	zdb.Debug.Store(true)
-
 	err = m.Migration().Auto(DealOldColumnNone)
 	tt.NoError(err)
 

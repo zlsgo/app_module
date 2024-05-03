@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
-	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/quick"
 	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/storage"
@@ -29,8 +28,8 @@ import (
 type Index struct {
 	service.App
 	accoutModel *quick.Quick
-	permModel   *model.Model
-	roleModel   *model.Model
+	permModel   *quick.Quick
+	roleModel   *quick.Quick
 	module      *Module
 	Path        string
 }
@@ -124,19 +123,19 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("用户不存在"))
 	}
 
-	perms, _ := model.FindCols(h.roleModel, "permission", ztype.Map{
+	perms, _ := h.roleModel.FindCols("permission", ztype.Map{
 		"alias": info.Get("role").SliceString(),
 	})
 	permIDs := make([]int, 0)
 	for i := range perms {
 		permIDs = append(permIDs, perms[i].SliceInt()...)
 	}
-	permission, _ := model.FindCols(h.permModel, "alias", ztype.Map{
-		model.IDKey: zarray.Unique(permIDs),
-		"alias !=":  "",
-	}, func(o *model.CondOptions) error {
+	permission, _ := h.permModel.FindCols("alias", ztype.Map{
+		define.Inside.IDKey(): zarray.Unique(permIDs),
+		"alias !=":            "",
+	}, func(o storage.CondOptions) storage.CondOptions {
 		o.Fields = []string{"alias"}
-		return nil
+		return o
 	})
 
 	data := ztype.Map{
@@ -232,7 +231,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		salt = zstring.Rand(saltLen)
 	}
 
-	uid := user.Get(model.IDKey).String()
+	uid := user.Get(define.Inside.IDKey()).String()
 	_, err = h.accoutModel.UpdateByID(uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
@@ -249,7 +248,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return nil, err
 	}
 
-	if mLog, ok := h.module.mods.Get(logsName); ok {
+	if mLog, ok := h.module.quick.Get(logsName); ok {
 		_, _ = insertLog(c, mLog, user.Get("account").String(), 200, "登录成功")
 	}
 
@@ -304,7 +303,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 
 	uid := Request.UID(c)
 	user, _ := h.accoutModel.FindOneByID(uid, func(so storage.CondOptions) storage.CondOptions {
-		so.Fields = []string{model.IDKey, "password", "salt"}
+		so.Fields = []string{define.Inside.IDKey(), "password", "salt"}
 		return so
 	})
 	if user.IsEmpty() {

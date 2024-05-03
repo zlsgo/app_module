@@ -8,8 +8,8 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/storage"
 )
 
@@ -40,7 +40,7 @@ func (h *User) Get(c *znet.Context) (data *quick.PageData, err error) {
 
 	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co storage.CondOptions) storage.CondOptions {
 		co.OrderBy = map[string]string{
-			model.IDKey: "desc",
+			define.Inside.IDKey(): "desc",
 		}
 		co.Fields = GetAccountModel().GetFields("password", "salt")
 		return co
@@ -48,7 +48,7 @@ func (h *User) Get(c *znet.Context) (data *quick.PageData, err error) {
 
 	if err == nil {
 		data.Items.ForEach(func(i int, item ztype.Map) bool {
-			id, _ := quick.Crypt.ID(GetAccountModel(), item.Get(model.IDKey).String())
+			id, _ := quick.Crypt.ID(GetAccountModel(), item.Get(define.Inside.IDKey()).String())
 			_ = item.Set("id", id)
 			return true
 		})

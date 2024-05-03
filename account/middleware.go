@@ -5,12 +5,13 @@ import (
 
 	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/account/rbac"
+	"github.com/zlsgo/app_module/quick/define"
+	"github.com/zlsgo/app_module/quick/storage"
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model"
 )
 
 var (
@@ -47,23 +48,23 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		return errors.New(accountName + " not found")
 	}
 
-	logModel, ok := m.mods.Get(logsName)
+	logModel, ok := m.quick.Get(logsName)
 	if !ok {
 		return errors.New(logsName + " not found")
 	}
 
-	roleModel, ok := m.mods.Get(roleName)
+	roleModel, ok := m.quick.Get(roleName)
 	if !ok {
 		return errors.New(roleName + " not found")
 	}
 
-	permModel, ok := m.mods.Get(permName)
+	permModel, ok := m.quick.Get(permName)
 	if !ok {
 		return errors.New(permName + " not found")
 	}
 
 	// TODO: 可能需要独立出来方便做缓存
-	roles, err := model.Find(roleModel, ztype.Map{
+	roles, err := roleModel.Find(ztype.Map{
 		"status": 1,
 	})
 	if err != nil {
@@ -73,12 +74,12 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	// 添加权限规则
 	for _, r := range roles {
 		role := rbac.NewRole(rbac.MatchPriorityDeny)
-		perms, err := model.Find(permModel, ztype.Map{
-			model.IDKey: r.Get("permission").SliceInt(),
-			"status":    1,
-		}, func(o *model.CondOptions) error {
+		perms, err := permModel.Find(ztype.Map{
+			define.Inside.IDKey(): r.Get("permission").SliceInt(),
+			"status":              1,
+		}, func(o storage.CondOptions) storage.CondOptions {
 			o.Fields = []string{"action", "alias", "target", "priority"}
-			return nil
+			return o
 		})
 		if err != nil {
 			return err

@@ -2,8 +2,7 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -11,9 +10,9 @@ func initModel(p *Module) error {
 
 	for _, err := range []error{
 		accountModelDefine(p),
-		roleModel(p.mods),
-		permModel(p.mods),
-		logModel(p.mods),
+		roleModel(p),
+		permModel(p),
+		logModel(p),
 		messageModelDefine(p),
 	} {
 		if err != nil {
@@ -25,10 +24,10 @@ func initModel(p *Module) error {
 
 const roleName = "role"
 
-func roleModel(ms *model.Models) error {
-	_, err := ms.Reg(roleName, define.Define{
+func roleModel(p *Module) error {
+	_, err := p.quick.Reg(define.Define{
 		Name: roleName,
-		Options: define.ModelOptions{
+		Options: define.Options{
 			CryptID:    true,
 			Timestamps: true,
 		},
@@ -108,12 +107,12 @@ func roleModel(ms *model.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey:  1,
-				"label":      "管理员",
-				"status":     "1",
-				"alias":      "admin",
-				"inlay":      true,
-				"permission": []uint{1},
+				define.Inside.IDKey(): 1,
+				"label":               "管理员",
+				"status":              "1",
+				"alias":               "admin",
+				"inlay":               true,
+				"permission":          []uint{1},
 			},
 		},
 	}, false)
@@ -122,10 +121,10 @@ func roleModel(ms *model.Models) error {
 
 const permName = "permission"
 
-func permModel(ms *model.Models) error {
-	_, err := ms.Reg(permName, define.Define{
+func permModel(p *Module) error {
+	_, err := p.quick.Reg(define.Define{
 		Name: permName,
-		Options: define.ModelOptions{
+		Options: define.Options{
 			Timestamps: true,
 		},
 		Fields: map[string]define.Field{
@@ -202,14 +201,14 @@ func permModel(ms *model.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey: 1,
-				"label":     "全局访问",
-				"remark":    "可访问全部接口",
-				"status":    "1",
-				"alias":     "global_allow",
-				"inlay":     true,
-				"target":    "*",
-				"action":    "/*",
+				define.Inside.IDKey(): 1,
+				"label":               "全局访问",
+				"remark":              "可访问全部接口",
+				"status":              "1",
+				"alias":               "global_allow",
+				"inlay":               true,
+				"target":              "*",
+				"action":              "/*",
 			},
 		},
 	}, false)
@@ -218,11 +217,12 @@ func permModel(ms *model.Models) error {
 
 const logsName = "logs"
 
-func logModel(ms *model.Models) error {
-	_, err := ms.Reg(logsName, define.Define{
+func logModel(p *Module) error {
+	_, err := p.quick.Reg(define.Define{
 		Name: logsName,
-		Options: define.ModelOptions{
+		Options: define.Options{
 			CryptID: true,
+			Salt:    p.Options.key,
 		},
 		Fields: map[string]define.Field{
 			"account": {

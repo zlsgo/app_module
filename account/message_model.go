@@ -6,16 +6,14 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/define"
+	"github.com/zlsgo/app_module/quick/storage"
 	"github.com/zlsgo/zdb/schema"
 )
 
 type MessageModel struct {
-	*model.Operation
-	model  *model.Model
-	module *Module
+	*quick.Quick
 }
 
 var messageModel *MessageModel
@@ -29,11 +27,12 @@ func GetMessageModel() (*MessageModel, error) {
 
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
-	mod, err := m.mods.Reg(messageName, define.Define{
+	mod, err := m.quick.Reg(define.Define{
 		Name: messageName,
-		Options: define.ModelOptions{
+		Options: define.Options{
 			CryptID:    true,
 			Timestamps: true,
+			Salt:       m.Options.key,
 		},
 		Fields: map[string]define.Field{
 			"from": {
@@ -74,7 +73,9 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		messageModel = &MessageModel{model: mod, module: m, Operation: mod.Operation()}
+		messageModel = &MessageModel{
+			Quick: mod,
+		}
 	}
 	return err
 }
@@ -85,10 +86,10 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 		return nil, errors.New("用户 ID 错误")
 	}
 
-	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *model.CondOptions) error {
-		co.Fields = []string{model.IDKey, model.CreatedAtKey, "mtype"}
-		co.OrderBy = map[string]string{model.IDKey: "desc"}
-		return nil
+	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co storage.CondOptions) storage.CondOptions {
+		co.Fields = []string{define.Inside.IDKey(), define.Inside.CreatedAtKey(), "mtype"}
+		co.OrderBy = map[string]string{define.Inside.IDKey(): "desc"}
+		return co
 	})
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 	if !resp.IsEmpty() {
 		first := resp.First()
 		mtype = first.Get("mtype").String()
-		t, _ := first.Get(model.CreatedAtKey).Time()
+		t, _ := first.Get(define.Inside.CreatedAtKey()).Time()
 		last = t.Unix()
 	}
 

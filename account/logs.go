@@ -5,7 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
-	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/quick"
 )
 
 var (
@@ -14,14 +14,14 @@ var (
 
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
-	m, _ := h.module.mods.Get(logsName)
+	m, _ := h.module.quick.Get(logsName)
 
 	page, pagesize, _ := common.VarPages(c)
-	return model.Pages(m, page, pagesize, ztype.Map{})
+	return m.Pages(page, pagesize, ztype.Map{})
 }
 
 // 记录日志
-func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
+func logRequest(c *znet.Context, m *quick.Quick, u ztype.Map) {
 	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return
@@ -36,7 +36,7 @@ func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
 	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
 }
 
-func insertLog(c *znet.Context, m *model.Model, account string, status int32, msg string, remark ...string) (interface{}, error) {
+func insertLog(c *znet.Context, m *quick.Quick, account string, status int32, msg string, remark ...string) (interface{}, error) {
 	var r string
 	if len(remark) > 0 {
 		r = remark[0]
@@ -47,7 +47,7 @@ func insertLog(c *znet.Context, m *model.Model, account string, status int32, ms
 		ip = c.GetClientIP()
 	}
 
-	return model.Insert(m, ztype.Map{
+	return m.Insert(ztype.Map{
 		"account":   account,
 		"ip":        ip,
 		"method":    c.Request.Method,
