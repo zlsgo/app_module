@@ -8,6 +8,9 @@ import (
 
 	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/define"
+	"github.com/zlsgo/app_module/quick/storage"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zcache"
@@ -25,7 +28,7 @@ import (
 
 type Index struct {
 	service.App
-	accoutModel *model.Model
+	accoutModel *quick.Quick
 	permModel   *model.Model
 	roleModel   *model.Model
 	module      *Module
@@ -78,13 +81,15 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := model.FindCols(h.accoutModel, "salt", uid)
+	f, err := h.accoutModel.FindCols("salt", ztype.Map{
+		define.Inside.IDKey(): uid,
+	})
 	if err != nil || f.Index(0).String() != salt {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 已失效"))
 	}
 
 	salt = zstring.Rand(saltLen)
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	_, err = h.accoutModel.UpdateByID(uid, ztype.Map{
 		"salt": salt,
 	})
 	if err != nil {
@@ -107,9 +112,9 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := model.FindOne(h.accoutModel, Request.UID(c), func(so *model.CondOptions) error {
+	info, err := h.accoutModel.FindOneByID(Request.UID(c), func(so storage.CondOptions) storage.CondOptions {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
-		return nil
+		return so
 	})
 	if err != nil {
 		return nil, err
@@ -187,7 +192,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := model.FindOne(h.accoutModel, ztype.Map{
+	user, err := h.accoutModel.FindOne(ztype.Map{
 		"account": account,
 	})
 	if err != nil {
@@ -228,7 +233,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	uid := user.Get(model.IDKey).String()
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	_, err = h.accoutModel.UpdateByID(uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
@@ -262,7 +267,7 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
 
-	err := updateUser(h.accoutModel, uid, ztype.Map{
+	_, err := h.accoutModel.UpdateByID(uid, ztype.Map{
 		"salt": "",
 	})
 
@@ -298,9 +303,9 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := Request.UID(c)
-	user, _ := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) error {
+	user, _ := h.accoutModel.FindOneByID(uid, func(so storage.CondOptions) storage.CondOptions {
 		so.Fields = []string{model.IDKey, "password", "salt"}
-		return nil
+		return so
 	})
 	if user.IsEmpty() {
 		return nil, invalidInput(errors.New("用户不存在"))
@@ -312,7 +317,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	salt := zstring.Rand(saltLen)
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	_, err = h.accoutModel.UpdateByID(uid, ztype.Map{
 		"salt":     salt,
 		"password": password,
 	})
@@ -344,7 +349,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 		}
 		update[k] = v
 	}
-	err := updateUser(h.accoutModel, uid, update)
+	_, err := h.accoutModel.UpdateByID(uid, update)
 	return nil, err
 }
 
@@ -359,13 +364,8 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 		return nil, err
 	}
 
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	_, err = h.accoutModel.UpdateByID(uid, ztype.Map{
 		"avatar": res[0].Path,
 	})
 	return res[0].Path, err
-}
-
-func updateUser(m *model.Model, id string, data ztype.Map) error {
-	_, err := model.Update(m, id, data)
-	return err
 }

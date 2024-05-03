@@ -3,28 +3,24 @@ package account
 import (
 	"errors"
 
-	"github.com/zlsgo/app_module/account/jwt"
-	"github.com/zlsgo/app_module/model"
-
 	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/account/jwt"
+	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/define"
 )
 
 var userCache = zcache.NewFast()
 
-func getUserForCache(m *model.Model, uid string) (ztype.Map, error) {
+func getUserForCache(m *quick.Quick, uid string) (ztype.Map, error) {
 	user, ok := userCache.ProvideGet(uid, func() (interface{}, bool) {
-		f, err := model.FindOne(m, uid, func(so *model.CondOptions) error {
-			return nil
-		})
+		f, err := m.FindOneByID(uid)
 		if err != nil {
 			return ztype.Map{}, false
 		}
-		if m.Define().Options.CryptID {
-			id, _ := m.DeCryptID(uid)
-			_ = f.Set("raw_id", id)
-		}
+		id, _ := quick.Crypt.ID(m, uid)
+		_ = f.Set("raw_id", id)
 		return f, true
 	})
 	if !ok {
@@ -39,7 +35,7 @@ func deleteUserForCache(uid string) {
 
 var jwtCache = zcache.NewFast()
 
-func getJWTForCache(m *model.Model, token, jwtKey string) (string, error) {
+func getJWTForCache(m *quick.Quick, token, jwtKey string) (string, error) {
 	uid, ok := jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {
@@ -48,7 +44,9 @@ func getJWTForCache(m *model.Model, token, jwtKey string) (string, error) {
 
 		salt := info.Info[:saltLen]
 		uid := info.Info[saltLen:]
-		f, err := model.FindCols(m, "salt", uid)
+		f, err := m.FindCols("salt", ztype.Map{
+			define.Inside.IDKey(): uid,
+		})
 		if err != nil || f.Index(0).String() != salt {
 			return "", false
 		}

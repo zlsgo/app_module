@@ -1648,6 +1648,8 @@ github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f h1:dKTEFyTZHjdNVEtOyI+MU
 github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f/go.mod h1:36fp7C6uivaIij2sVyVdE5LoSfpE1d+vYOOsNhmq/3I=
 github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c h1:2DqpD0zmIk+aueYT00RinD+lQ0Zk9tQioWZo1QeAXJs=
 github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c/go.mod h1:rQ8Cjnn6u9nPAFJOI9bWnnB7TqWBShp8RSiD2AFuhGI=
+github.com/zlsgo/zdb v0.0.0-20240503132417-fa9e58e2771b h1:OrPkGPR5EvGBNFpG2lQSpdY/pyUjR4UarVXNsxmRcx4=
+github.com/zlsgo/zdb v0.0.0-20240503132417-fa9e58e2771b/go.mod h1:rQ8Cjnn6u9nPAFJOI9bWnnB7TqWBShp8RSiD2AFuhGI=
 go.etcd.io/etcd/api/v3 v3.5.10/go.mod h1:TidfmT4Uycad3NM/o25fG3J07odo4GBB9hoxaodFCtI=
 go.etcd.io/etcd/client/pkg/v3 v3.5.10/go.mod h1:DYivfIviIuQ8+/lCq4vcxuseg2P2XbHygkKwFo9fc8U=
 go.etcd.io/etcd/client/v2 v2.305.10/go.mod h1:m3CKZi69HzilhVqtPDcjhSGp+kA1OmbNn0qamH80xjA=
@@ -1720,6 +1722,7 @@ golang.org/x/exp v0.0.0-20230321023759-10a507213a29/go.mod h1:CxIveKay+FTh1D0yPZ
 golang.org/x/exp v0.0.0-20230905200255-921286631fa9/go.mod h1:S2oDrQGGwySpoQPVqRShND87VCbxmc6bL1Yd2oYrm6k=
 golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 h1:ESSUROHIBHg7USnszlcdmjBEwdMj9VUvU+OPk4yl2mc=
 golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
+golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f h1:99ci1mjWVBWwJiEKYY6jWa4d2nTQVIEhZIptnrVb1XY=
 golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
 golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81/go.mod h1:ux5Hcp/YLpHSI86hEcLt0YII63i6oz57MZXIpbrjZUs=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=

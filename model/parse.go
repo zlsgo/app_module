@@ -152,7 +152,7 @@ func perfect(alias string, m *Model) (err error) {
 // 	}
 
 // 	if len(c.After) > 0 {
-// 		ps, err := m.GetAfterProcess(c.Before)
+// 		ps, err := m.getAfterProcess(c.Before)
 // 		if err == nil {
 // 			m.afterProcess[c.Name] = ps
 // 		}

@@ -15,17 +15,19 @@ import (
 	"github.com/zlsgo/app_module/account/rbac"
 	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/sqlstorage"
 	"github.com/zlsgo/zdb"
 )
 
 type Module struct {
 	service.ModuleLifeCycle
 	service.App
-	db           *zdb.DB
-	mods         *model.Models
-	Options      *Options
-	accountModel *AccountModel
-	Controllers  []service.Controller
+	db          *zdb.DB
+	mods        *model.Models
+	Options     *Options
+	Controllers []service.Controller
+	quick       *quick.Models
 }
 
 var (
@@ -63,12 +65,12 @@ func (o Options) DisableWrite() bool {
 
 var options = Options{}
 
-func New(key string, opt ...func(o *Options)) *Module {
+func New(key string, opt ...func(o Options) Options) *Module {
 	options.key = key
 	options.ApiPrefix = "/manage"
 
 	for _, f := range opt {
-		f(&options)
+		options = f(options)
 	}
 
 	service.DefaultConf = append(service.DefaultConf, &options)
@@ -140,6 +142,9 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
+	sqlStorage := sqlstorage.NewSQL(m.db)
+	m.quick = quick.NewModels(sqlStorage)
+
 	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
 		var restapiModule *model.Module
 		if err := m.DI.Resolve(&restapiModule); err == nil {
@@ -148,12 +153,12 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	}))
 
 	if err = initModel(m); err != nil {
-		return zerror.With(err, "init accoutModel error")
+		return zerror.With(err, "init accout model error")
 	}
 
-	mod, ok := m.mods.Get(accountName)
+	mod, ok := m.quick.Get(accountName)
 	if !ok {
-		return errors.New("account accoutModel not found")
+		return errors.New("accout model not found")
 	}
 
 	index.accoutModel = mod

@@ -8,6 +8,7 @@ import (
 )
 
 func initModel(p *Module) error {
+
 	for _, err := range []error{
 		accountModelDefine(p),
 		roleModel(p.mods),

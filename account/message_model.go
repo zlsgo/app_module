@@ -8,6 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/quick"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -79,7 +80,7 @@ func messageModelDefine(m *Module) error {
 }
 
 func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
-	id, err := GetAccountModel().DeCryptID(uid)
+	id, err := quick.Crypt.ID(GetAccountModel(), uid)
 	if err != nil {
 		return nil, errors.New("用户 ID 错误")
 	}
@@ -119,12 +120,12 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = GetAccountModel().DeCryptID(to)
+	to, err = quick.Crypt.ID(GetAccountModel(), to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = GetAccountModel().DeCryptID(from)
+	from, err = quick.Crypt.ID(GetAccountModel(), from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}

@@ -9,7 +9,7 @@ require (
 	github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
 	github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f
-	github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c
+	github.com/zlsgo/zdb v0.0.0-20240503132417-fa9e58e2771b
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 )

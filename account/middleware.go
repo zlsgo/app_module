@@ -42,24 +42,24 @@ func PermisMiddleware(r *znet.Engine, ignore ...string) error {
 func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	permissionDenied := zerror.WrapTag(zerror.PermissionDenied)
 
-	userModel, ok := m.mods.Get(accountName)
+	userModel, ok := m.quick.Get(accountName)
 	if !ok {
-		return errors.New(accountName + " accoutModel not found")
+		return errors.New(accountName + " not found")
 	}
 
 	logModel, ok := m.mods.Get(logsName)
 	if !ok {
-		return errors.New(logsName + " logsName not found")
+		return errors.New(logsName + " not found")
 	}
 
 	roleModel, ok := m.mods.Get(roleName)
 	if !ok {
-		return errors.New(roleName + " roleName not found")
+		return errors.New(roleName + " not found")
 	}
 
 	permModel, ok := m.mods.Get(permName)
 	if !ok {
-		return errors.New(permName + " permName not found")
+		return errors.New(permName + " not found")
 	}
 
 	// TODO: 可能需要独立出来方便做缓存

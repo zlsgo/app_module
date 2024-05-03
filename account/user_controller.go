@@ -9,6 +9,8 @@ import (
 	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model"
+	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/storage"
 )
 
 type User struct {
@@ -26,7 +28,7 @@ func (h *User) Init(r *znet.Engine) error {
 }
 
 // Get 用户列表
-func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
+func (h *User) Get(c *znet.Context) (data *quick.PageData, err error) {
 	filter := ztype.Map{
 		"inlay": false,
 	}
@@ -36,18 +38,22 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	}
 	page, pagesize, _ := common.VarPages(c)
 
-	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) error {
+	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co storage.CondOptions) storage.CondOptions {
 		co.OrderBy = map[string]string{
 			model.IDKey: "desc",
 		}
-		co.Fields = GetAccountModel().m.GetFields("password", "salt")
-		return nil
+		co.Fields = GetAccountModel().GetFields("password", "salt")
+		return co
 	})
-	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := GetAccountModel().DeCryptID(item.Get(model.IDKey).String())
-		_ = item.Set("id", id)
-		return true
-	})
+
+	if err == nil {
+		data.Items.ForEach(func(i int, item ztype.Map) bool {
+			id, _ := quick.Crypt.ID(GetAccountModel(), item.Get(model.IDKey).String())
+			_ = item.Set("id", id)
+			return true
+		})
+	}
+
 	return
 }
 
@@ -81,6 +87,6 @@ func (h *User) UIDDELETE(c *znet.Context) (res interface{}, err error) {
 		return nil, zerror.InvalidInput.Text("不能删除内置用户")
 	}
 
-	_, err = GetAccountModel().DeleteByID(id)
+	_, err = quick.Crypt.ID(GetAccountModel(), id)
 	return nil, err
 }
