@@ -13,8 +13,8 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
-	"github.com/zlsgo/app_module/model/define"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
+	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/sqlstorage"
 	"github.com/zlsgo/zdb"
 )
@@ -25,7 +25,7 @@ type Module struct {
 	db          *zdb.DB
 	Options     *Options
 	Controllers []service.Controller
-	quick       *quick.Models
+	quick       *crud.Models
 }
 
 var (
@@ -147,7 +147,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	// }
 
 	sqlStorage := sqlstorage.NewSQL(m.db)
-	m.quick = quick.NewModels(sqlStorage, func(o quick.ModelsOptions) quick.ModelsOptions {
+	m.quick = crud.NewModels(sqlStorage, func(o define.ModelsOptions) define.ModelsOptions {
 		// if prefix != "" {
 		// 	o.Prefix = prefix
 		// }

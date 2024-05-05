@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"strings"
@@ -15,7 +15,7 @@ type Filter interface {
 	ztype.Map | constraints.Integer | string
 }
 
-func getFilter[T Filter](m *Quick, filter T) (filterMap ztype.Map) {
+func getFilter[T Filter](m *Crud, filter T) (filterMap ztype.Map) {
 	var ok bool
 	f := (interface{})(filter)
 	filterMap, ok = f.(ztype.Map)
@@ -42,7 +42,7 @@ func getFilter[T Filter](m *Quick, filter T) (filterMap ztype.Map) {
 	return
 }
 
-func find(m *Quick, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Maps, error) {
+func find(m *Crud, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Maps, error) {
 	_ = m.process.DeCrypt(filter)
 	rows, err := m.storage.Find(m.tableName, filter, func(so storage.CondOptions) storage.CondOptions {
 		so = utils.Optional(so, fn...)
@@ -74,12 +74,12 @@ func find(m *Quick, filter ztype.Map, fn ...func(storage.CondOptions) storage.Co
 	return rows, nil
 }
 
-func (m *Quick) Find(filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Maps, error) {
-	return find(m, getFilter(m, filter), fn...)
+func (crud *Crud) Find(filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Maps, error) {
+	return find(crud, getFilter(crud, filter), fn...)
 }
 
-func (m *Quick) FindOne(filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Map, error) {
-	rows, err := find(m, getFilter(m, filter), func(so storage.CondOptions) storage.CondOptions {
+func (crud *Crud) FindOne(filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Map, error) {
+	rows, err := find(crud, getFilter(crud, filter), func(so storage.CondOptions) storage.CondOptions {
 		so = utils.Optional(so, fn...)
 		so.Limit = 1
 		return so
@@ -92,8 +92,8 @@ func (m *Quick) FindOne(filter ztype.Map, fn ...func(storage.CondOptions) storag
 	return rows.Index(0), nil
 }
 
-func (m *Quick) FindCols(field string, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.SliceType, error) {
-	rows, err := find(m, getFilter(m, filter), func(so storage.CondOptions) storage.CondOptions {
+func (crud *Crud) FindCols(field string, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.SliceType, error) {
+	rows, err := find(crud, getFilter(crud, filter), func(so storage.CondOptions) storage.CondOptions {
 		so.Fields = []string{field}
 		return utils.Optional(so, fn...)
 	})
@@ -110,23 +110,23 @@ func (m *Quick) FindCols(field string, filter ztype.Map, fn ...func(storage.Cond
 	return data, nil
 }
 
-func (q *Quick) FindOneByID(id any, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Map, error) {
-	return q.FindOne(ztype.Map{define.Inside.IDKey(): id}, fn...)
+func (crud *Crud) FindOneByID(id any, fn ...func(storage.CondOptions) storage.CondOptions) (ztype.Map, error) {
+	return crud.FindOne(ztype.Map{define.Inside.IDKey(): id}, fn...)
 }
 
-func (m *Quick) Count(filter ztype.Map) (int, error) {
-	row, err := m.FindOne(filter, func(options storage.CondOptions) storage.CondOptions {
+func (crud *Crud) Count(filter ztype.Map) (int64, error) {
+	row, err := crud.FindOne(filter, func(options storage.CondOptions) storage.CondOptions {
 		options.Fields = []string{"count(*) as count"}
 		return options
 	})
 	if err != nil {
 		return 0, err
 	}
-	return row.Get("count").Int(), nil
+	return row.Get("count").Int64(), nil
 }
 
-func (m *Quick) Exists(filter ztype.Map) (bool, error) {
-	tatol, err := m.Count(filter)
+func (crud *Crud) Exists(filter ztype.Map) (bool, error) {
+	tatol, err := crud.Count(filter)
 	if err != nil {
 		return false, err
 	}
@@ -138,14 +138,14 @@ type PageData struct {
 	Page  zdb.Pages  `json:"page"`
 }
 
-func (m *Quick) Pages(page, pagesize int, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (*PageData, error) {
-	f := getFilter(m, filter)
-	_ = m.process.DeCrypt(f)
+func (crud *Crud) Pages(page, pagesize int, filter ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (*PageData, error) {
+	f := getFilter(crud, filter)
+	_ = crud.process.DeCrypt(f)
 
-	rows, pages, err := m.storage.Pages(m.tableName, page, pagesize, f, func(so storage.CondOptions) storage.CondOptions {
+	rows, pages, err := crud.storage.Pages(crud.tableName, page, pagesize, f, func(so storage.CondOptions) storage.CondOptions {
 		so = utils.Optional(so, fn...)
 		if len(so.Fields) > 0 && len(so.Join) == 0 {
-			so.Fields = m.filterFields(so.Fields)
+			so.Fields = crud.filterFields(so.Fields)
 		}
 		return so
 	})
@@ -155,7 +155,7 @@ func (m *Quick) Pages(page, pagesize int, filter ztype.Map, fn ...func(storage.C
 		return data, err
 	}
 
-	afterProcess := m.process.AfterProcess
+	afterProcess := crud.process.AfterProcess
 	if len(afterProcess) == 0 {
 		return data, nil
 	}
@@ -170,8 +170,8 @@ func (m *Quick) Pages(page, pagesize int, filter ztype.Map, fn ...func(storage.C
 				}
 			}
 		}
-		if m.define.Options.CryptID {
-			err = m.process.EnCrypt(row)
+		if crud.define.Options.CryptID {
+			err = crud.process.EnCrypt(row)
 			if err != nil {
 				return data, err
 			}

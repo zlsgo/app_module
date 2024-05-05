@@ -2,14 +2,14 @@ package account
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 	qdefine "github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/zdb/schema"
 )
 
-var accountModel *quick.Quick
+var accountModel *crud.Crud
 
-func GetAccountModel() *quick.Quick {
+func GetAccountModel() *crud.Crud {
 	if accountModel == nil {
 		panic("account model not define")
 	}

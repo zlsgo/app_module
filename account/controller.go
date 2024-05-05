@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/storage"
 
@@ -27,9 +27,9 @@ import (
 
 type Index struct {
 	service.App
-	accoutModel *quick.Quick
-	permModel   *quick.Quick
-	roleModel   *quick.Quick
+	accoutModel *crud.Crud
+	permModel   *crud.Crud
+	roleModel   *crud.Crud
 	module      *Module
 	Path        string
 }

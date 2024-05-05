@@ -3,7 +3,7 @@ package account
 import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 )
 
 type requestWith struct {
@@ -41,7 +41,7 @@ func (requestWith) User(c *znet.Context) ztype.Map {
 
 func (r requestWith) RealUID(c *znet.Context) string {
 	uid := r.UID(c)
-	nid, _ := quick.Crypt.ID(GetAccountModel(), uid)
+	nid, _ := crud.Crypt.ID(GetAccountModel(), uid)
 	return nid
 }
 

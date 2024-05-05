@@ -5,7 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 )
 
 var (
@@ -21,7 +21,7 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 }
 
 // 记录日志
-func logRequest(c *znet.Context, m *quick.Quick, u ztype.Map) {
+func logRequest(c *znet.Context, m *crud.Crud, u ztype.Map) {
 	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return
@@ -36,7 +36,7 @@ func logRequest(c *znet.Context, m *quick.Quick, u ztype.Map) {
 	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
 }
 
-func insertLog(c *znet.Context, m *quick.Quick, account string, status int32, msg string, remark ...string) (interface{}, error) {
+func insertLog(c *znet.Context, m *crud.Crud, account string, status int32, msg string, remark ...string) (interface{}, error) {
 	var r string
 	if len(remark) > 0 {
 		r = remark[0]

@@ -8,7 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/storage"
 )
@@ -28,7 +28,7 @@ func (h *User) Init(r *znet.Engine) error {
 }
 
 // Get 用户列表
-func (h *User) Get(c *znet.Context) (data *quick.PageData, err error) {
+func (h *User) Get(c *znet.Context) (data *crud.PageData, err error) {
 	filter := ztype.Map{
 		"inlay": false,
 	}
@@ -48,7 +48,7 @@ func (h *User) Get(c *znet.Context) (data *quick.PageData, err error) {
 
 	if err == nil {
 		data.Items.ForEach(func(i int, item ztype.Map) bool {
-			id, _ := quick.Crypt.ID(GetAccountModel(), item.Get(define.Inside.IDKey()).String())
+			id, _ := crud.Crypt.ID(GetAccountModel(), item.Get(define.Inside.IDKey()).String())
 			_ = item.Set("id", id)
 			return true
 		})
@@ -87,6 +87,6 @@ func (h *User) UIDDELETE(c *znet.Context) (res interface{}, err error) {
 		return nil, zerror.InvalidInput.Text("不能删除内置用户")
 	}
 
-	_, err = quick.Crypt.ID(GetAccountModel(), id)
+	_, err = crud.Crypt.ID(GetAccountModel(), id)
 	return nil, err
 }

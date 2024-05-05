@@ -58,7 +58,7 @@ func New(o ...func(*Options)) (m *Module) {
 
 					_ = mapper.Maps(mod, opers)
 
-					// m.Models = mod
+					// m.models = mod
 					// m.Operations = mops
 					return nil
 				})

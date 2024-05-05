@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"github.com/sohaha/zlsgo/zerror"
@@ -10,7 +10,7 @@ import (
 	"github.com/zlsgo/app_module/quick/utils"
 )
 
-func Update[T Filter](m *Quick, filter T, data ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (total int64, err error) {
+func Update[T Filter](m *Crud, filter T, data ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (total int64, err error) {
 	return UpdateMany(m, filter, data, func(so storage.CondOptions) storage.CondOptions {
 		so = utils.Optional(so, fn...)
 		so.Limit = 1
@@ -18,7 +18,7 @@ func Update[T Filter](m *Quick, filter T, data ztype.Map, fn ...func(storage.Con
 	})
 }
 
-func UpdateMany[T Filter](m *Quick, filter T, data ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (total int64, err error) {
+func UpdateMany[T Filter](m *Crud, filter T, data ztype.Map, fn ...func(storage.CondOptions) storage.CondOptions) (total int64, err error) {
 	data = m.process.FilterDate(data, m.readOnlyKeys)
 	data, err = m.process.ValuesBeforeProcess(data)
 	if err != nil {

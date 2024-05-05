@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/zlsgo/app_module/quick/storage"
 )
 
-type Quick struct {
+type Crud struct {
 	define       *define.Define
 	storage      storage.Storage
 	options      Options
@@ -23,8 +23,8 @@ type Quick struct {
 	readOnlyKeys []string // 只读字段
 }
 
-func New(s storage.Storage, d define.Define, o ...func(Options) Options) (q *Quick, err error) {
-	q = &Quick{
+func New(s storage.Storage, d define.Define, o ...func(Options) Options) (q *Crud, err error) {
+	q = &Crud{
 		define:  &d,
 		storage: s,
 		process: &process.Process{},
@@ -55,10 +55,10 @@ func New(s storage.Storage, d define.Define, o ...func(Options) Options) (q *Qui
 	return
 }
 
-func (q *Quick) GetFields(exclude ...string) []string {
-	f := q.fullFields
+func (crud *Crud) GetFields(exclude ...string) []string {
+	f := crud.fullFields
 	if len(exclude) == 0 {
-		exclude = q.define.Options.ShowFields
+		exclude = crud.define.Options.ShowFields
 		if len(exclude) == 0 {
 			return f
 		}
@@ -69,6 +69,6 @@ func (q *Quick) GetFields(exclude ...string) []string {
 	})
 }
 
-func (q *Quick) Define() define.Define {
-	return *q.define
+func (crud *Crud) Define() define.Define {
+	return *crud.define
 }

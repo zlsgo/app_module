@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
@@ -10,7 +10,7 @@ type crypt struct {
 
 var Crypt = &crypt{}
 
-func (c *crypt) ID(q *Quick, nid string) (id string, err error) {
+func (c *crypt) ID(q *Crud, nid string) (id string, err error) {
 	if q.define.Options.CryptID && nid != "" {
 		rid, err := hashid.DecryptID(q.process.Hashid, ztype.ToString(nid))
 		if err != nil {
@@ -24,7 +24,7 @@ func (c *crypt) ID(q *Quick, nid string) (id string, err error) {
 	return
 }
 
-func (c *crypt) CryptID(q *Quick, id string) (nid string, err error) {
+func (c *crypt) CryptID(q *Crud, id string) (nid string, err error) {
 	if q.define.Options.CryptID && id != "" {
 		return q.process.EnCryptID(id)
 	}

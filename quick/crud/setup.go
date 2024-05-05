@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/zlsgo/app_module/quick/process"
 )
 
-func setup(q *Quick) error {
+func setup(q *Crud) error {
 	if q.define.Name == "" {
 		return errors.New("model name is empty")
 	}
@@ -21,7 +21,7 @@ func setup(q *Quick) error {
 	return perfect(q)
 }
 
-func perfect(q *Quick) (err error) {
+func perfect(q *Crud) (err error) {
 	if q.define.Options.CryptID {
 		salt := q.define.Options.Salt
 		// if salt == "" {

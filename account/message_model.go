@@ -6,14 +6,14 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/quick"
+	"github.com/zlsgo/app_module/quick/crud"
 	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/storage"
 	"github.com/zlsgo/zdb/schema"
 )
 
 type MessageModel struct {
-	*quick.Quick
+	*crud.Crud
 }
 
 var messageModel *MessageModel
@@ -74,14 +74,14 @@ func messageModelDefine(m *Module) error {
 
 	if err == nil {
 		messageModel = &MessageModel{
-			Quick: mod,
+			Crud: mod,
 		}
 	}
 	return err
 }
 
 func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
-	id, err := quick.Crypt.ID(GetAccountModel(), uid)
+	id, err := crud.Crypt.ID(GetAccountModel(), uid)
 	if err != nil {
 		return nil, errors.New("用户 ID 错误")
 	}
@@ -121,12 +121,12 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = quick.Crypt.ID(GetAccountModel(), to)
+	to, err = crud.Crypt.ID(GetAccountModel(), to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = quick.Crypt.ID(GetAccountModel(), from)
+	from, err = crud.Crypt.ID(GetAccountModel(), from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}

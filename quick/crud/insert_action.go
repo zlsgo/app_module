@@ -1,10 +1,10 @@
-package quick
+package crud
 
 import (
 	"github.com/sohaha/zlsgo/ztype"
 )
 
-func Insert(m *Quick, data ztype.Map) (lastId interface{}, err error) {
+func Insert(m *Crud, data ztype.Map) (lastId interface{}, err error) {
 	data, err = m.process.InsertData(m.define, data)
 	if err != nil {
 		return 0, err
@@ -17,7 +17,7 @@ func Insert(m *Quick, data ztype.Map) (lastId interface{}, err error) {
 	return id, err
 }
 
-func InsertMany(m *Quick, datas ztype.Maps) (lastIds []interface{}, err error) {
+func InsertMany(m *Crud, datas ztype.Maps) (lastIds []interface{}, err error) {
 	for i := range datas {
 		datas[i], err = m.process.InsertData(m.define, datas[i])
 		if err != nil {

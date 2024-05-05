@@ -1,4 +1,4 @@
-package quick
+package crud
 
 import (
 	"errors"
@@ -17,28 +17,28 @@ import (
 	"github.com/zlsgo/zdb/schema"
 )
 
-func (q *Quick) filterFields(fields []string) []string {
+func (crud *Crud) filterFields(fields []string) []string {
 	return zarray.Filter(fields, func(_ int, f string) bool {
 		f = zstring.TrimSpace(f)
 		if strings.ContainsRune(f, '(') || strings.ContainsRune(f, ' ') {
 			return true
 		}
-		return zarray.Contains(q.fullFields, f)
+		return zarray.Contains(crud.fullFields, f)
 	})
 }
 
-func (q *Quick) GetField(name string) (define.Field, bool) {
-	f, ok := q.getField(name)
+func (crud *Crud) GetField(name string) (define.Field, bool) {
+	f, ok := crud.getField(name)
 	if !ok {
 		return define.Field{}, false
 	}
 	return *f, true
 }
 
-func (q *Quick) getField(name string) (*define.Field, bool) {
-	for fname := range q.define.Fields {
+func (crud *Crud) getField(name string) (*define.Field, bool) {
+	for fname := range crud.define.Fields {
 		if name == fname {
-			field := q.define.Fields[fname]
+			field := crud.define.Fields[fname]
 			return &field, true
 		}
 	}
@@ -54,7 +54,7 @@ func (q *Quick) getField(name string) (*define.Field, bool) {
 		}, true
 
 	}
-	if q.define.Options.Timestamps {
+	if crud.define.Options.Timestamps {
 		switch name {
 		case define.Inside.CreatedAtKey():
 			return &define.Field{
@@ -69,7 +69,7 @@ func (q *Quick) getField(name string) (*define.Field, bool) {
 		}
 	}
 
-	if q.define.Options.SoftDeletes {
+	if crud.define.Options.SoftDeletes {
 		if name == define.Inside.DeletedAtKey() {
 			return &define.Field{
 				Type:     schema.Int,
@@ -83,23 +83,23 @@ func (q *Quick) getField(name string) (*define.Field, bool) {
 	return nil, false
 }
 
-func (q *Quick) GetModelFields() define.Fields {
-	return q.define.Fields
+func (crud *Crud) GetModelFields() define.Fields {
+	return crud.define.Fields
 }
 
-func (q *Quick) isInlayField(field string) bool {
+func (crud *Crud) isInlayField(field string) bool {
 	inlayFields := []string{define.Inside.IDKey()}
-	if q.define.Options.Timestamps {
+	if crud.define.Options.Timestamps {
 		inlayFields = append(inlayFields, define.Inside.CreatedAtKey(), define.Inside.UpdatedAtKey())
 	}
 
-	if q.define.Options.SoftDeletes {
+	if crud.define.Options.SoftDeletes {
 		inlayFields = append(inlayFields, define.Inside.DeletedAtKey())
 	}
 	return zarray.Contains(inlayFields, field)
 }
 
-func perfectField(m *Quick) ([]string, error) {
+func perfectField(m *Crud) ([]string, error) {
 	fields := make([]string, 0, len(m.define.Fields))
 	if len(m.JSON) > 0 {
 		j := zjson.ParseBytes(m.JSON).Get("fields")
@@ -124,7 +124,7 @@ func perfectField(m *Quick) ([]string, error) {
 	return fields, nil
 }
 
-func parseField(m *Quick, name string, f *define.Field) error {
+func parseField(m *Crud, name string, f *define.Field) error {
 	if f == nil {
 		return nil
 	}
