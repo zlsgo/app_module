@@ -5,11 +5,11 @@ import (
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/quick/crud"
 	"github.com/zlsgo/app_module/quick/define"
 	"github.com/zlsgo/app_module/quick/sqlstorage"
+	"github.com/zlsgo/app_module/quick/utils"
 	"github.com/zlsgo/zdb"
 )
 
@@ -40,8 +40,8 @@ type (
 	}
 )
 
-func New(o ...func(*Options)) (m *Module) {
-	opt := zutil.Optional(Options{Prefix: "model_", ModelsDefine: make([]define.Define, 0)}, o...)
+func New(o ...func(Options) Options) (m *Module) {
+	opt := utils.Optional(Options{Prefix: "model_", ModelsDefine: make([]define.Define, 0)}, o...)
 
 	return &Module{
 		Options: opt,
