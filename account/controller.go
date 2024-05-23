@@ -34,9 +34,7 @@ type Index struct {
 	Path        string
 }
 
-var (
-	_ = reflect.TypeOf(&Index{})
-)
+var _ = reflect.TypeOf(&Index{})
 
 const saltLen = 4
 
@@ -111,7 +109,8 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := h.accoutModel.FindOneByID(Request.UID(c), func(so storage.CondOptions) storage.CondOptions {
+	uid := Request.UID(c)
+	info, err := h.accoutModel.FindOneByID(uid, func(so storage.CondOptions) storage.CondOptions {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
 		return so
 	})
@@ -138,9 +137,11 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 		return o
 	})
 
+	nid, _ := crud.Crypt.ID(GetAccountModel(), uid)
 	data := ztype.Map{
-		"info":       info,
-		"permission": permission,
+		define.Inside.IDKey(): nid,
+		"info":                info,
+		"permission":          permission,
 	}
 	return data, nil
 }
@@ -236,14 +237,12 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	info := salt + uid
 	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
-
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +319,6 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		"salt":     salt,
 		"password": password,
 	})
-
 	if err != nil {
 		return nil, err
 	}
