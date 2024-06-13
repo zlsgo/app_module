@@ -38,7 +38,12 @@ func New(o ...Options) *Plugin {
 }
 
 func (p *Plugin) Reload(conf *service.Conf) error {
+	if conf.Get(options.ConfKey()).Value() == nil {
+		return nil
+	}
+
 	var nOptions Options
+
 	err := conf.Unmarshal(nOptions.ConfKey(), &nOptions)
 	if err != nil {
 		return err
