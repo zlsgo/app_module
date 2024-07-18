@@ -7,6 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zlog"
 	"github.com/zlsgo/app_module/model/define"
 )
 
@@ -76,6 +77,7 @@ func (ms *Models) Reg(name string, data define.Define, force bool) (*Model, erro
 	}
 
 	err = m.Migration().Auto(Inside.oldColumn)
+	zlog.Debug(333)
 	if err != nil {
 		err = zerror.With(err, "model "+name+" migration error")
 		return nil, err

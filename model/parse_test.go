@@ -5,31 +5,31 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestSet(t *testing.T) {
-
 	tt := zlsgo.NewTest(t)
-	data := Define{
+	data := define.Define{
 		Name: "日志模型",
-		Table: Table{
+		Table: define.Table{
 			Name:    "lowcode_logs",
 			Comment: "日志表",
 		},
-		Options: ModelOptions{
+		Options: define.ModelOptions{
 			Timestamps: true,
 			CryptID:    true,
 		},
 	}
 
-	data.Fields = map[string]Field{
+	data.Fields = map[string]define.Field{
 		"action": {
 			Type:    "string",
 			Label:   "操作",
 			Default: "",
-			Validations: []Validations{
+			Validations: []define.Validations{
 				{
 					Method: "minLength",
 					Args:   1,
@@ -45,7 +45,7 @@ func TestSet(t *testing.T) {
 			Label:   "请求 IP",
 			Size:    100,
 			Default: "",
-			Validations: []Validations{
+			Validations: []define.Validations{
 				{Method: "ip"},
 			},
 		},
@@ -54,9 +54,9 @@ func TestSet(t *testing.T) {
 			Label:   "状态",
 			Size:    9,
 			Default: "1",
-			Options: FieldOption{
+			Options: define.FieldOption{
 				// Quote: true,
-				Enum: []FieldEnum{
+				Enum: []define.FieldEnum{
 					{Value: "1", Label: "未读"},
 					{Value: "2", Label: "已读"},
 				},

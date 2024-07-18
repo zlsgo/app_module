@@ -23,7 +23,7 @@ type Module struct {
 	service.App
 	db           *zdb.DB
 	mods         *model.Models
-	Options      *Options
+	Options      Options
 	accountModel *AccountModel
 	Controllers  []service.Controller
 }
@@ -38,19 +38,19 @@ func (m *Module) Name() string {
 }
 
 type Options struct {
-	InitDB               func() (*zdb.DB, error)  `json:"-"`
-	SSEReconnect         func(uid, lastID string) `json:"-"`
-	InlayRBAC            *rbac.RBAC               `json:"-"`
-	AdminDefaultPassword string                   `json:"admin_default_password"`
-	ApiPrefix            string                   `json:"prefix"`
-	RBACFile             string                   `json:"rbac_file"`
+	InitDB               func() (*zdb.DB, error)  `z:"-"`
+	SSEReconnect         func(uid, lastID string) `z:"-"`
+	InlayRBAC            *rbac.RBAC               `z:"-"`
+	AdminDefaultPassword string                   `z:"admin_default_password"`
+	ApiPrefix            string                   `z:"prefix"`
+	RBACFile             string                   `z:"rbac_file"`
 	key                  string
-	InlayUser            ztype.Maps      `json:"inlay_user"`
-	Models               []define.Define `json:"-"`
-	SSE                  znet.SSEOption  `json:"-"`
-	Expire               int             `json:"expire"`
-	Only                 bool            `json:"only"`
-	DisabledLogIP        bool            `json:"disabled_ip"`
+	InlayUser            ztype.Maps      `z:"inlay_user"`
+	Models               []define.Define `z:"-"`
+	SSE                  znet.SSEOption  `z:"-"`
+	Expire               int             `z:"expire"`
+	Only                 bool            `z:"only"`
+	DisabledLogIP        bool            `z:"disabled_ip"`
 }
 
 func (o Options) ConfKey() string {
@@ -61,19 +61,16 @@ func (o Options) DisableWrite() bool {
 	return true
 }
 
-var options = Options{}
-
 func New(key string, opt ...func(o *Options)) *Module {
-	options.key = key
-	options.ApiPrefix = "/manage"
-
-	for _, f := range opt {
-		f(&options)
+	m := &Module{
+		Options: Options{key: key, ApiPrefix: "/manage"},
 	}
 
-	service.DefaultConf = append(service.DefaultConf, &options)
+	for _, f := range opt {
+		f(&m.Options)
+	}
 
-	return &Module{}
+	return m
 }
 
 func (m *Module) Tasks() []service.Task {
@@ -107,12 +104,12 @@ var index = &Index{
 
 func (m *Module) Load(zdi.Invoker) (any, error) {
 	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
-		m.Options = &options
 		if m.Options.key == "" {
 			return errors.New("not account key")
 		}
+		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
+
 		index.Path = m.Options.ApiPrefix + "/base"
-		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadLeft)
 
 		index.module = m
 		m.Controllers = []service.Controller{

@@ -1,0 +1,47 @@
+package auth
+
+import (
+	"github.com/sohaha/zlsgo/znet"
+	"github.com/zlsgo/wechat"
+)
+
+type Weapp struct {
+	AppId     string
+	AppSecret string
+	wx        *wechat.Engine
+}
+
+var _ AuthProvider = (*Weapp)(nil)
+
+func (w *Weapp) Name() string {
+	return "weapp"
+}
+
+func (w *Weapp) Init() error {
+	w.wx = wechat.New(&wechat.Weapp{
+		AppID:     w.AppId,
+		AppSecret: w.AppSecret,
+	})
+	return nil
+}
+
+func (w *Weapp) Login(c *znet.Context) (any, error) {
+	return nil, nil
+}
+
+func (w *Weapp) Callback(c *znet.Context) (Provider, error) {
+	code := c.DefaultQuery("code", "")
+
+	info, err := w.wx.GetAuthInfo(code)
+	if err != nil {
+		return Provider{}, err
+	}
+
+	openid := info.Get("openid").String()
+
+	return Provider{
+		Provider:         "weapp",
+		ProviderID:       openid,
+		ProviderUsername: info.Get("nickname").String(),
+	}, nil
+}

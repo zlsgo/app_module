@@ -9,6 +9,7 @@ require (
 	github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
 	github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f
+	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea
 	github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
@@ -41,6 +42,7 @@ require (
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

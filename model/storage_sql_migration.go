@@ -23,7 +23,6 @@ func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
 	if m.Model.TableName() == "" {
 		return errors.New("表名不能为空")
 	}
-
 	if err = m.Model.hook("migrationStart"); err != nil {
 		return err
 	}
@@ -90,7 +89,6 @@ func (m *Migration) HasTable() bool {
 	table.SetDriver(m.DB.GetDriver())
 	sql, values, process := table.Has()
 	res, err := m.DB.QueryToMaps(sql, values...)
-
 	if err != nil {
 		return false
 	}
@@ -200,7 +198,6 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 		if !zarray.Contains(oldColumns, CreatedAtKey) {
 			sql, values := table.AddColumn(CreatedAtKey, "time", func(f *schema.Field) {
 				f.Comment = "更新时间"
-
 			})
 			_, err := m.DB.Exec(sql, values...)
 			if err != nil {
@@ -262,7 +259,7 @@ func (m *Migration) execAddColumn(deleteColumn bool, modelFields define.Fields, 
 	for name := range modelFields {
 		if name == v {
 			ok = true
-			var f = modelFields[name]
+			f := modelFields[name]
 			field = &f
 			break
 		}
@@ -366,7 +363,6 @@ func (m *Migration) CreateTable() error {
 	table.Column(fields...)
 
 	sql, values, err := table.Build()
-
 	if err != nil {
 		return err
 	}

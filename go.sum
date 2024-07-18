@@ -1142,8 +1142,6 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 h1:sR+/8Yb4slttB4vD+b9btVEnWgL3Q00OBTzVT8B9C0c=
 github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3IMCy2vIlbG1XG/0ggNQv0SvxCAIpPM5b1nCz56Xno=
-github.com/CloudyKit/jet/v6 v6.1.0 h1:hvO96X345XagdH1fAoBjpBYG4a1ghhL/QzalkduPuXk=
-github.com/CloudyKit/jet/v6 v6.1.0/go.mod h1:d3ypHeIRNo2+XyqnGA8s+aphtcVpjP5hPwP/Lzo7Ro4=
 github.com/CloudyKit/jet/v6 v6.2.1-0.20240307125431-eb1f1c678ac2 h1:g7hK4lwVr9ENomuS87l3FH2u6+nmbYXAN13Z9+R74tQ=
 github.com/CloudyKit/jet/v6 v6.2.1-0.20240307125431-eb1f1c678ac2/go.mod h1:lf8ksdNsxZt7/yH/3n4vJQWA9RUq4wpaHtArHhGVMOw=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
@@ -1583,7 +1581,6 @@ github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
-github.com/sohaha/zlsgo v1.7.11 h1:Leb7yNM/xiE3Uq4tuBQLlX4b5xNFJPOHuA3dsOEnvro=
 github.com/sohaha/zlsgo v1.7.11/go.mod h1:MBjtFRux3Ygww2NvAZbPyw8KKkIAfIRIl0UmeBNGmx0=
 github.com/sohaha/zlsgo v1.7.12 h1:KAz4h7RHZNuoCAn6vyK8iwKnSbjP6bSCDrpS/fqyyA4=
 github.com/sohaha/zlsgo v1.7.12/go.mod h1:7LViqB5ll09RnlU5V5AW0oBnqFg260/q+B/SGDNNdmQ=
@@ -1636,16 +1633,14 @@ github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
 github.com/zeebo/xxh3 v1.0.2/go.mod h1:5NWz9Sef7zIDm2JHfFlcQvNekmcEl9ekUZQQKCYaDcA=
-github.com/zlsgo/app_core v0.0.0-20240403152258-560bda2b5fc0 h1:9/v0SLw98AI20IGsz0i71NtiusuZ7zE8jIcmqK09ogk=
-github.com/zlsgo/app_core v0.0.0-20240403152258-560bda2b5fc0/go.mod h1:O2mtPCiELDVJ8ImaGscK+UzP1olBkJidNK5YK/vZhP4=
 github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990 h1:JeCK87MRwHSMhnUn2xoKRlESaGHWW50w8u3oBIB8bvM=
 github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990/go.mod h1:NqvV1LiMR6+qyNy6qs5EYMU3zCctYPfUNB3+/pLC5yY=
 github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572 h1:ZQNjBafHLRGAODvGjc/YaQvPdJkCPOC2rjx730pa7lM=
 github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572/go.mod h1:NUFV1dpJTfUktznklXvMw9O7LMmz31+GUUOMyDOgFZM=
-github.com/zlsgo/jet v0.0.0-20230405092905-6a0201f62a64 h1:71Z7yRYU6m+JBvWvlsWmNeruBHrclNpqBDuIfQrKWCQ=
-github.com/zlsgo/jet v0.0.0-20230405092905-6a0201f62a64/go.mod h1:vGKHLHmZtck23l4yfvXqS6EzNkuFH8fJXqrcwDHKJNw=
 github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f h1:dKTEFyTZHjdNVEtOyI+MU8x4nMn24bE3tIdLucwyBTo=
 github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f/go.mod h1:36fp7C6uivaIij2sVyVdE5LoSfpE1d+vYOOsNhmq/3I=
+github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea h1:gEfVEFjmDgLNRZ6ARzmpMVEUG3xjDXMwagKG5hI2iqM=
+github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea/go.mod h1:Jwa8W2vwV7trFsOmmqX/ogo0rfaorS2JgZ6Ja+WxnyA=
 github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c h1:2DqpD0zmIk+aueYT00RinD+lQ0Zk9tQioWZo1QeAXJs=
 github.com/zlsgo/zdb v0.0.0-20240118085713-873e64070c0c/go.mod h1:rQ8Cjnn6u9nPAFJOI9bWnnB7TqWBShp8RSiD2AFuhGI=
 go.etcd.io/etcd/api/v3 v3.5.10/go.mod h1:TidfmT4Uycad3NM/o25fG3J07odo4GBB9hoxaodFCtI=
@@ -1718,8 +1713,8 @@ golang.org/x/exp v0.0.0-20220827204233-334a2380cb91/go.mod h1:cyybsKvd6eL0RnXn6p
 golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb/go.mod h1:CxIveKay+FTh1D0yPZemJVgC/95VzuuOLq5Qi4xnoYc=
 golang.org/x/exp v0.0.0-20230321023759-10a507213a29/go.mod h1:CxIveKay+FTh1D0yPZemJVgC/95VzuuOLq5Qi4xnoYc=
 golang.org/x/exp v0.0.0-20230905200255-921286631fa9/go.mod h1:S2oDrQGGwySpoQPVqRShND87VCbxmc6bL1Yd2oYrm6k=
-golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 h1:ESSUROHIBHg7USnszlcdmjBEwdMj9VUvU+OPk4yl2mc=
 golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
+golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f h1:99ci1mjWVBWwJiEKYY6jWa4d2nTQVIEhZIptnrVb1XY=
 golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
 golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81/go.mod h1:ux5Hcp/YLpHSI86hEcLt0YII63i6oz57MZXIpbrjZUs=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
