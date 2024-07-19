@@ -32,9 +32,7 @@ type Index struct {
 	Path        string
 }
 
-var (
-	_ = reflect.TypeOf(&Index{})
-)
+var _ = reflect.TypeOf(&Index{})
 
 const saltLen = 4
 
@@ -107,9 +105,8 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := model.FindOne(h.accoutModel, Request.UID(c), func(so *model.CondOptions) error {
+	info, err := model.FindOne(h.accoutModel, Request.UID(c), func(so *model.CondOptions) {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
-		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -127,11 +124,10 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 		permIDs = append(permIDs, perms[i].SliceInt()...)
 	}
 	permission, _ := model.FindCols(h.permModel, "alias", ztype.Map{
-		model.IDKey: zarray.Unique(permIDs),
-		"alias !=":  "",
-	}, func(o *model.CondOptions) error {
+		model.IDKey(): zarray.Unique(permIDs),
+		"alias !=":    "",
+	}, func(o *model.CondOptions) {
 		o.Fields = []string{"alias"}
-		return nil
 	})
 
 	data := ztype.Map{
@@ -227,19 +223,17 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		salt = zstring.Rand(saltLen)
 	}
 
-	uid := user.Get(model.IDKey).String()
+	uid := user.Get(model.IDKey()).String()
 	err = updateUser(h.accoutModel, uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	info := salt + uid
 	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
-
 	if err != nil {
 		return nil, err
 	}
@@ -298,9 +292,8 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := Request.UID(c)
-	user, _ := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) error {
-		so.Fields = []string{model.IDKey, "password", "salt"}
-		return nil
+	user, _ := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) {
+		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
 	if user.IsEmpty() {
 		return nil, invalidInput(errors.New("用户不存在"))
@@ -316,7 +309,6 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		"salt":     salt,
 		"password": password,
 	})
-
 	if err != nil {
 		return nil, err
 	}

@@ -124,12 +124,10 @@ func (s *SQL) InsertMany(table string, data ztype.Maps) (lastIds []interface{}, 
 	return
 }
 
-func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions) error) (int64, error) {
+func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := CondOptions{}
 	for _, f := range fn {
-		if err := f(&o); err != nil {
-			return 0, err
-		}
+		f(&o)
 	}
 	return s.db.Delete(table, func(b *builder.DeleteBuilder) error {
 		var fieldPrefix string
@@ -153,13 +151,12 @@ func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions) er
 	})
 }
 
-func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map, error) {
-	rows, err := s.Find(table, filter, func(so *CondOptions) error {
+func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
+	rows, err := s.Find(table, filter, func(so *CondOptions) {
 		so.Limit = 1
 		if len(fn) > 0 {
-			return fn[0](so)
+			fn[0](so)
 		}
-		return nil
 	})
 
 	if err == nil && rows.Len() > 0 {
@@ -169,15 +166,13 @@ func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions) err
 	return ztype.Map{}, err
 }
 
-func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, error) {
+func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	o := CondOptions{}
 	for i := range fn {
 		if fn[i] == nil {
 			continue
 		}
-		if err := fn[i](&o); err != nil {
-			return nil, err
-		}
+		fn[i](&o)
 	}
 
 	items, err := s.db.Find(table, func(b *builder.SelectBuilder) error {
@@ -225,12 +220,10 @@ func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions) erro
 	return items, nil
 }
 
-func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, PageInfo, error) {
+func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
 	o := CondOptions{}
 	for _, f := range fn {
-		if err := f(&o); err != nil {
-			return nil, PageInfo{}, err
-		}
+		f(&o)
 	}
 
 	rows, p, err := s.db.Pages(table, page, pagesize, func(b *builder.SelectBuilder) error {
@@ -281,12 +274,10 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 	}, nil
 }
 
-func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions) error) (int64, error) {
+func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := CondOptions{}
 	for _, f := range fn {
-		if err := f(&o); err != nil {
-			return 0, err
-		}
+		f(&o)
 	}
 
 	return s.db.Update(table, data, func(b *builder.UpdateBuilder) error {

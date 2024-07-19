@@ -6,9 +6,12 @@ import (
 )
 
 func (m *Model) Operation() *Operation {
-	return &Operation{
-		model: m,
+	if m.operation == nil {
+		m.operation = &Operation{
+			model: m,
+		}
 	}
+	return m.operation
 }
 
 type Operations struct {
@@ -42,9 +45,8 @@ func (o *Operation) InsertMany(data ztype.Maps) (lastId interface{}, err error) 
 
 // Count 统计数量
 func (o *Operation) Count(filter ztype.Map) (int64, error) {
-	resp, err := FindCols(o.model, "count", filter, func(co *CondOptions) error {
+	resp, err := FindCols(o.model, "count", filter, func(co *CondOptions) {
 		co.Fields = []string{"count(*) as count"}
-		return nil
 	})
 	if err != nil {
 		return 0, err
@@ -61,60 +63,59 @@ func (o *Operation) Exists(filter ztype.Map) (bool, error) {
 
 // FindCols 查询指定字段
 func (o *Operation) FindCols(field string, filter ztype.Map) (ztype.SliceType, error) {
-	return FindCols(o.model, field, filter, func(co *CondOptions) error {
+	return FindCols(o.model, field, filter, func(co *CondOptions) {
 		co.Fields = []string{field}
-		return nil
 	})
 }
 
 // Find 查询数据
-func (o *Operation) Find(filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, error) {
+func (o *Operation) Find(filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	return Find(o.model, filter, fn...)
 }
 
 // FindOne 查询一条数据
-func (o *Operation) FindOne(filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map, error) {
+func (o *Operation) FindOne(filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
 	return FindOne(o.model, filter, fn...)
 }
 
 // FindOneByID 通过ID查询
-func (o *Operation) FindOneByID(id any, fn ...func(*CondOptions) error) (ztype.Map, error) {
-	return FindOne(o.model, ztype.Map{IDKey: id}, fn...)
+func (o *Operation) FindOneByID(id any, fn ...func(*CondOptions)) (ztype.Map, error) {
+	return FindOne(o.model, ztype.Map{idKey: id}, fn...)
 }
 
 // Pages 分页查询
-func (o *Operation) Pages(page, pagesize int, filter ztype.Map, fn ...func(*CondOptions) error) (*PageData, error) {
+func (o *Operation) Pages(page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (*PageData, error) {
 	return Pages(o.model, page, pagesize, filter, fn...)
 }
 
 // Update 更新数据
-func (o *Operation) Update(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func (o *Operation) Update(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	return Update(o.model, filter, data, fn...)
 }
 
 // UpdateMany 更新多条数据
-func (o *Operation) UpdateMany(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func (o *Operation) UpdateMany(filter ztype.Map, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	return UpdateMany(o.model, filter, data, fn...)
 }
 
 // UpdateByID 通过ID更新
-func (o *Operation) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
-	filter := ztype.Map{IDKey: id}
+func (o *Operation) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+	filter := ztype.Map{idKey: id}
 	return Update(o.model, filter, data, fn...)
 }
 
 // Delete 删除数据
-func (o *Operation) Delete(id any, filter ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func (o *Operation) Delete(id any, filter ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	return Delete(o.model, filter, fn...)
 }
 
 // DeleteMany 删除多条数据
-func (o *Operation) DeleteMany(id any, filter ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func (o *Operation) DeleteMany(id any, filter ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	return DeleteMany(o.model, filter, fn...)
 }
 
 // DeleteByID 通过ID删除数据
-func (o *Operation) DeleteByID(id any, fn ...func(*CondOptions) error) (total int64, err error) {
-	filter := ztype.Map{IDKey: id}
+func (o *Operation) DeleteByID(id any, fn ...func(*CondOptions)) (total int64, err error) {
+	filter := ztype.Map{idKey: id}
 	return Delete(o.model, filter, fn...)
 }

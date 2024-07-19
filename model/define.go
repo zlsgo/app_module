@@ -35,6 +35,7 @@ type (
 		JSON          []byte
 		Fields        []string `json:"-"`
 		StorageType   StorageType
+		operation     *Operation
 	}
 
 	ColumnEnum struct {
@@ -48,15 +49,16 @@ type (
 )
 
 const (
-	IDKey        = "_id"
 	CreatedAtKey = "created_at"
 	// CreatedByKey = "created_by"
 	UpdatedAtKey = "updated_at"
 	DeletedAtKey = "deleted_at"
 )
 
-func init() {
-	builder.IDKey = IDKey
+var idKey = builder.IDKey
+
+func IDKey() string {
+	return idKey
 }
 
 const deleteFieldPrefix = "__del__"

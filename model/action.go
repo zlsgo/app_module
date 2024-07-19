@@ -26,7 +26,7 @@ func getFilter[T Filter](m *Model, filter T) (filterMap ztype.Map) {
 		// }
 
 		filterMap = ztype.Map{
-			IDKey: idVal,
+			idKey: idVal,
 		}
 		// } else {
 		// 	fullFields := make([]string, 0, len(m.fullFields))
@@ -47,21 +47,18 @@ type PageData struct {
 	Page  PageInfo   `json:"page"`
 }
 
-func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOptions) error) (*PageData, error) {
+func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
 	f := getFilter(m, filter)
 	_ = m.DeCrypt(f)
 
-	rows, pages, err := m.Storage.Pages(m.TableName(), page, pagesize, f, func(so *CondOptions) error {
+	rows, pages, err := m.Storage.Pages(m.TableName(), page, pagesize, f, func(so *CondOptions) {
 		if len(fn) > 0 {
-			if err := fn[0](so); err != nil {
-				return err
-			}
+			fn[0](so)
 		}
 
 		if len(so.Fields) > 0 && len(so.Join) == 0 {
 			so.Fields = m.filterFields(so.Fields)
 		}
-		return nil
 	})
 
 	data := &PageData{Items: rows, Page: pages}
@@ -95,16 +92,14 @@ func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOpt
 	return data, nil
 }
 
-func find(m *Model, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, error) {
+func find(m *Model, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	_ = m.DeCrypt(filter)
-	rows, err := m.Storage.Find(m.TableName(), filter, func(so *CondOptions) error {
+	rows, err := m.Storage.Find(m.TableName(), filter, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
 			}
-			if err := fn[i](so); err != nil {
-				return err
-			}
+			fn[i](so)
 		}
 
 		if len(so.Fields) > 0 && len(so.Join) == 0 {
@@ -112,7 +107,6 @@ func find(m *Model, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map
 		} else if so.Limit != 1 && len(so.Fields) == 0 {
 			so.Fields = m.GetFields()
 		}
-		return nil
 	})
 	if err != nil {
 		return rows, err
@@ -135,25 +129,21 @@ func find(m *Model, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map
 	return rows, nil
 }
 
-func Find[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (ztype.Maps, error) {
+func Find[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	return find(m, getFilter(m, filter), fn...)
 }
 
-func FindOne[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (ztype.Map, error) {
-	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) error {
+func FindOne[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
+	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
 			}
-			if err := fn[i](so); err != nil {
-				return err
-			}
+			fn[i](so)
 		}
 
 		so.Limit = 1
-		return nil
 	})
-
 	if err != nil {
 		return ztype.Map{}, err
 	}
@@ -161,18 +151,14 @@ func FindOne[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (ztyp
 	return rows.Index(0), nil
 }
 
-func FindCols[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions) error) (ztype.SliceType, error) {
-	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) error {
+func FindCols[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
+	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
 		so.Fields = []string{field}
 		if fn != nil {
 			for i := range fn {
-				if err := fn[i](so); err != nil {
-					return err
-				}
+				fn[i](so)
 			}
 		}
-
-		return nil
 	})
 	if err != nil {
 		return ztype.SliceType{}, err
@@ -187,7 +173,7 @@ func FindCols[T Filter](m *Model, field string, filter T, fn ...func(*CondOption
 	return data, nil
 }
 
-func FindCol[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions) error) (ztype.Type, bool, error) {
+func FindCol[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions)) (ztype.Type, bool, error) {
 	values, err := FindCols(m, field, filter, fn...)
 	if err != nil || values.Len() == 0 {
 		return ztype.Type{}, false, err
@@ -195,7 +181,7 @@ func FindCol[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions
 	return values.First(), true, nil
 }
 
-// func Count[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (int, error) {
+// func Count[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int, error) {
 // 	data, err := FindCols(m, "count(*) as count", filter, fn...)
 
 // 	if err != nil {
@@ -260,21 +246,18 @@ func InsertMany(m *Model, datas ztype.Maps) (lastIds []interface{}, err error) {
 	return
 }
 
-func Delete[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (int64, error) {
-	return DeleteMany(m, filter, func(so *CondOptions) error {
+func Delete[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, error) {
+	return DeleteMany(m, filter, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
-				if err := fn[i](so); err != nil {
-					return err
-				}
+				fn[i](so)
 			}
 		}
 		so.Limit = 1
-		return nil
 	})
 }
 
-func DeleteMany[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (int64, error) {
+func DeleteMany[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, error) {
 	f := getFilter(m, filter)
 	m.DeCrypt(f)
 	if m.model.Options.SoftDeletes {
@@ -286,21 +269,18 @@ func DeleteMany[T Filter](m *Model, filter T, fn ...func(*CondOptions) error) (i
 	return m.Storage.Delete(m.TableName(), f, fn...)
 }
 
-func Update[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
-	return UpdateMany(m, filter, data, func(so *CondOptions) error {
+func Update[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+	return UpdateMany(m, filter, data, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
-				if err := fn[i](so); err != nil {
-					return err
-				}
+				fn[i](so)
 			}
 		}
 		so.Limit = 1
-		return nil
 	})
 }
 
-func UpdateMany[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions) error) (total int64, err error) {
+func UpdateMany[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	data = filterDate(data, m.readOnlyKeys)
 	data, err = m.valuesBeforeProcess(data)
 	if err != nil {

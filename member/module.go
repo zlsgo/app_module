@@ -6,8 +6,11 @@ import (
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/account/auth"
+	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/zdb"
 )
@@ -18,7 +21,9 @@ type Module struct {
 	db          *zdb.DB
 	mods        *model.Models
 	Options     Options
-	Controllers []service.Controller
+	controllers []service.Controller
+	jwtParse    func(c *znet.Context) (string, error)
+	Middleware  func(must bool) func(c *znet.Context) error
 }
 
 var (
@@ -31,10 +36,12 @@ func (m *Module) Name() string {
 }
 
 type Options struct {
-	InitDB    func() (*zdb.DB, error) `z:"-"`
-	ApiPrefix string                  `z:"prefix"`
-	Key       string                  `z:"key"`
-	Expire    int                     `z:"expire"`
+	InitDB           func() (*zdb.DB, error) `z:"-"`
+	ApiPrefix        string                  `z:"prefix"`
+	Key              string                  `z:"key"`
+	Expire           int                     `z:"expire"`
+	Providers        []auth.AuthProvider     `z:"-"`
+	EnabledProviders []string                `z:"enabled_providers"`
 }
 
 func (o Options) ConfKey() string {
@@ -47,7 +54,12 @@ func (o Options) DisableWrite() bool {
 
 func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
-		Options: Options{Key: key, ApiPrefix: "/user"},
+		Options: Options{Key: key, ApiPrefix: "/member"},
+		Middleware: func(must bool) func(c *znet.Context) error {
+			return func(c *znet.Context) error {
+				return nil
+			}
+		},
 	}
 
 	for _, f := range opt {
@@ -70,10 +82,56 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 		}
 
 		m.Options.Key = zstring.Pad(m.Options.Key, 32, "0", zstring.PadRight)
-		m.Controllers = []service.Controller{
+
+		m.Middleware = func(must bool) func(c *znet.Context) error {
+			return func(c *znet.Context) error {
+				member := &User{}
+				c.Injector().Map(member)
+
+				token := jwt.GetToken(c)
+				if !must && token == "" {
+					return nil
+				}
+
+				if token == "" {
+					return errors.New("token not found")
+				}
+
+				info, err := jwt.Parse(token, m.Options.Key)
+				if err != nil {
+					return err
+				}
+
+				member.Id = info.Info
+				member.Info, err = m.UserById(info.Info)
+				if err != nil {
+					return err
+				}
+
+				// 删除敏感信息
+				_ = member.Info.Delete("password")
+				_ = member.Info.Delete("salt")
+
+				c.Next()
+
+				return nil
+			}
+		}
+
+		m.controllers = []service.Controller{
 			&Auth{
 				module: m,
-				Path:   m.Options.ApiPrefix + "/auth",
+				userModel: func() (*model.Model, bool) {
+					return m.mods.Get(modelName)
+				},
+				Path: m.Options.ApiPrefix + "/auth",
+			},
+			&UserServer{
+				module: m,
+				Model: func() (*model.Model, bool) {
+					return m.mods.Get(modelName)
+				},
+				Path: m.Options.ApiPrefix,
 			},
 		}
 		return nil
@@ -92,7 +150,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 
 	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db))
 
-	_, err = m.mods.Reg(modelName, modelDefine, false)
+	_, err = m.mods.Reg(modelName, modelDefine(), false)
 	if err != nil {
 		return err
 	}
@@ -104,7 +162,7 @@ func (m *Module) Done(zdi.Invoker) (err error) {
 }
 
 func (m *Module) Controller() []service.Controller {
-	return m.Controllers
+	return m.controllers
 }
 
 func (m *Module) Stop() error {

@@ -107,12 +107,12 @@ func roleModel(ms *model.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey:  1,
-				"label":      "管理员",
-				"status":     "1",
-				"alias":      "admin",
-				"inlay":      true,
-				"permission": []uint{1},
+				model.IDKey(): 1,
+				"label":       "管理员",
+				"status":      "1",
+				"alias":       "admin",
+				"inlay":       true,
+				"permission":  []uint{1},
 			},
 		},
 	}, false)
@@ -201,14 +201,14 @@ func permModel(ms *model.Models) error {
 		},
 		Values: []ztype.Map{
 			{
-				model.IDKey: 1,
-				"label":     "全局访问",
-				"remark":    "可访问全部接口",
-				"status":    "1",
-				"alias":     "global_allow",
-				"inlay":     true,
-				"target":    "*",
-				"action":    "/*",
+				model.IDKey(): 1,
+				"label":       "全局访问",
+				"remark":      "可访问全部接口",
+				"status":      "1",
+				"alias":       "global_allow",
+				"inlay":       true,
+				"target":      "*",
+				"action":      "/*",
 			},
 		},
 	}, false)

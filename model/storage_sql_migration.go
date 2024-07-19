@@ -56,9 +56,8 @@ func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
 
 func (m *Migration) InitValue(first bool) error {
 	if !first {
-		row, err := FindOne(m.Model, ztype.Map{}, func(o *CondOptions) error {
+		row, err := FindOne(m.Model, ztype.Map{}, func(o *CondOptions) {
 			o.Fields = []string{"COUNT(*) AS count"}
-			return nil
 		})
 		if err == nil {
 			first = row.Get("count").Int() == 0
@@ -71,7 +70,7 @@ func (m *Migration) InitValue(first bool) error {
 		// }
 
 		if !first {
-			if _, ok := data[IDKey]; ok {
+			if _, ok := data[idKey]; ok {
 				continue
 			}
 		}
@@ -107,7 +106,7 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 
 	modelFields := m.Model.GetModelFields()
 	newColumns := zarray.Keys(modelFields)
-	newColumns = append(newColumns, IDKey)
+	newColumns = append(newColumns, idKey)
 
 	currentColumns := process(res)
 	oldColumns := zarray.Keys(currentColumns)
@@ -375,7 +374,7 @@ func (m *Migration) CreateTable() error {
 }
 
 func (m *Migration) getPrimaryKey() *schema.Field {
-	return schema.NewField(IDKey, schema.Uint, func(f *schema.Field) {
+	return schema.NewField(idKey, schema.Uint, func(f *schema.Field) {
 		f.Comment = "ID"
 		f.PrimaryKey = true
 		f.AutoIncrement = true

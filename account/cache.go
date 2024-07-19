@@ -15,9 +15,7 @@ var userCache = zcache.NewFast()
 
 func getUserForCache(m *model.Model, uid string) (ztype.Map, error) {
 	user, ok := userCache.ProvideGet(uid, func() (interface{}, bool) {
-		f, err := model.FindOne(m, uid, func(so *model.CondOptions) error {
-			return nil
-		})
+		f, err := model.FindOne(m, uid)
 		if err != nil {
 			return ztype.Map{}, false
 		}

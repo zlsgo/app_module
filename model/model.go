@@ -13,7 +13,7 @@ import (
 type (
 	Options struct {
 		Prefix           string
-		ModelsDefine     []define.Define
+		ModelsDefine     define.Defines
 		DisabledMigrator bool
 		GetDB            func() (*zdb.DB, error)
 	}

@@ -85,8 +85,6 @@ func (m *Module) Tasks() []service.Task {
 				t := time.Now().AddDate(0, -1, 0)
 				_, err := model.DeleteMany(lm, ztype.Map{
 					"record_at <": ztime.FormatTime(t),
-				}, func(so *model.CondOptions) error {
-					return nil
 				})
 				if err != nil {
 					return

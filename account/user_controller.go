@@ -6,7 +6,6 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model"
 )
@@ -17,9 +16,7 @@ type User struct {
 	Path   string
 }
 
-var (
-	_ = reflect.TypeOf(&User{})
-)
+var _ = reflect.TypeOf(&User{})
 
 func (h *User) Init(r *znet.Engine) error {
 	return PermisMiddleware(r)
@@ -34,17 +31,17 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	if account != "" {
 		filter["account"] = account + "%"
 	}
-	page, pagesize, _ := common.VarPages(c)
+	page, pagesize, _ := model.Common.VarPages(c)
 
-	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) error {
+	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) {
 		co.OrderBy = map[string]string{
-			model.IDKey: "desc",
+			model.IDKey(): "desc",
 		}
 		co.Fields = GetAccountModel().m.GetFields("password", "salt")
-		return nil
+		return
 	})
 	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := GetAccountModel().DeCryptID(item.Get(model.IDKey).String())
+		id, _ := GetAccountModel().DeCryptID(item.Get(model.IDKey()).String())
 		_ = item.Set("id", id)
 		return true
 	})

@@ -46,7 +46,6 @@ func Parse(token string, tokenKey string) (*Info, error) {
 	t, err := jwt.ParseWithClaims(token, &Info{}, func(token *jwt.Token) (i interface{}, err error) {
 		return zstring.String2Bytes(tokenKey), nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +57,14 @@ func Parse(token string, tokenKey string) (*Info, error) {
 	return nil, errors.New("invalid token")
 }
 
+const AuthorizationKey = "Authorization"
+
 func GetToken(c *znet.Context) string {
-	authorization := c.GetHeader("Authorization")
+	authorization := c.GetHeader(AuthorizationKey)
+	if authorization == "" {
+		authorization = c.GetCookie(AuthorizationKey)
+	}
+
 	slen := len("Basic ")
 	if len(authorization) > slen {
 		authorization = zstring.TrimSpace(authorization[slen:])
@@ -73,5 +78,6 @@ func GetToken(c *znet.Context) string {
 		}
 		return strings.Split(zstring.Bytes2String(v), ":")[0]
 	}
-	return c.DefaultFormOrQuery("Authorization", "")
+
+	return c.DefaultFormOrQuery(AuthorizationKey, "")
 }

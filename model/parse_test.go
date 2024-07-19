@@ -64,7 +64,7 @@ func TestSet(t *testing.T) {
 		},
 	}
 
-	db, err := zdb.New(&sqlite3.Config{
+	db, _ := zdb.New(&sqlite3.Config{
 		File:       "data/db.db",
 		Memory:     true,
 		Parameters: "_pragma=busy_timeout(3000)",
@@ -91,21 +91,19 @@ func TestSet(t *testing.T) {
 
 	_, _ = Insert(m, map[string]interface{}{"action": "demo", "ip": "127.0.0.3", "status": "1"})
 
-	row, err := FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
-		ModelOptions.OrderBy = map[string]string{IDKey: "DESC"}
-		ModelOptions.Fields = []string{IDKey, "status"}
-		return nil
+	row, err := FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) {
+		ModelOptions.OrderBy = map[string]string{IDKey(): "DESC"}
+		ModelOptions.Fields = []string{IDKey(), "status"}
 	})
 	tt.NoError(err)
 	tt.Log(row)
 
-	total, err := Update(m, row.Get(IDKey).String(), ztype.Map{"ip": "192.168.0.1", "status": 1})
+	total, err := Update(m, row.Get(IDKey()).String(), ztype.Map{"ip": "192.168.0.1", "status": 1})
 	tt.NoError(err)
 	tt.Log(total)
 
-	row, err = FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) error {
-		ModelOptions.OrderBy = map[string]string{IDKey: "DESC"}
-		return nil
+	row, err = FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) {
+		ModelOptions.OrderBy = map[string]string{IDKey(): "DESC"}
 	})
 	tt.NoError(err)
 	tt.Log(row)

@@ -28,7 +28,7 @@ func (m *Model) GetViewFields(view string) []string {
 			fields = m.GetFields()
 		}
 	}
-	return zarray.Unique(append(fields, IDKey))
+	return zarray.Unique(append(fields, idKey))
 }
 
 func parseViewLists(m *Model) ztype.Map {
@@ -39,7 +39,7 @@ func parseViewLists(m *Model) ztype.Map {
 		return ztype.Map{}
 	}
 
-	fields := append([]string{IDKey}, data.Get("fields").Slice().String()...)
+	fields := append([]string{idKey}, data.Get("fields").Slice().String()...)
 	if len(fields) == 1 {
 		fields = append(fields, m.GetFields()...)
 	}
@@ -58,7 +58,7 @@ func parseViewLists(m *Model) ztype.Map {
 			"ModelOptions": column.Options,
 			"layout":       layout,
 		}
-		if m.model.Options.CryptID && name == IDKey {
+		if m.model.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}
@@ -87,7 +87,7 @@ func parseViewInfo(m *Model) ztype.Map {
 
 	columns := make(map[string]ztype.Map, 0)
 
-	fields := append([]string{IDKey}, data.Get("fields").Slice().String()...)
+	fields := append([]string{idKey}, data.Get("fields").Slice().String()...)
 	if len(fields) == 1 {
 		fields = append(fields, m.fullFields...)
 	}
@@ -111,7 +111,7 @@ func parseViewInfo(m *Model) ztype.Map {
 			"ModelOptions": column.Options,
 		}
 
-		if m.model.Options.CryptID && name == IDKey {
+		if m.model.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}

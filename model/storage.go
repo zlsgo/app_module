@@ -11,13 +11,15 @@ const (
 	NoSQLStorage
 )
 
-type StorageType uint8
-type StorageJoin struct {
-	Table        string
-	As           string
-	Expr         string
-	ModelOptions builder.JoinOption
-}
+type (
+	StorageType uint8
+	StorageJoin struct {
+		Table        string
+		As           string
+		Expr         string
+		ModelOptions builder.JoinOption
+	}
+)
 
 // type StorageWhere struct {
 // 	Expr string
@@ -26,8 +28,7 @@ type StorageJoin struct {
 // 	Value interface{}
 // }
 
-type StorageModelOptions struct {
-}
+type StorageModelOptions struct{}
 
 type CondOptions struct {
 	Fields  []string
@@ -39,14 +40,14 @@ type CondOptions struct {
 
 type Storageer interface {
 	GetStorageType() StorageType
-	Find(table string, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, error)
-	First(table string, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Map, error)
-	Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions) error) (ztype.Maps, PageInfo, error)
+	Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
+	First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)
+	Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error)
 	Migration(model *Model) Migrationer
 	Insert(table string, data ztype.Map) (lastId interface{}, err error)
 	InsertMany(table string, data ztype.Maps) (lastIds []interface{}, err error)
-	Delete(table string, filter ztype.Map, fn ...func(*CondOptions) error) (int64, error)
-	Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions) error) (int64, error)
+	Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
+	Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
 }
 
 type PageInfo struct {

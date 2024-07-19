@@ -37,10 +37,10 @@ func (m *Model) GetCryptProcess(cryptName string) (fn CryptProcess, err error) {
 // DeCrypt 解密 ID
 func (m *Model) DeCrypt(row ztype.Map) (err error) {
 	if m.model.Options.CryptID {
-		if id, ok := row[IDKey]; ok {
+		if id, ok := row[idKey]; ok {
 			switch i := id.(type) {
 			case string:
-				row[IDKey], err = hashid.DecryptID(m.Hashid, i)
+				row[idKey], err = hashid.DecryptID(m.Hashid, i)
 			case []interface{}:
 				for k, v := range i {
 					i[k], err = hashid.DecryptID(m.Hashid, ztype.ToString(v))
@@ -50,9 +50,9 @@ func (m *Model) DeCrypt(row ztype.Map) (err error) {
 				for k, v := range i {
 					ids[k], err = hashid.DecryptID(m.Hashid, v)
 				}
-				row[IDKey] = ids
+				row[idKey] = ids
 			default:
-				row[IDKey], err = hashid.DecryptID(m.Hashid, ztype.ToString(id))
+				row[idKey], err = hashid.DecryptID(m.Hashid, ztype.ToString(id))
 			}
 		}
 	}
@@ -62,8 +62,8 @@ func (m *Model) DeCrypt(row ztype.Map) (err error) {
 // EnCrypt  加密 ID
 func (m *Model) EnCrypt(row *ztype.Map) (err error) {
 	if m.model.Options.CryptID {
-		if _, ok := (*row)[IDKey]; ok {
-			(*row)[IDKey], err = hashid.EncryptID(m.Hashid, (*row).Get(IDKey).Int64())
+		if _, ok := (*row)[idKey]; ok {
+			(*row)[idKey], err = hashid.EncryptID(m.Hashid, (*row).Get(idKey).Int64())
 		}
 	}
 

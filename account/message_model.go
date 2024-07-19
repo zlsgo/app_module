@@ -84,10 +84,9 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 		return nil, errors.New("用户 ID 错误")
 	}
 
-	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *model.CondOptions) error {
-		co.Fields = []string{model.IDKey, model.CreatedAtKey, "mtype"}
-		co.OrderBy = map[string]string{model.IDKey: "desc"}
-		return nil
+	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *model.CondOptions) {
+		co.Fields = []string{model.IDKey(), model.CreatedAtKey, "mtype"}
+		co.OrderBy = map[string]string{model.IDKey(): "desc"}
 	})
 	if err != nil {
 		return nil, err

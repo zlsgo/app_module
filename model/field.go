@@ -42,7 +42,7 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 		}
 	}
 
-	if name == IDKey {
+	if name == idKey {
 		return &define.Field{
 			Type:     schema.Int,
 			Nullable: false,
@@ -51,7 +51,6 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 				ReadOnly: true,
 			},
 		}, true
-
 	}
 	if m.model.Options.Timestamps {
 		switch name {
@@ -59,12 +58,14 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 			return &define.Field{
 				Type:     schema.Time,
 				Nullable: true,
-				Label:    "创建时间"}, true
+				Label:    "创建时间",
+			}, true
 		case UpdatedAtKey:
 			return &define.Field{
 				Type:     schema.Time,
 				Nullable: true,
-				Label:    "更新时间"}, true
+				Label:    "更新时间",
+			}, true
 		}
 	}
 
@@ -75,7 +76,8 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 				Size:     11,
 				Nullable: true,
 				Default:  0,
-				Label:    "删除时间戳"}, true
+				Label:    "删除时间戳",
+			}, true
 		}
 	}
 
@@ -101,7 +103,7 @@ func (m *Model) GetModelFields() define.Fields {
 }
 
 func (m *Model) isInlayField(field string) bool {
-	inlayFields := []string{IDKey}
+	inlayFields := []string{idKey}
 	if m.model.Options.Timestamps {
 		inlayFields = append(inlayFields, CreatedAtKey, UpdatedAtKey)
 	}

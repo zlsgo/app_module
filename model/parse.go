@@ -32,7 +32,7 @@ func perfect(alias string, m *Model) (err error) {
 		return
 	}
 
-	m.inlayFields = []string{IDKey}
+	m.inlayFields = []string{idKey}
 	if m.model.Options.Timestamps {
 		if zarray.Contains(m.Fields, CreatedAtKey) {
 			err = errors.New(CreatedAtKey + " is a reserved field")
@@ -68,7 +68,7 @@ func perfect(alias string, m *Model) (err error) {
 		m.inlayFields = append(m.inlayFields, DeletedAtKey)
 	}
 
-	m.fullFields = append([]string{IDKey}, m.Fields...)
+	m.fullFields = append([]string{idKey}, m.Fields...)
 	m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
 
 	if m.model.Options.SoftDeletes {
@@ -88,7 +88,7 @@ func perfect(alias string, m *Model) (err error) {
 		for k := range m.model.Relations {
 			v := m.model.Relations[k]
 			if v.Foreign == "" {
-				m.model.Relations[k].Foreign = IDKey
+				m.model.Relations[k].Foreign = idKey
 			}
 		}
 

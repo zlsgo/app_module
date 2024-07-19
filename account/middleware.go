@@ -13,9 +13,7 @@ import (
 	"github.com/zlsgo/app_module/model"
 )
 
-var (
-	verifyPermissions func(c *znet.Context) error
-)
+var verifyPermissions func(c *znet.Context) error
 
 func PermisMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
@@ -74,11 +72,10 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	for _, r := range roles {
 		role := rbac.NewRole(rbac.MatchPriorityDeny)
 		perms, err := model.Find(permModel, ztype.Map{
-			model.IDKey: r.Get("permission").SliceInt(),
-			"status":    1,
-		}, func(o *model.CondOptions) error {
+			model.IDKey(): r.Get("permission").SliceInt(),
+			"status":      1,
+		}, func(o *model.CondOptions) {
 			o.Fields = []string{"action", "alias", "target", "priority"}
-			return nil
 		})
 		if err != nil {
 			return err

@@ -5,9 +5,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/zlsgo/app_core/common"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/account"
 	"github.com/zlsgo/app_module/model"
 )
 
@@ -24,9 +22,8 @@ func (h *controller) Init(r *znet.Engine) error {
 		return err
 	}
 
-	if !h.options.DisableAuth {
-		// 如果存在账号模块，则需要进行权限校验
-		_ = account.PermisMiddleware(r)
+	if h.options.Middleware != nil {
+		r.Use(h.options.Middleware)
 	}
 
 	r.Any("/*", func(c *znet.Context) (interface{}, error) {
@@ -69,10 +66,9 @@ func (h *controller) Init(r *znet.Engine) error {
 func (h *controller) handerGet(oper *model.Operation, c *znet.Context, args string) (interface{}, error) {
 	switch args {
 	case "":
-		page, pagesize, _ := common.VarPages(c)
-		return oper.Pages(page, pagesize, nil, func(o *model.CondOptions) error {
-			o.OrderBy = map[string]string{model.IDKey: "desc"}
-			return nil
+		page, pagesize, _ := model.Common.VarPages(c)
+		return oper.Pages(page, pagesize, nil, func(o *model.CondOptions) {
+			o.OrderBy = map[string]string{model.IDKey(): "desc"}
 		})
 	default:
 		row, err := oper.FindOneByID(args)
@@ -88,7 +84,7 @@ func (h *controller) handerGet(oper *model.Operation, c *znet.Context, args stri
 	}
 }
 
-func (h *controller) handerPost(oper *model.Operation, c *znet.Context, args string) (interface{}, error) {
+func (h *controller) handerPost(oper *model.Operation, c *znet.Context, _ string) (interface{}, error) {
 	j, _ := c.GetJSONs()
 	data := j.Map()
 
@@ -100,7 +96,7 @@ func (h *controller) handerPost(oper *model.Operation, c *znet.Context, args str
 	return id, nil
 }
 
-func (h *controller) handerDelete(oper *model.Operation, c *znet.Context, args string) (interface{}, error) {
+func (h *controller) handerDelete(oper *model.Operation, _ *znet.Context, args string) (interface{}, error) {
 	if args == "" {
 		return nil, zerror.InvalidInput.Text("id not found")
 	}
