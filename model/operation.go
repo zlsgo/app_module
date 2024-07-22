@@ -15,12 +15,26 @@ func (m *Model) Operation() *Operation {
 }
 
 type Operations struct {
-	m *zarray.Maper[string, *Operation]
+	items *zarray.Maper[string, *Operation]
 }
 
 // Get 获取操作对象
 func (m *Operations) Get(name string) (*Operation, bool) {
-	return m.m.Get(name)
+	return m.items.Get(name)
+}
+
+// MustGet 获取操作对象
+func (m *Operations) MustGet(name string) *Operation {
+	o, _ := m.items.Get(name)
+	if o == nil {
+		panic("operation " + name + " not found")
+	}
+	return o
+}
+
+// Model 获取模型
+func (o *Operation) Model() *Model {
+	return o.model
 }
 
 // EnCryptID 加密 ID

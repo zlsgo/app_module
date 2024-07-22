@@ -41,6 +41,14 @@ func (ms *Models) Get(alias string) (*Model, bool) {
 	return ms.m.Get(alias)
 }
 
+func (ms *Models) MustGet(alias string) *Model {
+	m, ok := ms.m.Get(alias)
+	if !ok {
+		panic("model " + alias + " not found")
+	}
+	return m
+}
+
 func (ms *Models) Storage() Storageer {
 	return ms.storage
 }

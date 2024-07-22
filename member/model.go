@@ -2,9 +2,14 @@ package member
 
 import (
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/app_module/model/define"
 	"github.com/zlsgo/zdb/schema"
 )
+
+type Operation struct {
+	model.Operation
+}
 
 const modelName = "member"
 

@@ -94,6 +94,6 @@ func (d *Define) GetOptions() ModelOptions {
 	return d.Options
 }
 
-func (d *Defines) Append(define Define) {
-	*d = append(*d, define)
+func (d *Defines) Append(define ...Define) {
+	*d = append(*d, define...)
 }

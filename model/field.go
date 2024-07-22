@@ -59,6 +59,9 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 				Type:     schema.Time,
 				Nullable: true,
 				Label:    "创建时间",
+				Options: define.FieldOption{
+					ReadOnly: true,
+				},
 			}, true
 		case UpdatedAtKey:
 			return &define.Field{

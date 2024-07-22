@@ -43,7 +43,7 @@ func New(o ...func(*Options)) (m *Module) {
 					}))
 
 					mapper := di.(zdi.TypeMapper)
-					opers := &Operations{m: zarray.NewHashMap[string, *Operation]()}
+					opers := &Operations{items: zarray.NewHashMap[string, *Operation]()}
 					for _, d := range opt.ModelsDefine {
 						if opt.DisabledMigrator {
 							d.Options.DisabledMigrator = true
@@ -52,7 +52,7 @@ func New(o ...func(*Options)) (m *Module) {
 						if err != nil {
 							return err
 						}
-						opers.m.Set(d.Name, m.Operation())
+						opers.items.Set(d.Name, m.Operation())
 						// mapper.Map(d)
 					}
 

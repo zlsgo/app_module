@@ -1,7 +1,6 @@
 package member
 
 import (
-	"errors"
 	"reflect"
 	"time"
 
@@ -14,20 +13,18 @@ import (
 
 type Auth struct {
 	service.App
-	module    *Module
-	Path      string
-	userModel func() (*model.Model, bool)
+	Path     string
+	module   *Module
+	userOper *Operation
 }
 
 var _ = reflect.TypeOf(&Auth{})
 
 func (h *Auth) Init(r *znet.Engine) (err error) {
-	if h.userModel == nil {
-		return errors.New("user model not found")
+	if err = h.DI.Resolve(&h.userOper); err != nil {
+		return err
 	}
-	if _, ok := h.userModel(); !ok {
-		return errors.New("user model not found")
-	}
+	_ = h.DI.Resolve(&h.module)
 
 	regController := auth.NewRouter(
 		h.module.Options.Key,
@@ -36,16 +33,15 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 			return nil
 		},
 		func(ctx *znet.Context, p auth.Provider) (string, error) {
-			mod, _ := h.userModel()
 			data := ztype.Map{
 				"provider":    p.Provider,
 				"provider_id": p.ProviderID,
 			}
 
-			user, _ := mod.Operation().FindOne(data)
+			user, _ := h.userOper.FindOne(data)
 			if !user.IsEmpty() {
 				id := user.Get(model.IDKey()).String()
-				mod.Operation().UpdateByID(id, ztype.Map{
+				h.userOper.UpdateByID(id, ztype.Map{
 					"login_at": time.Now(),
 				})
 				return id, nil
@@ -54,7 +50,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 			data["account"] = p.Provider + "_" + p.ProviderID
 			data["provider_username"] = p.ProviderUsername
 
-			id, err := mod.Operation().Insert(data)
+			id, err := h.userOper.Insert(data)
 			return ztype.ToString(id), err
 		},
 	)

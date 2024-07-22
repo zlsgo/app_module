@@ -8,34 +8,37 @@ import (
 )
 
 type User struct {
-	Id   string    `json:"id"`
-	Info ztype.Map `json:"info"`
+	Id    string    `json:"id"`
+	RawId string    `json:"-"`
+	Info  ztype.Map `json:"info"`
 }
 
 var userCache = zcache.NewFast()
 
-func (m *Module) UserById(id any) (ztype.Map, error) {
+func (m *Module) UserById(id any) (u *User, err error) {
 	mod, ok := m.mods.Get(modelName)
 	if !ok {
 		return nil, errors.New("not found model")
 	}
 
 	info, ok := userCache.ProvideGet(ztype.ToString(id), func() (interface{}, bool) {
-		user, err := mod.Operation().FindOneByID(id)
+		info, err := mod.Operation().FindOneByID(id)
 		if err != nil {
 			return nil, false
 		}
 
-		if user.IsEmpty() {
+		if info.IsEmpty() {
 			return nil, false
 		}
 
-		return user, true
+		uid := ztype.ToString(id)
+		rawId, _ := mod.DeCryptID(uid)
+		return &User{Id: uid, Info: info, RawId: rawId}, true
 	})
 
-	if !ok {
+	if !ok || info == nil {
 		return nil, errors.New("not found user")
 	}
 
-	return ztype.ToMap(info), nil
+	return info.(*User), nil
 }

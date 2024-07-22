@@ -23,7 +23,7 @@ type Module struct {
 	Options     Options
 	controllers []service.Controller
 	jwtParse    func(c *znet.Context) (string, error)
-	Middleware  func(must bool) func(c *znet.Context) error
+	Middleware  func(optionalRoute ...string) (middleware func(c *znet.Context) error)
 }
 
 var (
@@ -55,7 +55,7 @@ func (o Options) DisableWrite() bool {
 func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
 		Options: Options{Key: key, ApiPrefix: "/member"},
-		Middleware: func(must bool) func(c *znet.Context) error {
+		Middleware: func(optionalRoute ...string) func(c *znet.Context) error {
 			return func(c *znet.Context) error {
 				return nil
 			}
@@ -83,18 +83,27 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 
 		m.Options.Key = zstring.Pad(m.Options.Key, 32, "0", zstring.PadRight)
 
-		m.Middleware = func(must bool) func(c *znet.Context) error {
+		m.Middleware = func(optionalRoute ...string) func(c *znet.Context) error {
 			return func(c *znet.Context) error {
 				member := &User{}
 				c.Injector().Map(member)
 
+				isOptionalRoute := false
+				for i := range optionalRoute {
+					if zstring.Match(c.Request.URL.Path, optionalRoute[i]) {
+						isOptionalRoute = true
+						break
+					}
+				}
+
 				token := jwt.GetToken(c)
-				if !must && token == "" {
-					return nil
+
+				if token == "" && !isOptionalRoute {
+					return errors.New("token not found")
 				}
 
 				if token == "" {
-					return errors.New("token not found")
+					return nil
 				}
 
 				info, err := jwt.Parse(token, m.Options.Key)
@@ -102,11 +111,14 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 					return err
 				}
 
-				member.Id = info.Info
-				member.Info, err = m.UserById(info.Info)
+				user, err := m.UserById(info.Info)
 				if err != nil {
 					return err
 				}
+
+				member.Id = user.Id
+				member.RawId = user.RawId
+				member.Info = user.Info
 
 				// 删除敏感信息
 				_ = member.Info.Delete("password")
@@ -120,17 +132,9 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 
 		m.controllers = []service.Controller{
 			&Auth{
-				module: m,
-				userModel: func() (*model.Model, bool) {
-					return m.mods.Get(modelName)
-				},
 				Path: m.Options.ApiPrefix + "/auth",
 			},
 			&UserServer{
-				module: m,
-				Model: func() (*model.Model, bool) {
-					return m.mods.Get(modelName)
-				},
 				Path: m.Options.ApiPrefix,
 			},
 		}
@@ -150,10 +154,13 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 
 	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db))
 
-	_, err = m.mods.Reg(modelName, modelDefine(), false)
+	mod, err := m.mods.Reg(modelName, modelDefine(), false)
 	if err != nil {
 		return err
 	}
+	di.(zdi.Injector).Map(&Operation{
+		Operation: *mod.Operation(),
+	})
 	return
 }
 

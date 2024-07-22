@@ -3,6 +3,7 @@ package model
 import (
 	"strings"
 
+	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -43,8 +44,18 @@ func getFilter[T Filter](m *Model, filter T) (filterMap ztype.Map) {
 }
 
 type PageData struct {
-	Items ztype.Maps `json:"items"`
-	Page  PageInfo   `json:"page"`
+	Items    ztype.Maps `json:"items"`
+	Page     PageInfo   `json:"page"`
+	pagesize uint       `json:"-"`
+}
+
+func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ...uint) *PageData {
+	if len(parallel) == 0 {
+		parallel = []uint{p.pagesize}
+	}
+	p.Items = zarray.Map(p.Items, fn, parallel[0])
+
+	return p
 }
 
 func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
@@ -61,7 +72,7 @@ func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOpt
 		}
 	})
 
-	data := &PageData{Items: rows, Page: pages}
+	data := &PageData{Items: rows, Page: pages, pagesize: uint(pagesize)}
 	if err != nil {
 		return data, err
 	}
@@ -81,6 +92,7 @@ func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOpt
 				}
 			}
 		}
+
 		if m.model.Options.CryptID {
 			err = m.EnCrypt(row)
 			if err != nil {
