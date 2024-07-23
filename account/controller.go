@@ -3,7 +3,6 @@ package account
 import (
 	"errors"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
@@ -62,8 +61,9 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 	}
 
 	_, err := jwt.Parse(token, h.module.Options.key)
-	if err != nil && !strings.Contains(err.Error(), "expired") {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("旧 token 不合法"))
+	err = jwt.ParseError(err)
+	if err != nil {
+		return nil, err
 	}
 
 	info, err := jwt.Parse(refreshToken, h.module.Options.key)

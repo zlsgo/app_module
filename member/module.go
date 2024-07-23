@@ -108,7 +108,7 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 
 				info, err := jwt.Parse(token, m.Options.Key)
 				if err != nil {
-					return err
+					return jwt.ParseError(err)
 				}
 
 				user, err := m.UserById(info.Info)
