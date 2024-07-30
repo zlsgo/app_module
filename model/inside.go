@@ -7,13 +7,21 @@ type inside struct {
 type DealOldColumn uint8
 
 const (
-	DealOldColumnNone DealOldColumn = iota
-	DealOldColumnDelete
-	DealOldColumnRename
+	dealOldColumnNone DealOldColumn = iota
+	dealOldColumnDelete
+	dealOldColumnRename
 )
 
-var Inside = &inside{}
+var InsideOption = &inside{}
 
-func (i *inside) DeleteOldColumn(b DealOldColumn) {
-	i.oldColumn = b
+func (i *inside) OldColumnIgnore() {
+	i.oldColumn = dealOldColumnNone
+}
+
+func (i *inside) OldColumnDelete() {
+	i.oldColumn = dealOldColumnDelete
+}
+
+func (i *inside) OldColumnRename() {
+	i.oldColumn = dealOldColumnRename
 }

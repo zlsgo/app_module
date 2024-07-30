@@ -12,6 +12,7 @@ import (
 
 type Module struct {
 	service.ModuleLifeCycle
+	engine *jet.Engine
 }
 
 var (
@@ -19,7 +20,7 @@ var (
 	_                = reflect.TypeOf(&Module{})
 )
 
-func New(opt ...func(*Options)) *Module {
+func New(opt ...func(*Options)) (m *Module) {
 	for _, f := range opt {
 		f(&options)
 	}
@@ -29,8 +30,7 @@ func New(opt ...func(*Options)) *Module {
 	return &Module{
 		ModuleLifeCycle: service.ModuleLifeCycle{
 			OnStart: func(di zdi.Invoker) error {
-				return di.InvokeWithErrorOnly(func(r *znet.Engine) error {
-
+				return di.InvokeWithErrorOnly(func(r *znet.Engine, conf *service.Conf) error {
 					if options.Static != "" && options.StaticDir != "" {
 						r.Static(options.Static, zfile.RealPath(options.StaticDir))
 					}
@@ -38,7 +38,7 @@ func New(opt ...func(*Options)) *Module {
 					j := jet.New(r, zfile.RealPathMkdir(options.Dir), func(o *jet.Options) {
 						o.DelimLeft = "{{:"
 						o.DelimRight = "}}"
-						o.Reload = options.Reload
+						o.Reload = options.Reload || conf.Base.Debug
 					})
 
 					if options.Funcs != nil {
@@ -52,6 +52,7 @@ func New(opt ...func(*Options)) *Module {
 						return err
 					}
 
+					m.engine = j
 					return nil
 				})
 			},

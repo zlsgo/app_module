@@ -9,9 +9,10 @@ import (
 type (
 	Module struct {
 		service.ModuleLifeCycle
-		// Operations *Operations
-		// Models  *Models
 		Options Options
+
+		Models     *Models
+		Operations *Operations
 	}
 )
 
@@ -22,4 +23,11 @@ var (
 
 func (p *Module) Name() string {
 	return "Model"
+}
+
+func (p *Module) String() string {
+	if p != nil && p.Models != nil {
+		return p.Models.String()
+	}
+	return "[]"
 }

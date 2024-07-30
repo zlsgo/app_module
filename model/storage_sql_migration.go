@@ -19,7 +19,7 @@ type Migration struct {
 	DB    *zdb.DB
 }
 
-func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
+func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 	if m.Model.TableName() == "" {
 		return errors.New("表名不能为空")
 	}
@@ -49,7 +49,7 @@ func (m *Migration) Auto(oldColumn DealOldColumn) (err error) {
 		return
 	}
 
-	err = m.UpdateTable(oldColumn)
+	err = m.UpdateTable(oldColumn...)
 
 	return
 }
@@ -95,7 +95,7 @@ func (m *Migration) HasTable() bool {
 	return process(res)
 }
 
-func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
+func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 	table := builder.NewTable(m.Model.TableName())
 	table.SetDriver(m.DB.GetDriver())
 	sql, values, process := table.GetColumn()
@@ -150,13 +150,17 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 		return !zarray.Contains(newColumns, n) && !strings.HasPrefix(n, deleteFieldPrefix)
 	})
 
+	var dealOldColumn DealOldColumn
+	if len(oldColumn) > 0 {
+		dealOldColumn = oldColumn[0]
+	}
 	for _, v := range deleteColumns {
-		if oldColumn == DealOldColumnNone || isDisableMigratioField(m.Model, v) {
+		if dealOldColumn == dealOldColumnNone || isDisableMigratioField(m.Model, v) {
 			continue
 		}
-		if oldColumn == DealOldColumnDelete {
+		if dealOldColumn == dealOldColumnDelete {
 			sql, values = table.DropColumn(v)
-		} else if oldColumn == DealOldColumnRename {
+		} else if dealOldColumn == dealOldColumnRename {
 			sql, values = table.RenameColumn(v, deleteFieldPrefix+v)
 		}
 
@@ -214,7 +218,7 @@ func (m *Migration) UpdateTable(oldColumn DealOldColumn) error {
 		}
 	}
 
-	deleteColumn := oldColumn == DealOldColumnDelete
+	deleteColumn := dealOldColumn == dealOldColumnDelete
 	if len(addColumns) > 0 {
 		if len(m.Model.model.Options.FieldsSort) > 0 {
 			for _, n := range m.Model.model.Options.FieldsSort {

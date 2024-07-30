@@ -11,35 +11,36 @@ type (
 	Defines []Define
 	Define  struct {
 		Fields    Fields                    `json:"fields"`
-		Extend    ztype.Map                 `json:"extend"`
-		Relations map[string]*ModelRelation `json:"relations"`
+		Extend    ztype.Map                 `json:"extend,omitempty"`
+		Relations map[string]*ModelRelation `json:"relations,omitempty"`
 		// Hook      func(name string, m *Model) error `json:"-"`
-		Table   Table        `json:"table"`
-		Name    string       `json:"name"`
-		Values  ztype.Maps   `json:"values"`
-		Options ModelOptions `json:"options"`
+		Table      Table        `json:"table,omitempty"`
+		Name       string       `json:"name"`
+		Values     ztype.Maps   `json:"values,omitempty"`
+		Options    ModelOptions `json:"options,omitempty"`
+		SchemaPath string       `json:"-"`
 	}
 
 	Table struct {
-		Name    string `json:"name"`
-		Comment string `json:"comment"`
+		Name    string `json:"name,omitempty"`
+		Comment string `json:"comment,omitempty"`
 	}
 
 	ModelOptions struct {
-		Salt             string   `json:"crypt_salt"`
-		LowFields        []string `json:"low_fields"`
-		FieldsSort       []string `json:"fields_sort"`
-		CryptLen         int      `json:"crypt_len"`
-		DisabledMigrator bool     `json:"disabled_migrator"`
-		SoftDeletes      bool     `json:"soft_deletes"`
-		Timestamps       bool     `json:"timestamps"`
-		CryptID          bool     `json:"crypt_id"`
+		Salt             string   `json:"crypt_salt,omitempty"`
+		LowFields        []string `json:"low_fields,omitempty"`
+		FieldsSort       []string `json:"fields_sort,omitempty"`
+		CryptLen         int      `json:"crypt_len,omitempty"`
+		DisabledMigrator bool     `json:"disabled_migrator,omitempty"`
+		SoftDeletes      bool     `json:"soft_deletes,omitempty"`
+		Timestamps       bool     `json:"timestamps,omitempty"`
+		CryptID          bool     `json:"crypt_id,omitempty"`
 	}
 
 	Validations struct {
 		Args    interface{} `json:"args"`
 		Method  string      `json:"method"`
-		Message string      `json:"message"`
+		Message string      `json:"message,omitempty"`
 		// Trigger ValidTriggerType `json:"trigger"`
 	}
 
@@ -51,7 +52,7 @@ type (
 		Foreign string             `json:"foreign"`
 		Key     string             `json:"key"`
 		Fields  []string           `json:"Fields"`
-		Limit   int                `json:"limit"`
+		Limit   int                `json:"limit,omitempty"`
 	}
 )
 

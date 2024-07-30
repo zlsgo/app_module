@@ -13,9 +13,9 @@ import (
 
 type Auth struct {
 	service.App
-	Path     string
 	module   *Module
 	userOper *Operation
+	Path     string
 }
 
 var _ = reflect.TypeOf(&Auth{})

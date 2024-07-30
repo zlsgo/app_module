@@ -17,9 +17,9 @@ import (
 
 type (
 	Model struct {
-		model         define.Define
 		di            zdi.Injector
 		Storage       Storageer
+		operation     *Operation
 		cryptKeys     map[string]CryptProcess
 		Hashid        *hashid.HashID `json:"-"`
 		afterProcess  map[string][]afterProcess
@@ -34,8 +34,8 @@ type (
 		inlayFields   []string
 		JSON          []byte
 		Fields        []string `json:"-"`
+		model         define.Define
 		StorageType   StorageType
-		operation     *Operation
 	}
 
 	ColumnEnum struct {

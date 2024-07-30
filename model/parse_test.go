@@ -76,7 +76,7 @@ func TestSet(t *testing.T) {
 
 	zdb.Debug.Store(true)
 
-	err = m.Migration().Auto(DealOldColumnNone)
+	err = m.Migration().Auto(dealOldColumnNone)
 	tt.NoError(err)
 
 	tt.Equal(m.Name(), "日志模型")

@@ -8,9 +8,9 @@ import (
 )
 
 type User struct {
+	Info  ztype.Map `json:"info"`
 	Id    string    `json:"id"`
 	RawId string    `json:"-"`
-	Info  ztype.Map `json:"info"`
 }
 
 var userCache = zcache.NewFast()

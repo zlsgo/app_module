@@ -15,7 +15,7 @@ var options = Options{
 	disableWrite: true,
 	Driver:       "sqlite",
 	Sqlite: &Sqlite{
-		Path:       "db.db",
+		Path:       "data/db.db",
 		Parameters: "_pragma=busy_timeout(5000)",
 	},
 	MySQL: &Mysql{

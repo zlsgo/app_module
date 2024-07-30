@@ -24,6 +24,10 @@ func NewModels(di zdi.Injector, s Storageer) *Models {
 	}
 }
 
+func (ms *Models) String() string {
+	return "[" + strings.Join(ms.m.Keys(), ", ") + "]"
+}
+
 func (ms *Models) set(alias string, m *Model, force ...bool) (err error) {
 	if m.model.Table.Name == "" {
 		tableName := strings.Replace(alias, "-", "_", -1)
@@ -58,6 +62,10 @@ func (ms *Models) ForEach(fn func(key string, m *Model) bool) {
 }
 
 func (ms *Models) Reg(name string, data define.Define, force bool) (*Model, error) {
+	if name == "" {
+		return nil, errors.New("model name can not be empty")
+	}
+
 	if !force && ms.m.Has(name) {
 		return nil, errors.New("model " + name + " has been registered")
 	}
@@ -83,7 +91,7 @@ func (ms *Models) Reg(name string, data define.Define, force bool) (*Model, erro
 		return m, nil
 	}
 
-	err = m.Migration().Auto(Inside.oldColumn)
+	err = m.Migration().Auto(InsideOption.oldColumn)
 	if err != nil {
 		err = zerror.With(err, "model "+name+" migration error")
 		return nil, err

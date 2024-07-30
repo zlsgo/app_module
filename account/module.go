@@ -23,9 +23,9 @@ type Module struct {
 	service.App
 	db           *zdb.DB
 	mods         *model.Models
-	Options      Options
 	accountModel *AccountModel
 	Controllers  []service.Controller
+	Options      Options
 }
 
 var (

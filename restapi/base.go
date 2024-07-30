@@ -11,9 +11,9 @@ import (
 )
 
 type controller struct {
-	Path    string
-	options *Options
 	service.App
+	options *Options
+	Path    string
 }
 
 func (h *controller) Init(r *znet.Engine) error {

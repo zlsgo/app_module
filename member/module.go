@@ -20,10 +20,10 @@ type Module struct {
 	service.App
 	db          *zdb.DB
 	mods        *model.Models
-	Options     Options
-	controllers []service.Controller
 	jwtParse    func(c *znet.Context) (string, error)
 	Middleware  func(optionalRoute ...string) (middleware func(c *znet.Context) error)
+	Options     Options
+	controllers []service.Controller
 }
 
 var (
@@ -39,9 +39,9 @@ type Options struct {
 	InitDB           func() (*zdb.DB, error) `z:"-"`
 	ApiPrefix        string                  `z:"prefix"`
 	Key              string                  `z:"key"`
-	Expire           int                     `z:"expire"`
 	Providers        []auth.AuthProvider     `z:"-"`
 	EnabledProviders []string                `z:"enabled_providers"`
+	Expire           int                     `z:"expire"`
 }
 
 func (o Options) ConfKey() string {
@@ -97,9 +97,8 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 				}
 
 				token := jwt.GetToken(c)
-
 				if token == "" && !isOptionalRoute {
-					return errors.New("token not found")
+					return zerror.Unauthorized.Text("token not found")
 				}
 
 				if token == "" {
@@ -108,12 +107,12 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 
 				info, err := jwt.Parse(token, m.Options.Key)
 				if err != nil {
-					return jwt.ParseError(err)
+					return zerror.Unauthorized.Text(err.Error())
 				}
 
 				user, err := m.UserById(info.Info)
 				if err != nil {
-					return err
+					return zerror.Unauthorized.Text(err.Error())
 				}
 
 				member.Id = user.Id

@@ -36,14 +36,13 @@ func (p *Plugin) Load(zdi.Invoker) (any, error) {
 			return
 		}
 
-		dealOldColumn := model.DealOldColumnNone
 		if options.Mode == nil {
 			options.Mode = &Mode{}
 		}
+
 		if options.Mode.DelteColumn {
-			dealOldColumn = model.DealOldColumnDelete
+			model.InsideOption.OldColumnDelete()
 		}
-		model.Inside.DeleteOldColumn(dealOldColumn)
 
 		p.db, err = initDB(options)
 		common.Fatal(err)

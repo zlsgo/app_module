@@ -3,7 +3,7 @@ package model
 import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
-	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model/define"
@@ -12,56 +12,22 @@ import (
 
 type (
 	Options struct {
+		GetDB            func() (*zdb.DB, error)
 		Prefix           string
 		ModelsDefine     define.Defines
 		DisabledMigrator bool
-		GetDB            func() (*zdb.DB, error)
+		SchemaDir        string
 	}
 )
 
 func New(o ...func(*Options)) (m *Module) {
-	opt := zutil.Optional(Options{Prefix: "model_", ModelsDefine: make([]define.Define, 0)}, o...)
+	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "data/schemas", ModelsDefine: make([]define.Define, 0)}, o...)
 
 	return &Module{
 		Options: opt,
 		ModuleLifeCycle: service.ModuleLifeCycle{
 			OnDone: func(di zdi.Invoker) error {
-				return di.InvokeWithErrorOnly(func() (err error) {
-					var db *zdb.DB
-					if opt.GetDB == nil {
-						err = di.Resolve(&db)
-					} else {
-						db, err = opt.GetDB()
-					}
-
-					if err != nil {
-						return zerror.With(err, "get db error")
-					}
-
-					mod := NewModels(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
-						o.Prefix = m.Options.Prefix
-					}))
-
-					mapper := di.(zdi.TypeMapper)
-					opers := &Operations{items: zarray.NewHashMap[string, *Operation]()}
-					for _, d := range opt.ModelsDefine {
-						if opt.DisabledMigrator {
-							d.Options.DisabledMigrator = true
-						}
-						m, err := mod.Reg(d.Name, d, false)
-						if err != nil {
-							return err
-						}
-						opers.items.Set(d.Name, m.Operation())
-						// mapper.Map(d)
-					}
-
-					_ = mapper.Maps(mod, opers)
-
-					// m.Models = mod
-					// m.Operations = mops
-					return nil
-				})
+				return initModels(m, di)
 			},
 		},
 	}
@@ -99,6 +65,11 @@ func (m *Model) GetFields(exclude ...string) []string {
 	return zarray.Filter(f, func(_ int, v string) bool {
 		return !zarray.Contains(exclude, v)
 	})
+}
+
+func (m *Model) MarshalJSON() ([]byte, error) {
+	json, err := zjson.Marshal(m.Define())
+	return json, err
 }
 
 func (m *Model) DI() zdi.Injector {

@@ -6,9 +6,9 @@ import (
 )
 
 type Weapp struct {
+	wx        *wechat.Engine
 	AppId     string
 	AppSecret string
-	wx        *wechat.Engine
 }
 
 var _ AuthProvider = (*Weapp)(nil)
