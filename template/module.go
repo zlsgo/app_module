@@ -35,7 +35,9 @@ func New(opt ...func(*Options)) (m *Module) {
 						r.Static(options.Static, zfile.RealPath(options.StaticDir))
 					}
 
-					j := jet.New(r, zfile.RealPathMkdir(options.Dir), func(o *jet.Options) {
+					dir := zfile.RealPath(options.Dir)
+
+					j := jet.New(r, dir, func(o *jet.Options) {
 						o.DelimLeft = "{{:"
 						o.DelimRight = "}}"
 						o.Reload = options.Reload || conf.Base.Debug
@@ -49,6 +51,10 @@ func New(opt ...func(*Options)) (m *Module) {
 
 					r.SetTemplate(j)
 					if err := j.Load(); err != nil {
+						if !zfile.DirExist(dir) {
+							return nil
+						}
+
 						return err
 					}
 
