@@ -8,12 +8,12 @@ import (
 )
 
 type Operation struct {
-	model.Operation
+	model.Model
 }
 
 const modelName = "member"
 
-var modelDefine = zutil.Once(func() define.Define {
+var modelDefine = zutil.Once(func() define.Schema {
 	modelDefine := define.New(modelName)
 	modelDefine.SetOptions(define.ModelOptions{
 		CryptID:    true,

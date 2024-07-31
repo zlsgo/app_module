@@ -1,101 +1,102 @@
 package model
 
 import (
-	"errors"
-	"io/fs"
-	"path/filepath"
-
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
-	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zjson"
-	"github.com/sohaha/zlsgo/zlog"
+	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model/define"
-	"github.com/zlsgo/zdb"
 )
 
-func parseSchema(dir string) ([]define.Define, error) {
-	files := make([]string, 0)
-	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
-
-	schemaModelsDefine := zarray.Map(files, func(_ int, v string) (d define.Define) {
-		text, err := zfile.ReadFile(v)
-		if err != nil {
-			return
-		}
-		zjson.Unmarshal(text, &d)
-		d.SchemaPath = v
-		return
-	}, 10)
-
-	return schemaModelsDefine, nil
+func (m *Schema) GetName() string {
+	return m.define.Name
 }
 
-func initModels(m *Module, di zdi.Invoker) (err error) {
-	var (
-		db  *zdb.DB
-		opt = &m.Options
-	)
-	if opt.GetDB == nil {
-		err = di.Resolve(&db)
-	} else {
-		db, err = opt.GetDB()
+func (m *Schema) GetComment() string {
+	if m.define.Table.Comment != "" {
+		return m.define.Table.Comment
+	}
+	return m.GetName()
+}
+
+func (m *Schema) GetAlias() string {
+	return m.alias
+}
+
+func (m *Schema) GetDefine() define.Schema {
+	return m.define
+}
+
+func (m *Schema) GetExtend() ztype.Map {
+	return m.define.Extend
+}
+
+func (m *Schema) TableName() string {
+	return m.tablePrefix + m.define.Table.Name
+}
+
+func (m *Schema) Migration() Migrationer {
+	return m.Storage.Migration(m)
+}
+
+func (m *Schema) GetFields(exclude ...string) []string {
+	f := m.fullFields
+	if len(exclude) == 0 {
+		exclude = m.GetDefine().Options.LowFields
+		if len(exclude) == 0 {
+			return f
+		}
 	}
 
-	if err != nil {
-		return zerror.With(err, "init db error")
-	}
+	return zarray.Filter(f, func(_ int, v string) bool {
+		return !zarray.Contains(exclude, v)
+	})
+}
 
-	mod := NewModels(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
-		o.Prefix = m.Options.Prefix
-	}))
+func (m *Schema) MarshalJSON() ([]byte, error) {
+	json, err := zjson.Marshal(m.GetDefine())
+	return json, err
+}
 
-	mapper := di.(zdi.TypeMapper)
-	opers := &Operations{items: zarray.NewHashMap[string, *Operation]()}
+func (m *Schema) DI() zdi.Injector {
+	return m.di
+}
 
-	if opt.SchemaDir != "" {
-		schemaModelsDefine, err := parseSchema(opt.SchemaDir)
-		if err != nil {
-			return err
-		}
-
-		opt.ModelsDefine = append(opt.ModelsDefine, schemaModelsDefine...)
-	}
-
-	for i := range opt.ModelsDefine {
-		d := opt.ModelsDefine[i]
-		if opt.DisabledMigrator {
-			d.Options.DisabledMigrator = true
-		}
-
-		if d.Name == "" && d.SchemaPath != "" {
-			return errors.New("model name can not be empty, schema path: " + d.SchemaPath)
-		}
-
-		m, err := mod.Reg(d.Name, d, false)
-		if err != nil {
-			return err
-		}
-
-		opers.items.Set(d.Name, m.Operation())
-	}
-
-	_ = mapper.Maps(mod, opers)
-
-	m.Models = mod
-	m.Operations = opers
-
-	zlog.Debugf("Models %s\n", mod)
-
+func (m *Schema) hook(name string) error {
+	// TODO: 钩子
+	// if m.model.Hook == nil {
+	// 	return nil
+	// }
+	// return m.model.Hook(name, m)
 	return nil
+}
+
+type schemaController struct {
+	module     *Module
+	middleware func() []znet.Handler
+	Path       string
+}
+
+func (h *schemaController) Init(r *znet.Engine) error {
+	if h.middleware != nil {
+		r.Use(h.middleware()...)
+	}
+	return nil
+}
+
+func (h *schemaController) GET(c *znet.Context) (any, error) {
+	schemas := ztype.Map{}
+
+	h.module.Models.ForEach(func(key string, m *Schema) bool {
+		schemas[key] = ztype.Map{
+			"name":    m.GetName(),
+			"comment": m.GetComment(),
+			"fields":  m.GetFields(),
+			"extend":  m.GetExtend(),
+		}
+		return true
+	})
+
+	return schemas, nil
 }

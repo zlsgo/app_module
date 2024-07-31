@@ -8,17 +8,16 @@ import (
 )
 
 type (
-	Defines []Define
-	Define  struct {
-		Fields    Fields                    `json:"fields"`
-		Extend    ztype.Map                 `json:"extend,omitempty"`
-		Relations map[string]*ModelRelation `json:"relations,omitempty"`
-		// Hook      func(name string, m *Model) error `json:"-"`
-		Table      Table        `json:"table,omitempty"`
-		Name       string       `json:"name"`
-		Values     ztype.Maps   `json:"values,omitempty"`
-		Options    ModelOptions `json:"options,omitempty"`
-		SchemaPath string       `json:"-"`
+	Schemas []Schema
+	Schema  struct {
+		Fields     Fields                    `json:"fields"`
+		Extend     ztype.Map                 `json:"extend,omitempty"`
+		Relations  map[string]*ModelRelation `json:"relations,omitempty"`
+		Table      Table                     `json:"table,omitempty"`
+		Name       string                    `json:"name"`
+		SchemaPath string                    `json:"-"`
+		Values     ztype.Maps                `json:"values,omitempty"`
+		Options    ModelOptions              `json:"options,omitempty"`
 	}
 
 	Table struct {
@@ -56,12 +55,15 @@ type (
 	}
 )
 
-func New(name string) Define {
-	return Define{
-		Name: name,
-		Table: Table{
-			Name: name,
-		},
+func New(name string, tableName ...string) Schema {
+	table := name
+	if len(tableName) > 0 {
+		table = tableName[0]
+	}
+
+	return Schema{
+		Name:      name,
+		Table:     Table{Name: table},
 		Fields:    Fields{},
 		Extend:    ztype.Map{},
 		Values:    ztype.Maps{},
@@ -70,7 +72,11 @@ func New(name string) Define {
 	}
 }
 
-func (d *Define) AddField(name string, field Field) error {
+func (d *Schema) SetComment(comment string) {
+	d.Table.Comment = comment
+}
+
+func (d *Schema) AddField(name string, field Field) error {
 	if _, ok := d.Fields[name]; ok {
 		return errors.New("field " + name + " already exists")
 	}
@@ -79,7 +85,7 @@ func (d *Define) AddField(name string, field Field) error {
 	return nil
 }
 
-func (d *Define) GetField(name string) (Field, bool) {
+func (d *Schema) GetField(name string) (Field, bool) {
 	f, ok := d.Fields[name]
 	if !ok {
 		return Field{}, false
@@ -87,14 +93,14 @@ func (d *Define) GetField(name string) (Field, bool) {
 	return f, true
 }
 
-func (d *Define) SetOptions(opt ModelOptions) {
+func (d *Schema) SetOptions(opt ModelOptions) {
 	d.Options = opt
 }
 
-func (d *Define) GetOptions() ModelOptions {
+func (d *Schema) GetOptions() ModelOptions {
 	return d.Options
 }
 
-func (d *Defines) Append(define ...Define) {
+func (d *Schemas) Append(define ...Schema) {
 	*d = append(*d, define...)
 }

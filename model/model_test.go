@@ -12,7 +12,7 @@ import (
 
 func TestDefine(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	m := define.Define{
+	m := define.Schema{
 		Name: "test",
 		Fields: map[string]define.Field{
 			"test11111111": {
@@ -27,14 +27,14 @@ func TestDefine(t *testing.T) {
 		},
 		Options: define.ModelOptions{DisabledMigrator: true},
 	}
-	s := NewModels(nil, nil)
+	s := NewSchemas(nil, nil)
 
 	var wg zsync.WaitGroup
 	for i := 0; i < 2; i++ {
 		ii := i
 		wg.Go(func() {
 			mod, _ := s.Reg("test"+ztype.ToString(ii), m, false)
-			tt.Log(mod.model.Fields)
+			tt.Log(mod.define.Fields)
 		})
 
 	}

@@ -8,9 +8,7 @@ import (
 	"github.com/zlsgo/app_module/model"
 )
 
-var (
-	noLogIP = false
-)
+var noLogIP = false
 
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
@@ -21,7 +19,7 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 }
 
 // 记录日志
-func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
+func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
 	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return
@@ -36,7 +34,7 @@ func logRequest(c *znet.Context, m *model.Model, u ztype.Map) {
 	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
 }
 
-func insertLog(c *znet.Context, m *model.Model, account string, status int32, msg string, remark ...string) (interface{}, error) {
+func insertLog(c *znet.Context, m *model.Schema, account string, status int32, msg string, remark ...string) (interface{}, error) {
 	var r string
 	if len(remark) > 0 {
 		r = remark[0]

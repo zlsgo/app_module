@@ -8,9 +8,9 @@ import (
 )
 
 type AccountModel struct {
-	*model.Operation
+	*model.Model
 	mod *Module
-	m   *model.Model
+	m   *model.Schema
 }
 
 var accountModel *AccountModel
@@ -44,7 +44,7 @@ func accountModelDefine(p *Module) error {
 		"role":     []string{"admin"},
 	}}, p.Options.InlayUser...)
 
-	mod, err := p.mods.Reg(accountName, define.Define{
+	mod, err := p.mods.Reg(accountName, define.Schema{
 		Name: accountName,
 		Options: define.ModelOptions{
 			CryptID:    true,
@@ -173,7 +173,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		accountModel = &AccountModel{Operation: mod.Operation(), mod: p, m: mod}
+		accountModel = &AccountModel{Model: mod.Operation(), mod: p, m: mod}
 	}
 	return err
 }

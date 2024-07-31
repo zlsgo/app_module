@@ -13,8 +13,8 @@ import (
 // 	Filters  []interface{} `json:"filters"`
 // }
 
-func (m *Model) GetViewFields(view string) []string {
-	v := m.model.Extend.Get("views").Get(view).Map()
+func (m *Schema) GetViewFields(view string) []string {
+	v := m.define.Extend.Get("views").Get(view).Map()
 	if v.Get("disabled").Bool() {
 		return []string{}
 	}
@@ -31,9 +31,9 @@ func (m *Model) GetViewFields(view string) []string {
 	return zarray.Unique(append(fields, idKey))
 }
 
-func parseViewLists(m *Model) ztype.Map {
+func parseViewLists(m *Schema) ztype.Map {
 	columns := make(map[string]ztype.Map, 0)
-	data := m.model.Extend.Get("views").Get("lists").Map()
+	data := m.define.Extend.Get("views").Get("lists").Map()
 
 	if data.Get("disabled").Bool() {
 		return ztype.Map{}
@@ -58,14 +58,14 @@ func parseViewLists(m *Model) ztype.Map {
 			"ModelOptions": column.Options,
 			"layout":       layout,
 		}
-		if m.model.Options.CryptID && name == idKey {
+		if m.define.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}
 
 	title := data.Get("title").String()
 	if title == "" {
-		title = m.Name()
+		title = m.GetName()
 	}
 	info := ztype.Map{
 		"title":   title,
@@ -76,10 +76,10 @@ func parseViewLists(m *Model) ztype.Map {
 	return info
 }
 
-func parseViewInfo(m *Model) ztype.Map {
+func parseViewInfo(m *Schema) ztype.Map {
 	info := ztype.Map{}
 
-	data := m.model.Extend.Get("views").Get("info").Map()
+	data := m.define.Extend.Get("views").Get("info").Map()
 
 	if data.Get("disabled").Bool() {
 		return ztype.Map{}
@@ -111,12 +111,12 @@ func parseViewInfo(m *Model) ztype.Map {
 			"ModelOptions": column.Options,
 		}
 
-		if m.model.Options.CryptID && name == idKey {
+		if m.define.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		delete(columns, DeletedAtKey)
 		fields = zarray.Filter(fields, func(_ int, v string) bool {
 			return v != DeletedAtKey
@@ -131,7 +131,7 @@ func parseViewInfo(m *Model) ztype.Map {
 	return info
 }
 
-func parseViews(m *Model) ztype.Map {
+func parseViews(m *Schema) ztype.Map {
 	views := ztype.Map{}
 
 	views["lists"] = parseViewLists(m)
@@ -140,6 +140,6 @@ func parseViews(m *Model) ztype.Map {
 	return views
 }
 
-func (m *Model) GetViews() ztype.Map {
+func (m *Schema) GetViews() ztype.Map {
 	return m.views
 }

@@ -31,7 +31,7 @@ func (s *SQL) GetStorageType() StorageType {
 	return SQLStorage
 }
 
-func (s *SQL) Migration(model *Model) Migrationer {
+func (s *SQL) Migration(model *Schema) Migrationer {
 	return &Migration{
 		Model: model,
 		DB:    s.db,

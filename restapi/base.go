@@ -17,7 +17,7 @@ type controller struct {
 }
 
 func (h *controller) Init(r *znet.Engine) error {
-	var operations *model.Operations
+	var operations *model.Models
 	err := h.DI.Resolve(&operations)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (h *controller) Init(r *znet.Engine) error {
 
 		switch method {
 		case "GET":
-			return handerGet(c, oper, args, ztype.Map{}, nil)
+			return handerGet(c, oper, args, model.Filter{}, nil)
 		case "POST":
 			return HanderPost(c, oper, nil)
 		case "PUT":
@@ -66,8 +66,8 @@ func (h *controller) Init(r *znet.Engine) error {
 	return nil
 }
 
-func HanderGet(c *znet.Context, oper *model.Operation, id string, fn func(o *model.CondOptions)) (ztype.Map, error) {
-	res, err := handerGet(c, oper, id, ztype.Map{}, fn)
+func HanderGet(c *znet.Context, oper *model.Model, id string, fn func(o *model.CondOptions)) (ztype.Map, error) {
+	res, err := handerGet(c, oper, id, model.Filter{}, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func HanderGet(c *znet.Context, oper *model.Operation, id string, fn func(o *mod
 	return res.(ztype.Map), nil
 }
 
-func HanderPage(c *znet.Context, oper *model.Operation, filter ztype.Map, fn func(o *model.CondOptions)) (*model.PageData, error) {
+func HanderPage(c *znet.Context, oper *model.Model, filter model.Filter, fn func(o *model.CondOptions)) (*model.PageData, error) {
 	res, err := handerGet(c, oper, "", filter, fn)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func HanderPage(c *znet.Context, oper *model.Operation, filter ztype.Map, fn fun
 	return res.(*model.PageData), nil
 }
 
-func handerGet(c *znet.Context, oper *model.Operation, id string, filter ztype.Map, fn func(o *model.CondOptions)) (any, error) {
+func handerGet(c *znet.Context, oper *model.Model, id string, filter model.Filter, fn func(o *model.CondOptions)) (any, error) {
 	switch id {
 	case "":
 		page, pagesize, _ := model.Common.VarPages(c)
@@ -110,7 +110,7 @@ func handerGet(c *znet.Context, oper *model.Operation, id string, filter ztype.M
 	}
 }
 
-func HanderPost(c *znet.Context, oper *model.Operation, fn func(data ztype.Map) (ztype.Map, error)) (any, error) {
+func HanderPost(c *znet.Context, oper *model.Model, fn func(data ztype.Map) (ztype.Map, error)) (any, error) {
 	j, _ := c.GetJSONs()
 	data := j.Map()
 
@@ -130,7 +130,7 @@ func HanderPost(c *znet.Context, oper *model.Operation, fn func(data ztype.Map) 
 	return ztype.Map{"id": id}, nil
 }
 
-func HanderDelete(c *znet.Context, oper *model.Operation, id string, handler func(old ztype.Map) error) (any, error) {
+func HanderDelete(c *znet.Context, oper *model.Model, id string, handler func(old ztype.Map) error) (any, error) {
 	if id == "" {
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
@@ -152,7 +152,7 @@ func HanderDelete(c *znet.Context, oper *model.Operation, id string, handler fun
 	return ztype.Map{"total": total}, err
 }
 
-func HanderPut(oper *model.Operation, c *znet.Context, id string) (any, error) {
+func HanderPut(oper *model.Model, c *znet.Context, id string) (any, error) {
 	if id == "" {
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
@@ -164,7 +164,7 @@ func HanderPut(oper *model.Operation, c *znet.Context, id string) (any, error) {
 	return ztype.Map{"total": total}, err
 }
 
-func HanderPATCH(c *znet.Context, oper *model.Operation, id string, handler func(old ztype.Map, data ztype.Map) (ztype.Map, error)) (any, error) {
+func HanderPATCH(c *znet.Context, oper *model.Model, id string, handler func(old ztype.Map, data ztype.Map) (ztype.Map, error)) (any, error) {
 	if id == "" {
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}

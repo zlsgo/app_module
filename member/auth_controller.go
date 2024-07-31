@@ -38,7 +38,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				"provider_id": p.ProviderID,
 			}
 
-			user, _ := h.userOper.FindOne(data)
+			user, _ := h.userOper.FindOne(model.Filter(data))
 			if !user.IsEmpty() {
 				id := user.Get(model.IDKey()).String()
 				h.userOper.UpdateByID(id, ztype.Map{

@@ -16,7 +16,7 @@ import (
 	"github.com/zlsgo/zdb/schema"
 )
 
-func (m *Model) filterFields(fields []string) []string {
+func (m *Schema) filterFields(fields []string) []string {
 	return zarray.Filter(fields, func(_ int, f string) bool {
 		f = zstring.TrimSpace(f)
 		if strings.ContainsRune(f, '(') || strings.ContainsRune(f, ' ') {
@@ -26,7 +26,7 @@ func (m *Model) filterFields(fields []string) []string {
 	})
 }
 
-func (m *Model) GetField(name string) (define.Field, bool) {
+func (m *Schema) GetField(name string) (define.Field, bool) {
 	f, ok := m.getField(name)
 	if !ok {
 		return define.Field{}, false
@@ -34,10 +34,10 @@ func (m *Model) GetField(name string) (define.Field, bool) {
 	return *f, true
 }
 
-func (m *Model) getField(name string) (*define.Field, bool) {
-	for fname := range m.model.Fields {
+func (m *Schema) getField(name string) (*define.Field, bool) {
+	for fname := range m.define.Fields {
 		if name == fname {
-			field := m.model.Fields[fname]
+			field := m.define.Fields[fname]
 			return &field, true
 		}
 	}
@@ -52,7 +52,7 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 			},
 		}, true
 	}
-	if m.model.Options.Timestamps {
+	if m.define.Options.Timestamps {
 		switch name {
 		case CreatedAtKey:
 			return &define.Field{
@@ -72,7 +72,7 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 		}
 	}
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		if name == DeletedAtKey {
 			return &define.Field{
 				Type:     schema.Int,
@@ -101,26 +101,26 @@ func (m *Model) getField(name string) (*define.Field, bool) {
 	return nil, false
 }
 
-func (m *Model) GetModelFields() define.Fields {
-	return m.model.Fields
+func (m *Schema) GetModelFields() define.Fields {
+	return m.define.Fields
 }
 
-func (m *Model) isInlayField(field string) bool {
+func (m *Schema) isInlayField(field string) bool {
 	inlayFields := []string{idKey}
-	if m.model.Options.Timestamps {
+	if m.define.Options.Timestamps {
 		inlayFields = append(inlayFields, CreatedAtKey, UpdatedAtKey)
 	}
 	// if m.model.Options.CreatedBy {
 	// 	inlayFields = append(inlayFields, CreatedByKey)
 	// }
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		inlayFields = append(inlayFields, DeletedAtKey)
 	}
 	return zarray.Contains(inlayFields, field)
 }
 
-func perfectField(m *Model) ([]string, error) {
-	fields := make([]string, 0, len(m.model.Fields))
+func perfectField(m *Schema) ([]string, error) {
+	fields := make([]string, 0, len(m.define.Fields))
 	if len(m.JSON) > 0 {
 		j := zjson.ParseBytes(m.JSON).Get("fields")
 		j.ForEach(func(key, _ *zjson.Res) bool {
@@ -129,9 +129,9 @@ func perfectField(m *Model) ([]string, error) {
 		})
 	}
 
-	nFields := make(define.Fields, len(m.model.Fields))
-	for name := range m.model.Fields {
-		field := m.model.Fields[name]
+	nFields := make(define.Fields, len(m.define.Fields))
+	for name := range m.define.Fields {
+		field := m.define.Fields[name]
 		if err := parseField(m, name, &field); err != nil {
 			return nil, err
 		}
@@ -139,12 +139,12 @@ func perfectField(m *Model) ([]string, error) {
 		fields = append(fields, name)
 		nFields[name] = field
 	}
-	m.model.Fields = nFields
+	m.define.Fields = nFields
 
 	return fields, nil
 }
 
-func parseField(m *Model, name string, f *define.Field) error {
+func parseField(m *Schema, name string, f *define.Field) error {
 	if f == nil {
 		return nil
 	}
@@ -299,12 +299,12 @@ func parseFieldValidRule(name string, c *define.Field) {
 	c.ValidRules = rule
 }
 
-func isDisableMigratioField(m *Model, name string) bool {
-	for n := range m.model.Fields {
+func isDisableMigratioField(m *Schema, name string) bool {
+	for n := range m.define.Fields {
 		if name != n {
 			continue
 		}
-		if m.model.Fields[n].Options.DisableMigration {
+		if m.define.Fields[n].Options.DisableMigration {
 			return true
 		}
 	}

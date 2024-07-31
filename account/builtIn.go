@@ -5,10 +5,10 @@ import (
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/model"
 )
 
-type inside struct {
-}
+type inside struct{}
 
 var Inside = &inside{}
 
@@ -31,7 +31,7 @@ func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 	}
 
 	// 检查账号是否存在
-	if exist, _ := GetAccountModel().Exists(ztype.Map{
+	if exist, _ := GetAccountModel().Exists(model.Filter{
 		"account": account,
 	}); exist {
 		return nil, zerror.InvalidInput.Text("账号已存在")

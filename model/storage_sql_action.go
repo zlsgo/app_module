@@ -32,9 +32,18 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 
 				continue
 			}
+
+			if k[0] == '$' {
+				val, ok := value.(func(*builder.BuildCond) string)
+				if ok {
+					exprs = append(exprs, val(d))
+					continue
+				}
+			}
+
 			upperKey := strings.ToUpper(k)
 			v := ztype.New(value)
-			if upperKey == "" || upperKey == "$OR" || upperKey == "$AND" {
+			if upperKey == "$OR" || upperKey == "$AND" {
 				m := v.Map()
 				cexprs, err := s.parseExprs(d, m)
 				if err != nil {

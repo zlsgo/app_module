@@ -11,12 +11,12 @@ import (
 )
 
 // perfect 完善模型
-func perfect(alias string, m *Model) (err error) {
+func perfect(alias string, m *Schema) (err error) {
 	m.alias = alias
 
 	salt := ""
-	salt = m.model.Options.Salt
-	cryptLen := m.model.Options.CryptLen
+	salt = m.define.Options.Salt
+	cryptLen := m.define.Options.CryptLen
 	if cryptLen <= 0 {
 		cryptLen = 12
 	}
@@ -33,7 +33,7 @@ func perfect(alias string, m *Model) (err error) {
 	}
 
 	m.inlayFields = []string{idKey}
-	if m.model.Options.Timestamps {
+	if m.define.Options.Timestamps {
 		if zarray.Contains(m.Fields, CreatedAtKey) {
 			err = errors.New(CreatedAtKey + " is a reserved field")
 			return
@@ -60,7 +60,7 @@ func perfect(alias string, m *Model) (err error) {
 	// 	m.inlayFields = append(m.inlayFields, CreatedByKey)
 	// }
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		if zarray.Contains(m.Fields, DeletedAtKey) {
 			err = errors.New(DeletedAtKey + " is a reserved field")
 			return
@@ -71,7 +71,7 @@ func perfect(alias string, m *Model) (err error) {
 	m.fullFields = append([]string{idKey}, m.Fields...)
 	m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		flen := len(m.fullFields)
 		for i := 0; i < flen; i++ {
 			f := m.fullFields[i]
@@ -82,24 +82,24 @@ func perfect(alias string, m *Model) (err error) {
 		}
 	}
 
-	m.lowFields = m.model.Options.LowFields
+	m.lowFields = m.define.Options.LowFields
 
-	if len(m.model.Relations) > 0 {
-		for k := range m.model.Relations {
-			v := m.model.Relations[k]
+	if len(m.define.Relations) > 0 {
+		for k := range m.define.Relations {
+			v := m.define.Relations[k]
 			if v.Foreign == "" {
-				m.model.Relations[k].Foreign = idKey
+				m.define.Relations[k].Foreign = idKey
 			}
 		}
 
-		newRelations := make(map[string]*define.ModelRelation, len(m.model.Relations))
-		for k := range m.model.Relations {
-			v := m.model.Relations[k]
+		newRelations := make(map[string]*define.ModelRelation, len(m.define.Relations))
+		for k := range m.define.Relations {
+			v := m.define.Relations[k]
 			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
 		}
-		m.model.Relations = newRelations
+		m.define.Relations = newRelations
 	} else {
-		m.model.Relations = make(map[string]*define.ModelRelation)
+		m.define.Relations = make(map[string]*define.ModelRelation)
 	}
 
 	// if m.model.Options.CreatedBy {

@@ -10,14 +10,20 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type Filter interface {
-	ztype.Map | constraints.Integer | string
+type filter interface {
+	ztype.Map | constraints.Integer | string | Filter
 }
 
-func getFilter[T Filter](m *Model, filter T) (filterMap ztype.Map) {
-	var ok bool
+func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 	f := (interface{})(filter)
-	filterMap, ok = f.(ztype.Map)
+
+	filterData, ok := f.(Filter)
+	if ok {
+		filterMap = ztype.Map(filterData)
+	} else {
+		filterMap, ok = f.(ztype.Map)
+	}
+
 	if !ok {
 		idVal := f
 		// if m.model.Options.CryptID {
@@ -36,7 +42,7 @@ func getFilter[T Filter](m *Model, filter T) (filterMap ztype.Map) {
 		filterMap = ztype.Map{}
 	}
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		filterMap[DeletedAtKey] = 0
 	}
 
@@ -58,7 +64,7 @@ func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ..
 	return p
 }
 
-func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
+func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
 	f := getFilter(m, filter)
 	_ = m.DeCrypt(f)
 
@@ -93,7 +99,7 @@ func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOpt
 			}
 		}
 
-		if m.model.Options.CryptID {
+		if m.define.Options.CryptID {
 			err = m.EnCrypt(row)
 			if err != nil {
 				return data, err
@@ -104,7 +110,7 @@ func Pages[T Filter](m *Model, page, pagesize int, filter T, fn ...func(*CondOpt
 	return data, nil
 }
 
-func find(m *Model, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	_ = m.DeCrypt(filter)
 	rows, err := m.Storage.Find(m.TableName(), filter, func(so *CondOptions) {
 		for i := range fn {
@@ -141,11 +147,11 @@ func find(m *Model, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, err
 	return rows, nil
 }
 
-func Find[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func Find[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	return find(m, getFilter(m, filter), fn...)
 }
 
-func FindOne[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
+func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
 	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
@@ -163,7 +169,7 @@ func FindOne[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (ztype.Map,
 	return rows.Index(0), nil
 }
 
-func FindCols[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
+func FindCols[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
 	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
 		so.Fields = []string{field}
 		if fn != nil {
@@ -185,7 +191,7 @@ func FindCols[T Filter](m *Model, field string, filter T, fn ...func(*CondOption
 	return data, nil
 }
 
-func FindCol[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions)) (ztype.Type, bool, error) {
+func FindCol[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.Type, bool, error) {
 	values, err := FindCols(m, field, filter, fn...)
 	if err != nil || values.Len() == 0 {
 		return ztype.Type{}, false, err
@@ -202,7 +208,7 @@ func FindCol[T Filter](m *Model, field string, filter T, fn ...func(*CondOptions
 // 	return data.First().Int(), nil
 // }
 
-func insertData(m *Model, data ztype.Map) (ztype.Map, error) {
+func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	data, err := m.valuesBeforeProcess(data)
 	if err != nil {
 		return nil, err
@@ -213,7 +219,7 @@ func insertData(m *Model, data ztype.Map) (ztype.Map, error) {
 		return nil, err
 	}
 
-	if m.model.Options.Timestamps {
+	if m.define.Options.Timestamps {
 		data[CreatedAtKey] = ztime.Time()
 		data[UpdatedAtKey] = ztime.Time()
 	}
@@ -222,26 +228,26 @@ func insertData(m *Model, data ztype.Map) (ztype.Map, error) {
 	// 	data[CreatedByKey] = createdBy
 	// }
 
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		data[DeletedAtKey] = 0
 	}
 	return data, nil
 }
 
-func Insert(m *Model, data ztype.Map) (lastId interface{}, err error) {
+func Insert(m *Schema, data ztype.Map) (lastId interface{}, err error) {
 	data, err = insertData(m, data)
 	if err != nil {
 		return 0, err
 	}
 
 	id, err := m.Storage.Insert(m.TableName(), data)
-	if err == nil && m.model.Options.CryptID {
+	if err == nil && m.define.Options.CryptID {
 		id, err = m.EnCryptID(ztype.ToString(id))
 	}
 	return id, err
 }
 
-func InsertMany(m *Model, datas ztype.Maps) (lastIds []interface{}, err error) {
+func InsertMany(m *Schema, datas ztype.Maps) (lastIds []interface{}, err error) {
 	for i := range datas {
 		datas[i], err = insertData(m, datas[i])
 		if err != nil {
@@ -250,7 +256,7 @@ func InsertMany(m *Model, datas ztype.Maps) (lastIds []interface{}, err error) {
 	}
 
 	lastIds, err = m.Storage.InsertMany(m.TableName(), datas)
-	if err == nil && m.model.Options.CryptID {
+	if err == nil && m.define.Options.CryptID {
 		for i := range lastIds {
 			lastIds[i], err = m.EnCryptID(ztype.ToString(lastIds[i]))
 		}
@@ -258,7 +264,7 @@ func InsertMany(m *Model, datas ztype.Maps) (lastIds []interface{}, err error) {
 	return
 }
 
-func Delete[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, error) {
+func Delete[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64, error) {
 	return DeleteMany(m, filter, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
@@ -269,10 +275,10 @@ func Delete[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, erro
 	})
 }
 
-func DeleteMany[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, error) {
+func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64, error) {
 	f := getFilter(m, filter)
 	m.DeCrypt(f)
-	if m.model.Options.SoftDeletes {
+	if m.define.Options.SoftDeletes {
 		return m.Storage.Update(m.TableName(), ztype.Map{
 			DeletedAtKey: ztime.Time().Unix(),
 		}, f)
@@ -281,7 +287,7 @@ func DeleteMany[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int64, 
 	return m.Storage.Delete(m.TableName(), f, fn...)
 }
 
-func Update[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+func Update[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	return UpdateMany(m, filter, data, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
@@ -292,7 +298,7 @@ func Update[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOption
 	})
 }
 
-func UpdateMany[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+func UpdateMany[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	data = filterDate(data, m.readOnlyKeys)
 	data, err = m.valuesBeforeProcess(data)
 	if err != nil {
@@ -304,7 +310,7 @@ func UpdateMany[T Filter](m *Model, filter T, data ztype.Map, fn ...func(*CondOp
 		return 0, zerror.With(err, "data verification failed")
 	}
 
-	if m.model.Options.Timestamps {
+	if m.define.Options.Timestamps {
 		data[UpdatedAtKey] = ztime.Time()
 	}
 

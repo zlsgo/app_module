@@ -13,13 +13,13 @@ import (
 
 var userCache = zcache.NewFast()
 
-func getUserForCache(m *model.Model, uid string) (ztype.Map, error) {
+func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 	user, ok := userCache.ProvideGet(uid, func() (interface{}, bool) {
 		f, err := model.FindOne(m, uid)
 		if err != nil {
 			return ztype.Map{}, false
 		}
-		if m.Define().Options.CryptID {
+		if m.GetDefine().Options.CryptID {
 			id, _ := m.DeCryptID(uid)
 			_ = f.Set("raw_id", id)
 		}
@@ -37,7 +37,7 @@ func deleteUserForCache(uid string) {
 
 var jwtCache = zcache.NewFast()
 
-func getJWTForCache(m *model.Model, token, jwtKey string) (string, error) {
+func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 	uid, ok := jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {

@@ -24,8 +24,8 @@ func initModel(p *Module) error {
 
 const roleName = "role"
 
-func roleModel(ms *model.Models) error {
-	_, err := ms.Reg(roleName, define.Define{
+func roleModel(ms *model.Schemas) error {
+	_, err := ms.Reg(roleName, define.Schema{
 		Name: roleName,
 		Options: define.ModelOptions{
 			CryptID:    true,
@@ -121,8 +121,8 @@ func roleModel(ms *model.Models) error {
 
 const permName = "permission"
 
-func permModel(ms *model.Models) error {
-	_, err := ms.Reg(permName, define.Define{
+func permModel(ms *model.Schemas) error {
+	_, err := ms.Reg(permName, define.Schema{
 		Name: permName,
 		Options: define.ModelOptions{
 			Timestamps: true,
@@ -217,8 +217,8 @@ func permModel(ms *model.Models) error {
 
 const logsName = "logs"
 
-func logModel(ms *model.Models) error {
-	_, err := ms.Reg(logsName, define.Define{
+func logModel(ms *model.Schemas) error {
+	_, err := ms.Reg(logsName, define.Schema{
 		Name: logsName,
 		Options: define.ModelOptions{
 			CryptID: true,

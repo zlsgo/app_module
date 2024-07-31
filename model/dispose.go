@@ -9,7 +9,7 @@ import (
 
 type beforeProcess func(interface{}) (string, error)
 
-func (m *Model) GetBeforeProcess(p []string) (fn []beforeProcess, err error) {
+func (m *Schema) GetBeforeProcess(p []string) (fn []beforeProcess, err error) {
 	for _, v := range p {
 		switch strings.ToLower(v) {
 		default:
@@ -35,7 +35,7 @@ func (m *Model) GetBeforeProcess(p []string) (fn []beforeProcess, err error) {
 	return
 }
 
-func (m *Model) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
+func (m *Schema) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
 	var err error
 	for k := range m.cryptKeys {
 		if _, ok := data[k]; ok {
@@ -67,7 +67,7 @@ func (m *Model) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
 
 type afterProcess func(string) (interface{}, error)
 
-func (m *Model) GetAfterProcess(p []string) (fn []afterProcess, err error) {
+func (m *Schema) GetAfterProcess(p []string) (fn []afterProcess, err error) {
 	for _, v := range p {
 		switch strings.ToLower(v) {
 		default:

@@ -22,7 +22,7 @@ type Module struct {
 	service.ModuleLifeCycle
 	service.App
 	db           *zdb.DB
-	mods         *model.Models
+	mods         *model.Schemas
 	accountModel *AccountModel
 	Controllers  []service.Controller
 	Options      Options
@@ -46,7 +46,7 @@ type Options struct {
 	RBACFile             string                   `z:"rbac_file"`
 	key                  string
 	InlayUser            ztype.Maps      `z:"inlay_user"`
-	Models               []define.Define `z:"-"`
+	Models               []define.Schema `z:"-"`
 	SSE                  znet.SSEOption  `z:"-"`
 	Expire               int             `z:"expire"`
 	Only                 bool            `z:"only"`
@@ -135,7 +135,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
+	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
 		var restapiModule *model.Module
 		if err := m.DI.Resolve(&restapiModule); err == nil {
 			o.Prefix = restapiModule.Options.Prefix

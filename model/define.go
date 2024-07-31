@@ -16,25 +16,25 @@ import (
 )
 
 type (
-	Model struct {
-		di            zdi.Injector
+	Schema struct {
 		Storage       Storageer
-		operation     *Operation
+		di            zdi.Injector
+		operation     *Model
 		cryptKeys     map[string]CryptProcess
 		Hashid        *hashid.HashID `json:"-"`
 		afterProcess  map[string][]afterProcess
 		beforeProcess map[string][]beforeProcess
 		views         ztype.Map
+		define        define.Schema
 		tablePrefix   string
-		alias         string
 		JSONPath      string
+		alias         string
 		fullFields    []string
 		lowFields     []string
 		readOnlyKeys  []string
 		inlayFields   []string
 		JSON          []byte
 		Fields        []string `json:"-"`
-		model         define.Define
 		StorageType   StorageType
 	}
 
@@ -43,8 +43,8 @@ type (
 		Label string `json:"label"`
 	}
 
-	Operation struct {
-		model *Model
+	Model struct {
+		model *Schema
 	}
 )
 

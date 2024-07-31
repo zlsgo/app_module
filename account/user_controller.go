@@ -24,7 +24,7 @@ func (h *User) Init(r *znet.Engine) error {
 
 // Get 用户列表
 func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
-	filter := ztype.Map{
+	filter := model.Filter{
 		"inlay": false,
 	}
 	account, _ := c.GetQuery("account")

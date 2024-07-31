@@ -24,9 +24,9 @@ import (
 
 type Index struct {
 	service.App
-	accoutModel *model.Model
-	permModel   *model.Model
-	roleModel   *model.Model
+	accoutModel *model.Schema
+	permModel   *model.Schema
+	roleModel   *model.Schema
 	module      *Module
 	Path        string
 }
@@ -357,7 +357,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 	return res[0].Path, err
 }
 
-func updateUser(m *model.Model, id string, data ztype.Map) error {
+func updateUser(m *model.Schema, id string, data ztype.Map) error {
 	_, err := model.Update(m, id, data)
 	return err
 }

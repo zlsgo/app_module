@@ -12,7 +12,7 @@ import (
 
 func TestSet(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	data := define.Define{
+	data := define.Schema{
 		Name: "日志模型",
 		Table: define.Table{
 			Name:    "lowcode_logs",
@@ -69,7 +69,7 @@ func TestSet(t *testing.T) {
 		Memory:     true,
 		Parameters: "_pragma=busy_timeout(3000)",
 	})
-	model := NewModels(nil, NewSQL(db))
+	model := NewSchemas(nil, NewSQL(db))
 
 	m, err := model.Reg("test_model", data, false)
 	tt.NoError(err)
@@ -79,7 +79,7 @@ func TestSet(t *testing.T) {
 	err = m.Migration().Auto(dealOldColumnNone)
 	tt.NoError(err)
 
-	tt.Equal(m.Name(), "日志模型")
+	tt.Equal(m.GetName(), "日志模型")
 
 	id, err := Insert(m, map[string]interface{}{"action": "test", "ip": "127.0.0.1", "status": 1})
 	tt.NoError(err)

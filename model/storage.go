@@ -43,7 +43,7 @@ type Storageer interface {
 	Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
 	First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)
 	Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error)
-	Migration(model *Model) Migrationer
+	Migration(model *Schema) Migrationer
 	Insert(table string, data ztype.Map) (lastId interface{}, err error)
 	InsertMany(table string, data ztype.Maps) (lastIds []interface{}, err error)
 	Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)

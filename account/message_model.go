@@ -12,8 +12,8 @@ import (
 )
 
 type MessageModel struct {
-	*model.Operation
-	model  *model.Model
+	*model.Model
+	model  *model.Schema
 	module *Module
 }
 
@@ -28,7 +28,7 @@ func GetMessageModel() (*MessageModel, error) {
 
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
-	mod, err := m.mods.Reg(messageName, define.Define{
+	mod, err := m.mods.Reg(messageName, define.Schema{
 		Name: messageName,
 		Options: define.ModelOptions{
 			CryptID:    true,
@@ -73,7 +73,7 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		messageModel = &MessageModel{model: mod, module: m, Operation: mod.Operation()}
+		messageModel = &MessageModel{model: mod, module: m, Model: mod.Operation()}
 	}
 	return err
 }
@@ -84,7 +84,7 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 		return nil, errors.New("用户 ID 错误")
 	}
 
-	resp, err := m.Find(ztype.Map{"to": id, "status": 0}, func(co *model.CondOptions) {
+	resp, err := m.Find(model.Filter{"to": id, "status": 0}, func(co *model.CondOptions) {
 		co.Fields = []string{model.IDKey(), model.CreatedAtKey, "mtype"}
 		co.OrderBy = map[string]string{model.IDKey(): "desc"}
 	})

@@ -6,6 +6,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_module/model/define"
@@ -15,7 +16,7 @@ import (
 )
 
 type Migration struct {
-	Model *Model
+	Model *Schema
 	DB    *zdb.DB
 }
 
@@ -23,34 +24,33 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 	if m.Model.TableName() == "" {
 		return errors.New("表名不能为空")
 	}
+
 	if err = m.Model.hook("migrationStart"); err != nil {
 		return err
 	}
 
-	exist := m.HasTable()
+	var exist bool
 
-	defer func() {
+	err = m.DB.Transaction(func(db *zdb.DB) (err error) {
+		if exist = m.HasTable(); !exist {
+			err = m.CreateTable(db)
+		} else {
+			err = m.UpdateTable(db, oldColumn...)
+		}
 		if err != nil {
 			return
 		}
 
-		err = m.Indexs()
-		if err == nil {
-			err = m.InitValue(!exist)
-		}
+		return m.Indexs(db)
+	})
 
-		if err == nil {
-			err = m.Model.hook("migrationDone")
-		}
-	}()
-
-	if !exist {
-		err = m.CreateTable()
-		return
+	if err == nil {
+		err = m.InitValue(!exist)
 	}
 
-	err = m.UpdateTable(oldColumn...)
-
+	if err == nil {
+		err = m.Model.hook("migrationDone")
+	}
 	return
 }
 
@@ -63,12 +63,8 @@ func (m *Migration) InitValue(first bool) error {
 			first = row.Get("count").Int() == 0
 		}
 	}
-	for _, data := range m.Model.model.Values {
-		// data, ok := v.(map[string]interface{})
-		// if !ok {
-		// 	return errors.New("初始化数据格式错误")
-		// }
 
+	for _, data := range m.Model.define.Values {
 		if !first {
 			if _, ok := data[idKey]; ok {
 				continue
@@ -95,11 +91,14 @@ func (m *Migration) HasTable() bool {
 	return process(res)
 }
 
-func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
+func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
+	zlog.Debug(1, db, m.Model.TableName())
 	table := builder.NewTable(m.Model.TableName())
-	table.SetDriver(m.DB.GetDriver())
+	zlog.Debug(db.GetDriver())
+	table.SetDriver(db.GetDriver())
 	sql, values, process := table.GetColumn()
-	res, err := m.DB.QueryToMaps(sql, values...)
+	zlog.Debug(sql, values)
+	res, err := db.QueryToMaps(sql, values...)
 	if err != nil {
 		return err
 	}
@@ -112,7 +111,7 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 	oldColumns := zarray.Keys(currentColumns)
 
 	{
-		if m.Model.model.Options.SoftDeletes {
+		if m.Model.define.Options.SoftDeletes {
 			newColumns = append(newColumns, DeletedAtKey)
 		}
 
@@ -120,7 +119,7 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 		// 	newColumns = append(newColumns, CreatedByKey)
 		// }
 
-		if m.Model.model.Options.Timestamps {
+		if m.Model.define.Options.Timestamps {
 			if zarray.Contains(oldColumns, CreatedAtKey) {
 				newColumns = append(newColumns, CreatedAtKey)
 			}
@@ -164,19 +163,19 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 			sql, values = table.RenameColumn(v, deleteFieldPrefix+v)
 		}
 
-		_, err := m.DB.Exec(sql, values...)
+		_, err := db.Exec(sql, values...)
 		if err != nil {
 			return err
 		}
 	}
 
-	if m.Model.model.Options.SoftDeletes {
+	if m.Model.define.Options.SoftDeletes {
 		if !zarray.Contains(oldColumns, DeletedAtKey) {
 			sql, values := table.AddColumn(DeletedAtKey, "int", func(f *schema.Field) {
 				f.Comment = "删除时间戳"
 				f.NotNull = false
 			})
-			_, err := m.DB.Exec(sql, values...)
+			_, err := db.Exec(sql, values...)
 			if err != nil {
 				return err
 			}
@@ -190,19 +189,19 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 	// 			f.NotNull = false
 	// 			f.Size = 120
 	// 		})
-	// 		_, err := m.DB.Exec(sql, values...)
+	// 		_, err := db.Exec(sql, values...)
 	// 		if err != nil {
 	// 			return err
 	// 		}
 	// 	}
 	// }
 
-	if m.Model.model.Options.Timestamps {
+	if m.Model.define.Options.Timestamps {
 		if !zarray.Contains(oldColumns, CreatedAtKey) {
 			sql, values := table.AddColumn(CreatedAtKey, "time", func(f *schema.Field) {
 				f.Comment = "更新时间"
 			})
-			_, err := m.DB.Exec(sql, values...)
+			_, err := db.Exec(sql, values...)
 			if err != nil {
 				return err
 			}
@@ -211,7 +210,7 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 			sql, values := table.AddColumn(UpdatedAtKey, "time", func(f *schema.Field) {
 				f.Comment = "更新时间"
 			})
-			_, err := m.DB.Exec(sql, values...)
+			_, err := db.Exec(sql, values...)
 			if err != nil {
 				return err
 			}
@@ -220,13 +219,13 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 
 	deleteColumn := dealOldColumn == dealOldColumnDelete
 	if len(addColumns) > 0 {
-		if len(m.Model.model.Options.FieldsSort) > 0 {
-			for _, n := range m.Model.model.Options.FieldsSort {
+		if len(m.Model.define.Options.FieldsSort) > 0 {
+			for _, n := range m.Model.define.Options.FieldsSort {
 				for i, v := range addColumns {
 					if v != n {
 						continue
 					}
-					if err := m.execAddColumn(deleteColumn, modelFields, v, table, oldColumns); err != nil {
+					if err := m.execAddColumn(db, deleteColumn, modelFields, v, table, oldColumns); err != nil {
 						return err
 					}
 					addColumns = append(addColumns[:i], addColumns[i+1:]...)
@@ -239,7 +238,7 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 				continue
 			}
 
-			if err := m.execAddColumn(deleteColumn, modelFields, v, table, oldColumns); err != nil {
+			if err := m.execAddColumn(db, deleteColumn, modelFields, v, table, oldColumns); err != nil {
 				return err
 			}
 		}
@@ -253,7 +252,7 @@ func (m *Migration) UpdateTable(oldColumn ...DealOldColumn) error {
 	return nil
 }
 
-func (m *Migration) execAddColumn(deleteColumn bool, modelFields define.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
+func (m *Migration) execAddColumn(db *zdb.DB, deleteColumn bool, modelFields define.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
 	var (
 		ok    bool
 		field *define.Field
@@ -288,7 +287,7 @@ func (m *Migration) execAddColumn(deleteColumn bool, modelFields define.Fields, 
 		}
 	}
 
-	_, err := m.DB.Exec(sql, values...)
+	_, err := db.Exec(sql, values...)
 	if err != nil {
 		return err
 	}
@@ -296,7 +295,7 @@ func (m *Migration) execAddColumn(deleteColumn bool, modelFields define.Fields, 
 }
 
 func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
-	if m.Model.model.Options.SoftDeletes {
+	if m.Model.define.Options.SoftDeletes {
 		fields = append(fields, schema.NewField(DeletedAtKey, schema.Int, func(f *schema.Field) {
 			f.Size = 9999999999
 			f.NotNull = false
@@ -304,7 +303,7 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 		}))
 	}
 
-	if m.Model.model.Options.Timestamps {
+	if m.Model.define.Options.Timestamps {
 		fields = append(fields, schema.NewField(CreatedAtKey, schema.Time, func(f *schema.Field) {
 			f.Comment = "创建时间"
 		}))
@@ -324,9 +323,9 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 	return fields
 }
 
-func (m *Migration) CreateTable() error {
+func (m *Migration) CreateTable(db *zdb.DB) error {
 	table := builder.NewTable(m.Model.TableName()).Create()
-	table.SetDriver(m.DB.GetDriver())
+	table.SetDriver(db.GetDriver())
 	modelFields := m.Model.GetModelFields()
 	fields := make([]*schema.Field, 0, len(modelFields))
 	fields = append(fields, m.getPrimaryKey())
@@ -350,8 +349,8 @@ func (m *Migration) CreateTable() error {
 
 	fields = m.fillField(fields)
 
-	if len(m.Model.model.Options.FieldsSort) > 0 {
-		for _, n := range m.Model.model.Options.FieldsSort {
+	if len(m.Model.define.Options.FieldsSort) > 0 {
+		for _, n := range m.Model.define.Options.FieldsSort {
 			for i := range fields {
 				f := &fields[i]
 				if (*f).Name == n {
@@ -369,10 +368,8 @@ func (m *Migration) CreateTable() error {
 	if err != nil {
 		return err
 	}
-	_, err = m.DB.Exec(sql, values...)
-	// if err == nil && len(sideFields) > 0 {
-	// 	err = m.createSideTable(sideFields)
-	// }
+
+	_, err = db.Exec(sql, values...)
 
 	return err
 }
@@ -385,9 +382,9 @@ func (m *Migration) getPrimaryKey() *schema.Field {
 	})
 }
 
-func (m *Migration) Indexs() error {
+func (m *Migration) Indexs(db *zdb.DB) error {
 	table := builder.NewTable(m.Model.TableName()).Create()
-	table.SetDriver(m.DB.GetDriver())
+	table.SetDriver(db.GetDriver())
 	modelFields := m.Model.GetModelFields()
 	uniques := make(map[string][]string, 0)
 	indexs := make(map[string][]string, 0)
@@ -413,11 +410,11 @@ func (m *Migration) Indexs() error {
 	for name, v := range uniques {
 		name = m.Model.TableName() + "__unique__" + name
 		sql, values, process := table.HasIndex(name)
-		res, err := m.DB.QueryToMaps(sql, values...)
+		res, err := db.QueryToMaps(sql, values...)
 
 		if err == nil && !process(res) {
 			sql, values := table.CreateIndex(name, v, "UNIQUE")
-			_, err = m.DB.Exec(sql, values...)
+			_, err = db.Exec(sql, values...)
 			if err != nil {
 				return err
 			}
@@ -427,10 +424,10 @@ func (m *Migration) Indexs() error {
 	for name, v := range indexs {
 		name = m.Model.TableName() + "__idx__" + name
 		sql, values, process := table.HasIndex(name)
-		res, err := m.DB.QueryToMaps(sql, values...)
+		res, err := db.QueryToMaps(sql, values...)
 		if err == nil && !process(res) {
 			sql, values := table.CreateIndex(name, v, "")
-			_, err = m.DB.Exec(sql, values...)
+			_, err = db.Exec(sql, values...)
 			if err != nil {
 				return err
 			}

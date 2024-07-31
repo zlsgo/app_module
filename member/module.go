@@ -10,20 +10,18 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/auth"
-	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/zdb"
 )
 
 type Module struct {
 	service.ModuleLifeCycle
-	service.App
 	db          *zdb.DB
-	mods        *model.Models
+	mods        *model.Schemas
 	jwtParse    func(c *znet.Context) (string, error)
-	Middleware  func(optionalRoute ...string) (middleware func(c *znet.Context) error)
-	Options     Options
+	instance    *Instance
 	controllers []service.Controller
+	Options     Options
 }
 
 var (
@@ -55,11 +53,6 @@ func (o Options) DisableWrite() bool {
 func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
 		Options: Options{Key: key, ApiPrefix: "/member"},
-		Middleware: func(optionalRoute ...string) func(c *znet.Context) error {
-			return func(c *znet.Context) error {
-				return nil
-			}
-		},
 	}
 
 	for _, f := range opt {
@@ -76,58 +69,18 @@ func (m *Module) Tasks() []service.Task {
 }
 
 func (m *Module) Load(di zdi.Invoker) (any, error) {
-	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
+	return nil, di.InvokeWithErrorOnly(func(c *service.Conf) error {
 		if m.Options.Key == "" {
 			return errors.New("not set key")
 		}
 
 		m.Options.Key = zstring.Pad(m.Options.Key, 32, "0", zstring.PadRight)
 
-		m.Middleware = func(optionalRoute ...string) func(c *znet.Context) error {
-			return func(c *znet.Context) error {
-				member := &User{}
-				c.Injector().Map(member)
+		injector := di.(zdi.Injector)
 
-				isOptionalRoute := false
-				for i := range optionalRoute {
-					if zstring.Match(c.Request.URL.Path, optionalRoute[i]) {
-						isOptionalRoute = true
-						break
-					}
-				}
+		_ = initInstance(m)
 
-				token := jwt.GetToken(c)
-				if token == "" && !isOptionalRoute {
-					return zerror.Unauthorized.Text("token not found")
-				}
-
-				if token == "" {
-					return nil
-				}
-
-				info, err := jwt.Parse(token, m.Options.Key)
-				if err != nil {
-					return zerror.Unauthorized.Text(err.Error())
-				}
-
-				user, err := m.UserById(info.Info)
-				if err != nil {
-					return zerror.Unauthorized.Text(err.Error())
-				}
-
-				member.Id = user.Id
-				member.RawId = user.RawId
-				member.Info = user.Info
-
-				// 删除敏感信息
-				_ = member.Info.Delete("password")
-				_ = member.Info.Delete("salt")
-
-				c.Next()
-
-				return nil
-			}
-		}
+		injector.Map(m.instance)
 
 		m.controllers = []service.Controller{
 			&Auth{
@@ -145,20 +98,20 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	if m.Options.InitDB != nil {
 		m.db, err = m.Options.InitDB()
 	} else {
-		err = m.DI.Resolve(&m.db)
+		err = di.Resolve(&m.db)
 	}
 	if err != nil || m.db == nil {
 		return zerror.With(err, "init db error")
 	}
 
-	m.mods = model.NewModels(di.(zdi.Injector), model.NewSQL(m.db))
+	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db))
 
 	mod, err := m.mods.Reg(modelName, modelDefine(), false)
 	if err != nil {
 		return err
 	}
 	di.(zdi.Injector).Map(&Operation{
-		Operation: *mod.Operation(),
+		Model: *mod.Operation(),
 	})
 	return
 }

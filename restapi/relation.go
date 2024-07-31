@@ -8,10 +8,10 @@ import (
 )
 
 type Relation struct {
-	Operation *model.Operation
+	Operation *model.Model
 }
 
-func HanderPageRelation(c *znet.Context, oper *model.Operation, filter ztype.Map, relations map[string]Relation) (*model.PageData, error) {
+func HanderPageRelation(c *znet.Context, oper *model.Model, filter model.Filter, relations map[string]Relation) (*model.PageData, error) {
 	data, err := HanderPage(c, oper, filter, nil)
 	return data, err
 }
