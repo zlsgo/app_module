@@ -87,8 +87,8 @@ func perfect(alias string, m *Schema) (err error) {
 	if len(m.define.Relations) > 0 {
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
-			if v.Foreign == "" || &v.Foreign == nil {
-				v.Foreign = idKey
+			if v.ForeignKey == "" || &v.ForeignKey == nil {
+				v.ForeignKey = idKey
 				m.define.Relations[k] = v
 			}
 		}

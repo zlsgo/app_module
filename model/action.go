@@ -6,7 +6,6 @@ import (
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model/schema"
@@ -113,10 +112,15 @@ func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOp
 	return data, nil
 }
 
-func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	_ = m.DeCrypt(filter)
+func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (ztype.Maps, error) {
+	if cryptId {
+		_ = m.DeCrypt(filter)
+	}
 
-	var relations []string
+	var (
+		relations           map[string]schema.ModelRelation
+		relationForeignKeys map[string]bool
+	)
 
 	rows, err := m.Storage.Find(m.GetTableName(), filter, func(so *CondOptions) {
 		for i := range fn {
@@ -132,10 +136,101 @@ func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, er
 			so.Fields = m.GetFields()
 		}
 
-		relations = so.Relations
+		relationKeysLen := len(so.Relations)
+		relationForeignKeys = make(map[string]bool, relationKeysLen)
+		relations = make(map[string]schema.ModelRelation, relationKeysLen)
+		if relationKeysLen > 0 {
+			for _, v := range so.Relations {
+				d, ok := m.define.Relations[v]
+				if !ok {
+					continue
+				}
+				relations[v] = d
+				relationForeignKeys[d.ForeignKey] = zarray.Contains(so.Fields, d.ForeignKey)
+				if !relationForeignKeys[d.ForeignKey] {
+					so.Fields = append(so.Fields, d.ForeignKey)
+				}
+			}
+		}
 	})
 	if err != nil {
 		return rows, err
+	}
+
+	for key := range relations {
+		d := relations[key]
+		m, ok := m.getSchema(d.Schema)
+		if !ok {
+			continue
+		}
+
+		ok = true
+		items, err := find(m, ztype.Map{
+			d.SchemaKey: zarray.Map(rows, func(_ int, row ztype.Map) any {
+				return row.Get(d.ForeignKey).Value()
+			}),
+		}, false, func(co *CondOptions) {
+			if len(d.Fields) > 0 {
+				ok = zarray.Contains(d.Fields, d.SchemaKey)
+				if ok {
+					co.Fields = d.Fields
+				} else {
+					co.Fields = append(d.Fields, d.SchemaKey)
+				}
+				if len(d.Relations) > 0 {
+					co.Relations = append(co.Relations, d.Relations...)
+				}
+				// if d.Limit > 0 {
+				// 	co.Limit = d.Limit
+				// }
+			}
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		switch d.Type {
+		case schema.RelationOne:
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				eq := false
+				for i := range items {
+					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+						row.Set(key, items[i])
+						eq = true
+						if !ok {
+							delete(items[i], d.SchemaKey)
+						}
+						break
+					}
+				}
+				if !eq {
+					row.Set(key, ztype.Map{})
+				}
+				return row
+			}, 10)
+
+		case schema.RelationMany:
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				row.Set(key, zarray.Filter(items, func(_ int, v ztype.Map) bool {
+					eq := v.Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String()
+					if eq && !ok {
+						delete(v, d.SchemaKey)
+					}
+					return eq
+				}))
+				return row
+			}, 10)
+		}
+
+		// rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+		// 	for key := range relationForeignKeys {
+		// 		if relationForeignKeys[key] {
+		// 			continue
+		// 		}
+		// 		delete(row, key)
+		// 	}
+		// 	return row
+		// }, 10)
 	}
 
 	if len(m.afterProcess) > 0 {
@@ -149,71 +244,8 @@ func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, er
 					}
 				}
 			}
-			m.EnCrypt(row)
-		}
-	}
-
-	if len(relations) > 0 {
-		for _, v := range relations {
-			zlog.Error(v)
-			d, ok := m.define.Relations[v]
-			if !ok {
-				continue
-			}
-			m, ok := m.getSchema(d.Model)
-			if !ok {
-				continue
-			}
-
-			ok = true
-			items, err := m.Storage.Find(m.GetTableName(), ztype.Map{
-				d.Key: zarray.Map(rows, func(_ int, row ztype.Map) any {
-					return row.Get(d.Foreign).Value()
-				}),
-			}, func(co *CondOptions) {
-				if len(d.Fields) > 0 {
-					ok = zarray.Contains(d.Fields, d.Key)
-					if ok {
-						co.Fields = d.Fields
-					} else {
-						co.Fields = append(d.Fields, d.Key)
-					}
-					// if d.Limit > 0 {
-					// 	co.Limit = d.Limit
-					// }
-				}
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			switch d.Type {
-			case schema.RelationOne:
-				rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-					for i := range items {
-						if items[i].Get(d.Key).String() == row.Get(d.Foreign).String() {
-							row.Set(v, items[i])
-
-							if !ok {
-								delete(items[i], d.Key)
-							}
-							break
-						}
-					}
-					return row
-				}, 10)
-
-			case schema.RelationMany:
-				rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-					row.Set(v, zarray.Filter(items, func(_ int, v ztype.Map) bool {
-						eq := v.Get(d.Key).String() == row.Get(d.Foreign).String()
-						if eq && !ok {
-							delete(v, d.Key)
-						}
-						return eq
-					}))
-					return row
-				}, 10)
+			if cryptId {
+				m.EnCrypt(row)
 			}
 		}
 	}
@@ -222,11 +254,11 @@ func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, er
 }
 
 func Find[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	return find(m, getFilter(m, filter), fn...)
+	return find(m, getFilter(m, filter), true, fn...)
 }
 
 func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
-	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
+	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -270,7 +302,7 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 }
 
 func FindCols[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
-	rows, err := find(m, getFilter(m, filter), func(so *CondOptions) {
+	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
 		so.Fields = []string{field}
 		if fn != nil {
 			for i := range fn {
@@ -299,14 +331,13 @@ func FindCol[T filter](m *Schema, field string, filter T, fn ...func(*CondOption
 	return values.First(), true, nil
 }
 
-// func Count[T Filter](m *Model, filter T, fn ...func(*CondOptions)) (int, error) {
-// 	data, err := FindCols(m, "count(*) as count", filter, fn...)
-
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return data.First().Int(), nil
-// }
+func Count[T Filter](m *Schema, filter T, fn ...func(*CondOptions)) (uint64, error) {
+	data, err := FindCols(m, "count(*) as count", filter, fn...)
+	if err != nil {
+		return 0, err
+	}
+	return data.First().Uint64(), nil
+}
 
 func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	data, err := m.valuesBeforeProcess(data)

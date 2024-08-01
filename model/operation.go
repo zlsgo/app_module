@@ -79,20 +79,13 @@ func (o *Model) InsertMany(data ztype.Maps) (lastId interface{}, err error) {
 }
 
 // Count 统计数量
-func (o *Model) Count(filter Filter) (int64, error) {
-	resp, err := FindCols(o.model, "count", filter, func(co *CondOptions) {
-		co.Fields = []string{"count(*) as count"}
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return resp.First().Int64(), nil
+func (o *Model) Count(filter Filter) (uint64, error) {
+	return Count(o.model, filter)
 }
 
 // Exists 数据是否存在
 func (o *Model) Exists(filter Filter) (bool, error) {
-	total, err := o.Count(filter)
+	total, err := Count(o.model, filter)
 	return total > 0, err
 }
 

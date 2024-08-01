@@ -44,12 +44,13 @@ type (
 	}
 
 	ModelRelation struct {
-		Type    RelationType       `json:"type"`
-		Join    builder.JoinOption `json:"-"`
-		Model   string             `json:"model"`
-		Foreign string             `json:"foreign"`
-		Key     string             `json:"key"`
-		Fields  []string           `json:"Fields,omitempty"`
+		Type       RelationType       `json:"type"`
+		Join       builder.JoinOption `json:"-"`
+		Schema     string             `json:"schema"`
+		ForeignKey string             `json:"foreign_key"`
+		SchemaKey  string             `json:"schema_key"`
+		Fields     []string           `json:"fields,omitempty"`
+		Relations  []string           `json:"relations,omitempty"`
 		// Limit   int                `json:"limit,omitempty"`
 	}
 )
