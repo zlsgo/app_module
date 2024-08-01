@@ -1,12 +1,15 @@
 package model
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/model/schema"
 	"golang.org/x/exp/constraints"
 )
 
@@ -68,7 +71,7 @@ func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOp
 	f := getFilter(m, filter)
 	_ = m.DeCrypt(f)
 
-	rows, pages, err := m.Storage.Pages(m.TableName(), page, pagesize, f, func(so *CondOptions) {
+	rows, pages, err := m.Storage.Pages(m.GetTableName(), page, pagesize, f, func(so *CondOptions) {
 		if len(fn) > 0 {
 			fn[0](so)
 		}
@@ -112,7 +115,10 @@ func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOp
 
 func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	_ = m.DeCrypt(filter)
-	rows, err := m.Storage.Find(m.TableName(), filter, func(so *CondOptions) {
+
+	var relations []string
+
+	rows, err := m.Storage.Find(m.GetTableName(), filter, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -125,6 +131,8 @@ func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, er
 		} else if so.Limit != 1 && len(so.Fields) == 0 {
 			so.Fields = m.GetFields()
 		}
+
+		relations = so.Relations
 	})
 	if err != nil {
 		return rows, err
@@ -144,6 +152,72 @@ func find(m *Schema, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, er
 			m.EnCrypt(row)
 		}
 	}
+
+	if len(relations) > 0 {
+		for _, v := range relations {
+			zlog.Error(v)
+			d, ok := m.define.Relations[v]
+			if !ok {
+				continue
+			}
+			m, ok := m.getSchema(d.Model)
+			if !ok {
+				continue
+			}
+
+			ok = true
+			items, err := m.Storage.Find(m.GetTableName(), ztype.Map{
+				d.Key: zarray.Map(rows, func(_ int, row ztype.Map) any {
+					return row.Get(d.Foreign).Value()
+				}),
+			}, func(co *CondOptions) {
+				if len(d.Fields) > 0 {
+					ok = zarray.Contains(d.Fields, d.Key)
+					if ok {
+						co.Fields = d.Fields
+					} else {
+						co.Fields = append(d.Fields, d.Key)
+					}
+					// if d.Limit > 0 {
+					// 	co.Limit = d.Limit
+					// }
+				}
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			switch d.Type {
+			case schema.RelationOne:
+				rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+					for i := range items {
+						if items[i].Get(d.Key).String() == row.Get(d.Foreign).String() {
+							row.Set(v, items[i])
+
+							if !ok {
+								delete(items[i], d.Key)
+							}
+							break
+						}
+					}
+					return row
+				}, 10)
+
+			case schema.RelationMany:
+				rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+					row.Set(v, zarray.Filter(items, func(_ int, v ztype.Map) bool {
+						eq := v.Get(d.Key).String() == row.Get(d.Foreign).String()
+						if eq && !ok {
+							delete(v, d.Key)
+						}
+						return eq
+					}))
+					return row
+				}, 10)
+			}
+		}
+	}
+
 	return rows, nil
 }
 
@@ -159,6 +233,32 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 			}
 			fn[i](so)
 		}
+
+		// for _, v := range so.Relations {
+		// 	r, ok := m.define.Relations[v]
+		// 	if !ok {
+		// 		continue
+		// 	}
+
+		// 	s, ok := m.getSchema(r.Model)
+		// 	if !ok {
+		// 		continue
+		// 	}
+		// 	switch r.Type {
+		// 	case schema.RelationO2O:
+		// 		so.Join = append(so.Join, StorageJoin{
+		// 			Table: s.GetTableName(),
+		// 			As:    s.GetName(),
+		// 			Expr:  m.GetTableName() + "." + r.Foreign + "=" + s.GetName() + "." + r.Key,
+		// 		})
+		// 		if len(so.Fields) == 0 {
+		// 			so.Fields = m.GetFields()
+		// 		}
+		// 		so.Fields = append(so.Fields, zarray.Map(r.Fields, func(_ int, v string) string {
+		// 			return s.GetName() + "." + v
+		// 		})...)
+		// 	}
+		// }
 
 		so.Limit = 1
 	})
@@ -240,7 +340,7 @@ func Insert(m *Schema, data ztype.Map) (lastId interface{}, err error) {
 		return 0, err
 	}
 
-	id, err := m.Storage.Insert(m.TableName(), data)
+	id, err := m.Storage.Insert(m.GetTableName(), data)
 	if err == nil && m.define.Options.CryptID {
 		id, err = m.EnCryptID(ztype.ToString(id))
 	}
@@ -255,7 +355,7 @@ func InsertMany(m *Schema, datas ztype.Maps) (lastIds []interface{}, err error) 
 		}
 	}
 
-	lastIds, err = m.Storage.InsertMany(m.TableName(), datas)
+	lastIds, err = m.Storage.InsertMany(m.GetTableName(), datas)
 	if err == nil && m.define.Options.CryptID {
 		for i := range lastIds {
 			lastIds[i], err = m.EnCryptID(ztype.ToString(lastIds[i]))
@@ -279,12 +379,12 @@ func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64,
 	f := getFilter(m, filter)
 	m.DeCrypt(f)
 	if m.define.Options.SoftDeletes {
-		return m.Storage.Update(m.TableName(), ztype.Map{
+		return m.Storage.Update(m.GetTableName(), ztype.Map{
 			DeletedAtKey: ztime.Time().Unix(),
 		}, f)
 	}
 
-	return m.Storage.Delete(m.TableName(), f, fn...)
+	return m.Storage.Delete(m.GetTableName(), f, fn...)
 }
 
 func Update[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
@@ -315,12 +415,12 @@ func UpdateMany[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondO
 	}
 
 	f := getFilter(m, filter)
-	err = m.DeCrypt(f)
-	if err != nil {
-		return 0, zerror.With(err, "data decryption failed")
+
+	if ok := m.DeCrypt(f); !ok {
+		return 0, errors.New("data decryption failed")
 	}
 
-	return m.Storage.Update(m.TableName(), data, f, fn...)
+	return m.Storage.Update(m.GetTableName(), data, f, fn...)
 }
 
 //

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/database/hashid"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zstring"
@@ -19,13 +19,13 @@ type (
 	Schema struct {
 		Storage       Storageer
 		di            zdi.Injector
-		operation     *Model
+		model         *Model
 		cryptKeys     map[string]CryptProcess
 		Hashid        *hashid.HashID `json:"-"`
 		afterProcess  map[string][]afterProcess
 		beforeProcess map[string][]beforeProcess
 		views         ztype.Map
-		define        define.Schema
+		define        schema.Schema
 		tablePrefix   string
 		JSONPath      string
 		alias         string
@@ -36,6 +36,7 @@ type (
 		JSON          []byte
 		Fields        []string `json:"-"`
 		StorageType   StorageType
+		getSchema     func(alias string) (*Schema, bool)
 	}
 
 	ColumnEnum struct {

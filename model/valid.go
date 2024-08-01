@@ -8,7 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -45,7 +45,7 @@ func filterDate(data ztype.Map, fields []string) ztype.Map {
 }
 
 // VerifiData 验证数据
-func VerifiData(data ztype.Map, columns define.Fields, active activeType) (ztype.Map, error) {
+func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztype.Map, error) {
 	d := make(ztype.Map, len(columns))
 	for name, column := range columns {
 		if active == activeUpdate && column.Options.ReadOnly {

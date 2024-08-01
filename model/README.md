@@ -10,6 +10,6 @@ model.New(func(o *model.Options) {
     	return []znet.Handler{}
     }
 
-    o.ModelsDefine.Append(define.Define{})
+    o.Schemas.Append(define.Schema{})
 })
 ```

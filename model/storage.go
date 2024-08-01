@@ -31,11 +31,12 @@ type (
 type StorageModelOptions struct{}
 
 type CondOptions struct {
-	Fields  []string
-	GroupBy []string
-	OrderBy map[string]string
-	Join    []StorageJoin
-	Limit   int
+	Fields    []string
+	GroupBy   []string
+	OrderBy   map[string]string
+	Join      []StorageJoin
+	Limit     int
+	Relations []string
 }
 
 type Storageer interface {

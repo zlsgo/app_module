@@ -111,7 +111,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return err
 	}
 	di.(zdi.Injector).Map(&Operation{
-		Model: *mod.Operation(),
+		Model: *mod.Model(),
 	})
 	return
 }

@@ -35,27 +35,56 @@ func (m *Schema) GetCryptProcess(cryptName string) (fn CryptProcess, err error) 
 }
 
 // DeCrypt 解密 ID
-func (m *Schema) DeCrypt(row ztype.Map) (err error) {
+func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
 	if m.define.Options.CryptID {
 		if id, ok := row[idKey]; ok {
+			var (
+				err error
+				raw int64
+			)
+			success = true
 			switch i := id.(type) {
 			case string:
-				row[idKey], err = hashid.DecryptID(m.Hashid, i)
+				raw, err = hashid.DecryptID(m.Hashid, i)
+				if err == nil {
+					row[idKey] = raw
+				} else {
+					success = false
+				}
+
 			case []interface{}:
 				for k, v := range i {
-					i[k], err = hashid.DecryptID(m.Hashid, ztype.ToString(v))
+					raw, err = hashid.DecryptID(m.Hashid, ztype.ToString(v))
+					if err == nil {
+						i[k] = raw
+					} else {
+						success = false
+					}
 				}
+
 			case []string:
 				ids := make([]int64, len(i))
 				for k, v := range i {
-					ids[k], err = hashid.DecryptID(m.Hashid, v)
+					raw, err = hashid.DecryptID(m.Hashid, v)
+					if err == nil {
+						ids[k] = raw
+					} else {
+						success = false
+					}
 				}
 				row[idKey] = ids
+
 			default:
-				row[idKey], err = hashid.DecryptID(m.Hashid, ztype.ToString(id))
+				raw, err = hashid.DecryptID(m.Hashid, ztype.ToString(id))
+				if err == nil {
+					row[idKey] = raw
+				} else {
+					success = false
+				}
 			}
 		}
 	}
+
 	return
 }
 

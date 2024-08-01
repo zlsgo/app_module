@@ -3,7 +3,7 @@ package account
 import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -44,20 +44,20 @@ func accountModelDefine(p *Module) error {
 		"role":     []string{"admin"},
 	}}, p.Options.InlayUser...)
 
-	mod, err := p.mods.Reg(accountName, define.Schema{
+	mod, err := p.mods.Reg(accountName, mSchema.Schema{
 		Name: accountName,
-		Options: define.ModelOptions{
+		Options: mSchema.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"avatar": {
 				Label:    "头像",
 				Nullable: true,
 				Default:  "",
 				Type:     schema.String,
 				Size:     1024 * 2,
-				Validations: []define.Validations{
+				Validations: []mSchema.Validations{
 					{
 						Method: "regex",
 						Args:   "^(data:image/|http://|https://|/)",
@@ -73,8 +73,8 @@ func accountModelDefine(p *Module) error {
 				Type:  schema.Int8,
 				Size:  9,
 				Label: "状态",
-				Options: define.FieldOption{
-					Enum: []define.FieldEnum{
+				Options: mSchema.FieldOption{
+					Enum: []mSchema.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -90,7 +90,7 @@ func accountModelDefine(p *Module) error {
 			"login_at": {
 				Type:     schema.Time,
 				Nullable: true,
-				Options:  define.FieldOption{},
+				Options:  mSchema.FieldOption{},
 				Label:    "登录时间",
 			},
 			"inlay": {
@@ -98,7 +98,7 @@ func accountModelDefine(p *Module) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -107,7 +107,7 @@ func accountModelDefine(p *Module) error {
 				Label:    "是否超级管理员",
 				Default:  false,
 				Nullable: true,
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -123,7 +123,7 @@ func accountModelDefine(p *Module) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "绑定角色",
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -137,7 +137,7 @@ func accountModelDefine(p *Module) error {
 				Label:  "账号",
 				Type:   schema.String,
 				Unique: true,
-				Validations: []define.Validations{
+				Validations: []mSchema.Validations{
 					{
 						Method: "minLength",
 						Args:   3,
@@ -147,17 +147,17 @@ func accountModelDefine(p *Module) error {
 						Args:   20,
 					},
 				},
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					ReadOnly: true,
 				},
 			},
 			"password": {
 				Label: "密码",
 				Type:  schema.String,
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					Crypt: "PASSWORD",
 				},
-				Validations: []define.Validations{
+				Validations: []mSchema.Validations{
 					{
 						Method: "minLength",
 						Args:   3,
@@ -173,7 +173,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		accountModel = &AccountModel{Model: mod.Operation(), mod: p, m: mod}
+		accountModel = &AccountModel{Model: mod.Model(), mod: p, m: mod}
 	}
 	return err
 }

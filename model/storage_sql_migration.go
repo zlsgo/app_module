@@ -6,10 +6,9 @@ import (
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
 	"github.com/zlsgo/zdb/schema"
@@ -21,7 +20,7 @@ type Migration struct {
 }
 
 func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
-	if m.Model.TableName() == "" {
+	if m.Model.GetTableName() == "" {
 		return errors.New("表名不能为空")
 	}
 
@@ -80,7 +79,7 @@ func (m *Migration) InitValue(first bool) error {
 }
 
 func (m *Migration) HasTable() bool {
-	table := builder.NewTable(m.Model.TableName()).Create()
+	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(m.DB.GetDriver())
 	sql, values, process := table.Has()
 	res, err := m.DB.QueryToMaps(sql, values...)
@@ -92,12 +91,9 @@ func (m *Migration) HasTable() bool {
 }
 
 func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
-	zlog.Debug(1, db, m.Model.TableName())
-	table := builder.NewTable(m.Model.TableName())
-	zlog.Debug(db.GetDriver())
+	table := builder.NewTable(m.Model.GetTableName())
 	table.SetDriver(db.GetDriver())
 	sql, values, process := table.GetColumn()
-	zlog.Debug(sql, values)
 	res, err := db.QueryToMaps(sql, values...)
 	if err != nil {
 		return err
@@ -252,10 +248,10 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	return nil
 }
 
-func (m *Migration) execAddColumn(db *zdb.DB, deleteColumn bool, modelFields define.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
+func (m *Migration) execAddColumn(db *zdb.DB, deleteColumn bool, modelFields mSchema.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
 	var (
 		ok    bool
-		field *define.Field
+		field *mSchema.Field
 	)
 
 	for name := range modelFields {
@@ -324,7 +320,7 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 }
 
 func (m *Migration) CreateTable(db *zdb.DB) error {
-	table := builder.NewTable(m.Model.TableName()).Create()
+	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(db.GetDriver())
 	modelFields := m.Model.GetModelFields()
 	fields := make([]*schema.Field, 0, len(modelFields))
@@ -383,7 +379,7 @@ func (m *Migration) getPrimaryKey() *schema.Field {
 }
 
 func (m *Migration) Indexs(db *zdb.DB) error {
-	table := builder.NewTable(m.Model.TableName()).Create()
+	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(db.GetDriver())
 	modelFields := m.Model.GetModelFields()
 	uniques := make(map[string][]string, 0)
@@ -408,7 +404,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 	}
 
 	for name, v := range uniques {
-		name = m.Model.TableName() + "__unique__" + name
+		name = m.Model.GetTableName() + "__unique__" + name
 		sql, values, process := table.HasIndex(name)
 		res, err := db.QueryToMaps(sql, values...)
 
@@ -422,7 +418,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 	}
 
 	for name, v := range indexs {
-		name = m.Model.TableName() + "__idx__" + name
+		name = m.Model.GetTableName() + "__idx__" + name
 		sql, values, process := table.HasIndex(name)
 		res, err := db.QueryToMaps(sql, values...)
 		if err == nil && !process(res) {

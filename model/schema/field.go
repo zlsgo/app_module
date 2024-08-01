@@ -1,4 +1,4 @@
-package define
+package schema
 
 import (
 	"github.com/sohaha/zlsgo/zvalid"

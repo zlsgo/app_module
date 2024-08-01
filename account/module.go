@@ -14,7 +14,7 @@ import (
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
 	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 )
 
@@ -46,7 +46,7 @@ type Options struct {
 	RBACFile             string                   `z:"rbac_file"`
 	key                  string
 	InlayUser            ztype.Maps      `z:"inlay_user"`
-	Models               []define.Schema `z:"-"`
+	Models               []schema.Schema `z:"-"`
 	SSE                  znet.SSEOption  `z:"-"`
 	Expire               int             `z:"expire"`
 	Only                 bool            `z:"only"`

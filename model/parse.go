@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/zlsgo/app_module/database/hashid"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zstring"
@@ -87,19 +87,20 @@ func perfect(alias string, m *Schema) (err error) {
 	if len(m.define.Relations) > 0 {
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
-			if v.Foreign == "" {
-				m.define.Relations[k].Foreign = idKey
+			if v.Foreign == "" || &v.Foreign == nil {
+				v.Foreign = idKey
+				m.define.Relations[k] = v
 			}
 		}
 
-		newRelations := make(map[string]*define.ModelRelation, len(m.define.Relations))
+		newRelations := make(map[string]schema.ModelRelation, len(m.define.Relations))
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
 			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
 		}
 		m.define.Relations = newRelations
 	} else {
-		m.define.Relations = make(map[string]*define.ModelRelation)
+		m.define.Relations = make(map[string]schema.ModelRelation)
 	}
 
 	// if m.model.Options.CreatedBy {

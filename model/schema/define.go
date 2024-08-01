@@ -1,4 +1,4 @@
-package define
+package schema
 
 import (
 	"errors"
@@ -10,14 +10,14 @@ import (
 type (
 	Schemas []Schema
 	Schema  struct {
-		Fields     Fields                    `json:"fields"`
-		Extend     ztype.Map                 `json:"extend,omitempty"`
-		Relations  map[string]*ModelRelation `json:"relations,omitempty"`
-		Table      Table                     `json:"table,omitempty"`
-		Name       string                    `json:"name"`
-		SchemaPath string                    `json:"-"`
-		Values     ztype.Maps                `json:"values,omitempty"`
-		Options    ModelOptions              `json:"options,omitempty"`
+		Fields     Fields                   `json:"fields"`
+		Extend     ztype.Map                `json:"extend,omitempty"`
+		Relations  map[string]ModelRelation `json:"relations,omitempty"`
+		Table      Table                    `json:"table,omitempty"`
+		Name       string                   `json:"name"`
+		SchemaPath string                   `json:"-"`
+		Values     ztype.Maps               `json:"values,omitempty"`
+		Options    ModelOptions             `json:"options,omitempty"`
 	}
 
 	Table struct {
@@ -44,14 +44,13 @@ type (
 	}
 
 	ModelRelation struct {
-		Name    string             `json:"name"`
-		Type    string             `json:"type"`
+		Type    RelationType       `json:"type"`
 		Join    builder.JoinOption `json:"-"`
 		Model   string             `json:"model"`
 		Foreign string             `json:"foreign"`
 		Key     string             `json:"key"`
-		Fields  []string           `json:"Fields"`
-		Limit   int                `json:"limit,omitempty"`
+		Fields  []string           `json:"Fields,omitempty"`
+		// Limit   int                `json:"limit,omitempty"`
 	}
 )
 
@@ -67,7 +66,7 @@ func New(name string, tableName ...string) Schema {
 		Fields:    Fields{},
 		Extend:    ztype.Map{},
 		Values:    ztype.Maps{},
-		Relations: map[string]*ModelRelation{},
+		Relations: map[string]ModelRelation{},
 		Options:   ModelOptions{},
 	}
 }

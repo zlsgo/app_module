@@ -7,7 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -28,13 +28,13 @@ func GetMessageModel() (*MessageModel, error) {
 
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
-	mod, err := m.mods.Reg(messageName, define.Schema{
+	mod, err := m.mods.Reg(messageName, mSchema.Schema{
 		Name: messageName,
-		Options: define.ModelOptions{
+		Options: mSchema.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"from": {
 				Type:  schema.Int64,
 				Label: "发送者",
@@ -73,7 +73,7 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		messageModel = &MessageModel{model: mod, module: m, Model: mod.Operation()}
+		messageModel = &MessageModel{model: mod, module: m, Model: mod.Model()}
 	}
 	return err
 }

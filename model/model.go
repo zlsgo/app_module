@@ -5,7 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 )
 
@@ -16,13 +16,13 @@ type (
 		Prefix           string
 		SchemaDir        string
 		SchemaApi        string
-		Schemas          define.Schemas
+		Schemas          schema.Schemas
 		DisabledMigrator bool
 	}
 )
 
 func New(o ...func(*Options)) (m *Module) {
-	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "data/schemas", Schemas: make([]define.Schema, 0)}, o...)
+	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "data/schemas", Schemas: make([]schema.Schema, 0)}, o...)
 
 	m = &Module{
 		Options: opt,

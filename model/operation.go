@@ -25,13 +25,13 @@ func (f Filter) Set(field string, cond any) Filter {
 	return f
 }
 
-func (m *Schema) Operation() *Model {
-	if m.operation == nil {
-		m.operation = &Model{
+func (m *Schema) Model() *Model {
+	if m.model == nil {
+		m.model = &Model{
 			model: m,
 		}
 	}
-	return m.operation
+	return m.model
 }
 
 // Models 快捷操作

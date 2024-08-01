@@ -7,7 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 )
 
 type Schemas struct {
@@ -70,7 +70,7 @@ func (ms *Schemas) ForEach(fn func(key string, m *Schema) bool) {
 	ms.data.ForEach(fn)
 }
 
-func (ms *Schemas) Reg(name string, data define.Schema, force bool) (*Schema, error) {
+func (ms *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, error) {
 	if name == "" {
 		return nil, errors.New("model name can not be empty")
 	}
@@ -88,6 +88,7 @@ func (ms *Schemas) Reg(name string, data define.Schema, force bool) (*Schema, er
 		Storage:     ms.storage,
 		define:      data,
 		di:          ms.di,
+		getSchema:   ms.Get,
 		tablePrefix: tablePrefix,
 	}
 
@@ -110,7 +111,7 @@ func (ms *Schemas) Reg(name string, data define.Schema, force bool) (*Schema, er
 	return m, nil
 }
 
-func (ms *Schemas) BatchReg(models map[string]define.Schema, force bool) error {
+func (ms *Schemas) BatchReg(models map[string]schema.Schema, force bool) error {
 	for name, data := range models {
 		err := zerror.TryCatch(func() error {
 			_, err := ms.Reg(name, data, force)

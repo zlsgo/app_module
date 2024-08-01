@@ -6,7 +6,7 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 )
 
 func (m *Schema) GetName() string {
@@ -24,7 +24,7 @@ func (m *Schema) GetAlias() string {
 	return m.alias
 }
 
-func (m *Schema) GetDefine() define.Schema {
+func (m *Schema) GetDefine() schema.Schema {
 	return m.define
 }
 
@@ -32,7 +32,7 @@ func (m *Schema) GetExtend() ztype.Map {
 	return m.define.Extend
 }
 
-func (m *Schema) TableName() string {
+func (m *Schema) GetTableName() string {
 	return m.tablePrefix + m.define.Table.Name
 }
 

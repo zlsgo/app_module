@@ -6,15 +6,15 @@ import (
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zsync"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
 func TestDefine(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	m := define.Schema{
+	m := mSchema.Schema{
 		Name: "test",
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"test11111111": {
 				Type: schema.String,
 				Size: 255,
@@ -25,7 +25,7 @@ func TestDefine(t *testing.T) {
 			// 	Label: "新的",
 			// },
 		},
-		Options: define.ModelOptions{DisabledMigrator: true},
+		Options: mSchema.ModelOptions{DisabledMigrator: true},
 	}
 	s := NewSchemas(nil, nil)
 

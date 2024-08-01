@@ -3,7 +3,7 @@ package account
 import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -25,13 +25,13 @@ func initModel(p *Module) error {
 const roleName = "role"
 
 func roleModel(ms *model.Schemas) error {
-	_, err := ms.Reg(roleName, define.Schema{
+	_, err := ms.Reg(roleName, mSchema.Schema{
 		Name: roleName,
-		Options: define.ModelOptions{
+		Options: mSchema.ModelOptions{
 			CryptID:    true,
 			Timestamps: true,
 		},
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -43,7 +43,7 @@ func roleModel(ms *model.Schemas) error {
 				Comment: "必须唯一",
 				Unique:  true,
 				Default: "",
-				Validations: []define.Validations{
+				Validations: []mSchema.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -56,8 +56,8 @@ func roleModel(ms *model.Schemas) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: define.FieldOption{
-					Enum: []define.FieldEnum{
+				Options: mSchema.FieldOption{
+					Enum: []mSchema.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -69,7 +69,7 @@ func roleModel(ms *model.Schemas) error {
 				Label:    "是否内置数据",
 				Default:  false,
 				Nullable: true,
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					ReadOnly: true,
 				},
 			},
@@ -91,7 +91,7 @@ func roleModel(ms *model.Schemas) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含角色",
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -100,7 +100,7 @@ func roleModel(ms *model.Schemas) error {
 				Default:  "[]",
 				Nullable: true,
 				Label:    "包含权限",
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					IsArray: true,
 				},
 			},
@@ -122,12 +122,12 @@ func roleModel(ms *model.Schemas) error {
 const permName = "permission"
 
 func permModel(ms *model.Schemas) error {
-	_, err := ms.Reg(permName, define.Schema{
+	_, err := ms.Reg(permName, mSchema.Schema{
 		Name: permName,
-		Options: define.ModelOptions{
+		Options: mSchema.ModelOptions{
 			Timestamps: true,
 		},
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"label": {
 				Type:  schema.String,
 				Size:  20,
@@ -139,7 +139,7 @@ func permModel(ms *model.Schemas) error {
 				Comment:  "如果不为空，必须唯一",
 				Nullable: true,
 				Unique:   true,
-				Validations: []define.Validations{
+				Validations: []mSchema.Validations{
 					{
 						Method:  "regex",
 						Args:    "^[a-zA-Z0-9_]+$",
@@ -152,8 +152,8 @@ func permModel(ms *model.Schemas) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
-				Options: define.FieldOption{
-					Enum: []define.FieldEnum{
+				Options: mSchema.FieldOption{
+					Enum: []mSchema.FieldEnum{
 						{Value: "0", Label: "待激活"},
 						{Value: "1", Label: "正常"},
 						{Value: "2", Label: "禁用"},
@@ -218,12 +218,12 @@ func permModel(ms *model.Schemas) error {
 const logsName = "logs"
 
 func logModel(ms *model.Schemas) error {
-	_, err := ms.Reg(logsName, define.Schema{
+	_, err := ms.Reg(logsName, mSchema.Schema{
 		Name: logsName,
-		Options: define.ModelOptions{
+		Options: mSchema.ModelOptions{
 			CryptID: true,
 		},
-		Fields: map[string]define.Field{
+		Fields: map[string]mSchema.Field{
 			"account": {
 				Type:  schema.String,
 				Size:  120,

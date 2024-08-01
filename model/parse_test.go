@@ -5,31 +5,31 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestSet(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	data := define.Schema{
+	data := schema.Schema{
 		Name: "日志模型",
-		Table: define.Table{
+		Table: schema.Table{
 			Name:    "lowcode_logs",
 			Comment: "日志表",
 		},
-		Options: define.ModelOptions{
+		Options: schema.ModelOptions{
 			Timestamps: true,
 			CryptID:    true,
 		},
 	}
 
-	data.Fields = map[string]define.Field{
+	data.Fields = map[string]schema.Field{
 		"action": {
 			Type:    "string",
 			Label:   "操作",
 			Default: "",
-			Validations: []define.Validations{
+			Validations: []schema.Validations{
 				{
 					Method: "minLength",
 					Args:   1,
@@ -45,7 +45,7 @@ func TestSet(t *testing.T) {
 			Label:   "请求 IP",
 			Size:    100,
 			Default: "",
-			Validations: []define.Validations{
+			Validations: []schema.Validations{
 				{Method: "ip"},
 			},
 		},
@@ -54,9 +54,9 @@ func TestSet(t *testing.T) {
 			Label:   "状态",
 			Size:    9,
 			Default: "1",
-			Options: define.FieldOption{
+			Options: schema.FieldOption{
 				// Quote: true,
-				Enum: []define.FieldEnum{
+				Enum: []schema.FieldEnum{
 					{Value: "1", Label: "未读"},
 					{Value: "2", Label: "已读"},
 				},

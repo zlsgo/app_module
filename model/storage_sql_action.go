@@ -6,6 +6,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
 )
@@ -61,8 +62,7 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 			}
 
 			f := strings.SplitN(zstring.TrimSpace(k), " ", 2)
-			l := len(f)
-			if l != 2 {
+			if len(f) != 2 {
 				switch val := v.Value().(type) {
 				case ztype.Maps, []ztype.Map:
 					m := ztype.ToSlice(val).Maps()
@@ -77,7 +77,7 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 
 					exprs = append(exprs, d.Or(e...))
 				case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
-					exprs = append(exprs, d.In(f[0], ztype.ToSlice(val).Value()...))
+					exprs = append(exprs, d.In(f[0], ztype.ToSlice(v.Value()).Value()...))
 				default:
 					exprs = append(exprs, d.EQ(f[0], val))
 				}
@@ -176,14 +176,7 @@ func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions)) (z
 }
 
 func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	o := CondOptions{}
-	for i := range fn {
-		if fn[i] == nil {
-			continue
-		}
-		fn[i](&o)
-	}
-
+	o := zutil.Optional(CondOptions{}, fn...)
 	items, err := s.db.Find(table, func(b *builder.SelectBuilder) error {
 		var fieldPrefix string
 		hasJoin := len(o.Join) > 0

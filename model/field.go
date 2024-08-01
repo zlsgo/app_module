@@ -12,7 +12,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/sohaha/zlsgo/zvalid"
-	"github.com/zlsgo/app_module/model/define"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
@@ -26,15 +26,15 @@ func (m *Schema) filterFields(fields []string) []string {
 	})
 }
 
-func (m *Schema) GetField(name string) (define.Field, bool) {
+func (m *Schema) GetField(name string) (mSchema.Field, bool) {
 	f, ok := m.getField(name)
 	if !ok {
-		return define.Field{}, false
+		return mSchema.Field{}, false
 	}
 	return *f, true
 }
 
-func (m *Schema) getField(name string) (*define.Field, bool) {
+func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 	for fname := range m.define.Fields {
 		if name == fname {
 			field := m.define.Fields[fname]
@@ -43,11 +43,11 @@ func (m *Schema) getField(name string) (*define.Field, bool) {
 	}
 
 	if name == idKey {
-		return &define.Field{
+		return &mSchema.Field{
 			Type:     schema.Int,
 			Nullable: false,
 			Label:    "ID",
-			Options: define.FieldOption{
+			Options: mSchema.FieldOption{
 				ReadOnly: true,
 			},
 		}, true
@@ -55,16 +55,16 @@ func (m *Schema) getField(name string) (*define.Field, bool) {
 	if m.define.Options.Timestamps {
 		switch name {
 		case CreatedAtKey:
-			return &define.Field{
+			return &mSchema.Field{
 				Type:     schema.Time,
 				Nullable: true,
 				Label:    "创建时间",
-				Options: define.FieldOption{
+				Options: mSchema.FieldOption{
 					ReadOnly: true,
 				},
 			}, true
 		case UpdatedAtKey:
-			return &define.Field{
+			return &mSchema.Field{
 				Type:     schema.Time,
 				Nullable: true,
 				Label:    "更新时间",
@@ -74,7 +74,7 @@ func (m *Schema) getField(name string) (*define.Field, bool) {
 
 	if m.define.Options.SoftDeletes {
 		if name == DeletedAtKey {
-			return &define.Field{
+			return &mSchema.Field{
 				Type:     schema.Int,
 				Size:     11,
 				Nullable: true,
@@ -101,7 +101,7 @@ func (m *Schema) getField(name string) (*define.Field, bool) {
 	return nil, false
 }
 
-func (m *Schema) GetModelFields() define.Fields {
+func (m *Schema) GetModelFields() mSchema.Fields {
 	return m.define.Fields
 }
 
@@ -129,7 +129,7 @@ func perfectField(m *Schema) ([]string, error) {
 		})
 	}
 
-	nFields := make(define.Fields, len(m.define.Fields))
+	nFields := make(mSchema.Fields, len(m.define.Fields))
 	for name := range m.define.Fields {
 		field := m.define.Fields[name]
 		if err := parseField(m, name, &field); err != nil {
@@ -144,7 +144,7 @@ func perfectField(m *Schema) ([]string, error) {
 	return fields, nil
 }
 
-func parseField(m *Schema, name string, f *define.Field) error {
+func parseField(m *Schema, name string, f *mSchema.Field) error {
 	if f == nil {
 		return nil
 	}
@@ -210,22 +210,22 @@ func parseField(m *Schema, name string, f *define.Field) error {
 	return nil
 }
 
-func parseFieldModelOptions(_ string, c *define.Field) {
+func parseFieldModelOptions(_ string, c *mSchema.Field) {
 	if len(c.Options.Enum) > 0 {
-		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v define.FieldEnum) define.FieldEnum {
+		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v mSchema.FieldEnum) mSchema.FieldEnum {
 			if v.Label == "" {
 				v.Label = v.Value
 			}
 			return v
 		})
 
-		c.ValidRules = c.ValidRules.EnumString(zarray.Map(c.Options.Enum, func(_ int, v define.FieldEnum) string {
+		c.ValidRules = c.ValidRules.EnumString(zarray.Map(c.Options.Enum, func(_ int, v mSchema.FieldEnum) string {
 			return v.Value
 		}))
 	}
 }
 
-func parseFieldValidRule(name string, c *define.Field) {
+func parseFieldValidRule(name string, c *mSchema.Field) {
 	label := c.Label
 	rule := zvalid.New().SetAlias(label)
 	if c.Type == schema.JSON {

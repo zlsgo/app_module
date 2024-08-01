@@ -13,7 +13,7 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model/define"
+	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 )
 
@@ -49,7 +49,7 @@ func fillFieldsTablePrefix(f []string, table string) []string {
 	return f
 }
 
-func parseSchema(dir string) ([]define.Schema, error) {
+func parseSchema(dir string) ([]schema.Schema, error) {
 	files := make([]string, 0)
 	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -62,7 +62,7 @@ func parseSchema(dir string) ([]define.Schema, error) {
 		return nil
 	})
 
-	schemaModelsDefine := zarray.Map(files, func(_ int, v string) (d define.Schema) {
+	schemaModelsDefine := zarray.Map(files, func(_ int, v string) (d schema.Schema) {
 		text, err := zfile.ReadFile(v)
 		if err != nil {
 			return
@@ -121,7 +121,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 			return err
 		}
 
-		opers.items.Set(d.Name, m.Operation())
+		opers.items.Set(d.Name, m.Model())
 	}
 
 	_ = mapper.Maps(mod, opers)
