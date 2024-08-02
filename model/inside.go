@@ -1,7 +1,8 @@
 package model
 
 type inside struct {
-	oldColumn DealOldColumn
+	oldColumn        DealOldColumn
+	softDeleteIsNull bool
 }
 
 type DealOldColumn uint8
@@ -24,4 +25,13 @@ func (i *inside) OldColumnDelete() {
 
 func (i *inside) OldColumnRename() {
 	i.oldColumn = dealOldColumnRename
+}
+
+func (i *inside) SoftDeleteIsNull(b ...bool) {
+	softDeleteIsNull := true
+
+	if len(b) > 0 {
+		softDeleteIsNull = b[0]
+	}
+	i.softDeleteIsNull = softDeleteIsNull
 }

@@ -16,7 +16,7 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 		for k := range filter {
 			value := filter[k]
 			if value == nil {
-				exprs = append(exprs, k)
+				exprs = append(exprs, d.IsNull(k))
 				continue
 			}
 
@@ -104,6 +104,10 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 					exprs = append(exprs, d.In(f[0], v.SliceValue()...))
 				case "NOTIN":
 					exprs = append(exprs, d.NotIn(f[0], v.SliceValue()...))
+				case "IS NULL":
+					exprs = append(exprs, d.IsNull(f[0]))
+				case "IS NOT NULL":
+					exprs = append(exprs, d.IsNotNull(f[0]))
 				case "BETWEEN":
 					s := v.SliceValue()
 					if len(s) != 2 {

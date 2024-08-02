@@ -45,7 +45,11 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 	}
 
 	if m.define.Options.SoftDeletes {
-		filterMap[DeletedAtKey] = 0
+		if InsideOption.softDeleteIsNull {
+			filterMap[DeletedAtKey] = nil
+		} else {
+			filterMap[DeletedAtKey] = 0
+		}
 	}
 
 	return
@@ -67,20 +71,41 @@ func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ..
 }
 
 func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
-	f := getFilter(m, filter)
-	_ = m.DeCrypt(f)
+	return pages(m, page, pagesize, getFilter(m, filter), true, fn...)
+}
 
-	rows, pages, err := m.Storage.Pages(m.GetTableName(), page, pagesize, f, func(so *CondOptions) {
+func pages(m *Schema, page, pagesize int, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (*PageData, error) {
+	if cryptId {
+		_ = m.DeCrypt(filter)
+	}
+
+	var (
+		childRelationson map[string][]string
+		foreignKeys      []string
+	)
+
+	rows, pages, err := m.Storage.Pages(m.GetTableName(), page, pagesize, filter, func(so *CondOptions) {
 		if len(fn) > 0 {
 			fn[0](so)
 		}
 
-		if len(so.Fields) > 0 && len(so.Join) == 0 {
+		if len(so.Fields) > 0 && len(so.Join) == 0 && !m.define.Options.SkipFieldValidation {
 			so.Fields = m.filterFields(so.Fields)
+		} else if len(so.Fields) == 0 && !m.define.Options.SkipFieldValidation {
+			so.Fields = m.GetFields()
+		} else if len(so.Fields) == 0 {
+			so.Fields = allFields
 		}
+
+		childRelationson, foreignKeys = relationson(m, so)
 	})
 
 	data := &PageData{Items: rows, Page: pages, pagesize: uint(pagesize)}
+	if err != nil {
+		return data, err
+	}
+
+	data.Items, err = handlerRelationson(m, data.Items, childRelationson, foreignKeys)
 	if err != nil {
 		return data, err
 	}
@@ -101,11 +126,8 @@ func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOp
 			}
 		}
 
-		if m.define.Options.CryptID {
-			err = m.EnCrypt(row)
-			if err != nil {
-				return data, err
-			}
+		if cryptId && m.define.Options.CryptID {
+			_ = m.EnCrypt(row)
 		}
 	}
 
@@ -113,6 +135,153 @@ func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOp
 }
 
 var allFields = []string{"*"}
+
+func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]string, foreignKeys []string) {
+	childRelationson = make(map[string][]string)
+	includeAllFields := zarray.Contains(so.Fields, allFields[0])
+	so.Fields = zarray.Filter(so.Fields, func(_ int, f string) bool {
+		if f == allFields[0] {
+			return true
+		}
+		field := strings.SplitN(f, ".", 2)
+		isRelation := zarray.Contains(m.relationsKeys, field[0])
+		if isRelation {
+			if len(field) == 1 {
+				childRelationson[field[0]] = m.define.Relations[field[0]].Fields
+			} else {
+				childRelationson[field[0]] = append(childRelationson[field[0]], field[1])
+			}
+			if !includeAllFields && !zarray.Contains(so.Fields, m.define.Relations[field[0]].ForeignKey) {
+				foreignKeys = append(foreignKeys, m.define.Relations[field[0]].ForeignKey)
+			}
+		}
+		return !isRelation
+	})
+	if len(foreignKeys) > 0 {
+		so.Fields = append(so.Fields, foreignKeys...)
+	}
+
+	return
+}
+
+func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string][]string, foreignKeys []string) (ztype.Maps, error) {
+	for key := range childRelationson {
+		d := m.define.Relations[key]
+		m, ok := m.getSchema(d.Schema)
+		if !ok {
+			continue
+		}
+
+		ok = true
+		items, err := find(m, ztype.Map{
+			d.SchemaKey: zarray.Map(rows, func(_ int, row ztype.Map) any {
+				return row.Get(d.ForeignKey).Value()
+			}),
+		}, false, func(co *CondOptions) {
+			co.Fields = childRelationson[key]
+			if len(co.Fields) == 0 {
+				co.Fields = allFields
+			} else {
+				ok = zarray.Contains(co.Fields, d.SchemaKey)
+				if !ok {
+					co.Fields = append(co.Fields, d.SchemaKey)
+				}
+
+				co.Fields = zarray.Unique(co.Fields)
+			}
+
+			// if d.Type != schema.RelationOneMerge {
+			// 	co.Limit = 1
+			// }
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(items) == 0 {
+			// 需要填充默认值
+			return rows, nil
+		}
+
+		switch d.Type {
+		case schema.RelationOne:
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				eq := false
+				for i := range items {
+					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+						eq = true
+						value := make(ztype.Map, len(items[i]))
+						for k := range items[i] {
+							if !ok && k == d.SchemaKey {
+								continue
+							}
+							value[k] = items[i][k]
+						}
+						row.Set(key, value)
+						break
+					}
+				}
+				if !eq {
+					row.Set(key, ztype.Map{})
+				}
+				return row
+			}, 10)
+
+		case schema.RelationOneMerge:
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				eq := false
+				for i := range items {
+					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+						eq = true
+						for k := range items[i] {
+							if !ok && k == d.SchemaKey {
+								continue
+							}
+							row.Set(k, items[i][k])
+						}
+
+						break
+					}
+				}
+				if !eq {
+					row.Set(key, ztype.Map{})
+				}
+				return row
+			}, 10)
+		case schema.RelationMany:
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				values := make(ztype.Maps, 0)
+				for i := range items {
+					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+						value := make(ztype.Map, len(items[i]))
+						for k := range items[i] {
+							if !ok && k == d.SchemaKey {
+								continue
+							}
+							value[k] = items[i][k]
+						}
+
+						values = append(values, value)
+					}
+				}
+
+				row.Set(key, values)
+				return row
+			}, 10)
+		}
+	}
+
+	if len(foreignKeys) > 0 {
+		rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+			for i := range foreignKeys {
+				_ = i
+				// delete(row, foreignKeys[i])
+			}
+			return row
+		}, 10)
+	}
+
+	return rows, nil
+}
 
 func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	if cryptId {
@@ -140,128 +309,15 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 			so.Fields = allFields
 		}
 
-		childRelationson = make(map[string][]string)
-		includeAllFields := zarray.Contains(so.Fields, allFields[0])
-		so.Fields = zarray.Filter(so.Fields, func(_ int, f string) bool {
-			if f == allFields[0] {
-				return true
-			}
-			field := strings.SplitN(f, ".", 2)
-			isRelation := zarray.Contains(m.relationsKeys, field[0])
-			if isRelation {
-				if len(field) == 1 {
-					childRelationson[field[0]] = m.define.Relations[field[0]].Fields
-				} else {
-					childRelationson[field[0]] = append(childRelationson[field[0]], field[1])
-				}
-				if !includeAllFields && !zarray.Contains(so.Fields, m.define.Relations[field[0]].ForeignKey) {
-					foreignKeys = append(foreignKeys, m.define.Relations[field[0]].ForeignKey)
-				}
-			}
-			return !isRelation
-		})
-		if len(foreignKeys) > 0 {
-			so.Fields = append(so.Fields, foreignKeys...)
-		}
+		childRelationson, foreignKeys = relationson(m, so)
 	})
 	if err != nil {
 		return rows, err
 	}
 
-	for key := range childRelationson {
-		d := m.define.Relations[key]
-		m, ok := m.getSchema(d.Schema)
-		if !ok {
-			continue
-		}
-
-		ok = true
-		items, err := find(m, ztype.Map{
-			d.SchemaKey: zarray.Map(rows, func(_ int, row ztype.Map) any {
-				return row.Get(d.ForeignKey).Value()
-			}),
-		}, false, func(co *CondOptions) {
-			co.Fields = childRelationson[key]
-			if len(co.Fields) == 0 {
-				co.Fields = allFields
-			} else {
-				ok = zarray.Contains(co.Fields, d.SchemaKey)
-				if !ok {
-					co.Fields = append(co.Fields, d.SchemaKey)
-				}
-
-				co.Fields = zarray.Unique(co.Fields)
-			}
-
-			if d.Type != schema.RelationOneMerge {
-				co.Limit = 1
-			}
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		switch d.Type {
-		case schema.RelationOne:
-			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				eq := false
-				for i := range items {
-					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
-						eq = true
-						if !ok {
-							delete(items[i], d.SchemaKey)
-						}
-						row.Set(key, items[i])
-						break
-					}
-				}
-				if !eq {
-					row.Set(key, ztype.Map{})
-				}
-				return row
-			}, 10)
-		case schema.RelationOneMerge:
-			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				eq := false
-				for i := range items {
-					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
-						eq = true
-						if !ok {
-							delete(items[i], d.SchemaKey)
-						}
-						for k := range items[i] {
-							row.Set(k, items[i][k])
-						}
-
-						break
-					}
-				}
-				if !eq {
-					row.Set(key, ztype.Map{})
-				}
-				return row
-			}, 10)
-		case schema.RelationMany:
-			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				row.Set(key, zarray.Filter(items, func(_ int, v ztype.Map) bool {
-					eq := v.Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String()
-					if eq && !ok {
-						delete(v, d.SchemaKey)
-					}
-					return eq
-				}))
-				return row
-			}, 10)
-		}
-	}
-
-	if len(foreignKeys) > 0 {
-		rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-			for i := range foreignKeys {
-				delete(row, foreignKeys[i])
-			}
-			return row
-		}, 10)
+	rows, err = handlerRelationson(m, rows, childRelationson, foreignKeys)
+	if err != nil {
+		return rows, err
 	}
 
 	if len(m.afterProcess) > 0 {
@@ -275,7 +331,7 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 					}
 				}
 			}
-			if cryptId {
+			if cryptId && m.define.Options.CryptID {
 				m.EnCrypt(row)
 			}
 		}
@@ -334,12 +390,12 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 
 func FindCols[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
 	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
-		so.Fields = []string{field}
 		if fn != nil {
 			for i := range fn {
 				fn[i](so)
 			}
 		}
+		so.Fields = []string{field}
 	})
 	if err != nil {
 		return ztype.SliceType{}, err
@@ -391,7 +447,11 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	// }
 
 	if m.define.Options.SoftDeletes {
-		data[DeletedAtKey] = 0
+		if InsideOption.softDeleteIsNull {
+			data[DeletedAtKey] = nil
+		} else {
+			data[DeletedAtKey] = 0
+		}
 	}
 	return data, nil
 }
