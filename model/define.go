@@ -32,9 +32,10 @@ type (
 		fullFields    []string
 		lowFields     []string
 		readOnlyKeys  []string
+		relationsKeys []string
 		inlayFields   []string
 		JSON          []byte
-		Fields        []string `json:"-"`
+		fields        []string `json:"-"`
 		StorageType   StorageType
 		getSchema     func(alias string) (*Schema, bool)
 	}

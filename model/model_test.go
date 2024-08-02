@@ -25,7 +25,7 @@ func TestDefine(t *testing.T) {
 			// 	Label: "新的",
 			// },
 		},
-		Options: mSchema.ModelOptions{DisabledMigrator: true},
+		Options: mSchema.Options{DisabledMigrator: true},
 	}
 	s := NewSchemas(nil, nil)
 

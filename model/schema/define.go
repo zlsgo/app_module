@@ -10,14 +10,14 @@ import (
 type (
 	Schemas []Schema
 	Schema  struct {
-		Fields     Fields                   `json:"fields"`
-		Extend     ztype.Map                `json:"extend,omitempty"`
-		Relations  map[string]ModelRelation `json:"relations,omitempty"`
-		Table      Table                    `json:"table,omitempty"`
-		Name       string                   `json:"name"`
-		SchemaPath string                   `json:"-"`
-		Values     ztype.Maps               `json:"values,omitempty"`
-		Options    ModelOptions             `json:"options,omitempty"`
+		Fields     Fields              `json:"fields"`
+		Extend     ztype.Map           `json:"extend,omitempty"`
+		Relations  map[string]Relation `json:"relations,omitempty"`
+		Table      Table               `json:"table,omitempty"`
+		Name       string              `json:"name"`
+		SchemaPath string              `json:"-"`
+		Values     ztype.Maps          `json:"values,omitempty"`
+		Options    Options             `json:"options,omitempty"`
 	}
 
 	Table struct {
@@ -25,15 +25,16 @@ type (
 		Comment string `json:"comment,omitempty"`
 	}
 
-	ModelOptions struct {
-		Salt             string   `json:"crypt_salt,omitempty"`
-		LowFields        []string `json:"low_fields,omitempty"`
-		FieldsSort       []string `json:"fields_sort,omitempty"`
-		CryptLen         int      `json:"crypt_len,omitempty"`
-		DisabledMigrator bool     `json:"disabled_migrator,omitempty"`
-		SoftDeletes      bool     `json:"soft_deletes,omitempty"`
-		Timestamps       bool     `json:"timestamps,omitempty"`
-		CryptID          bool     `json:"crypt_id,omitempty"`
+	Options struct {
+		Salt                string   `json:"crypt_salt,omitempty"`
+		LowFields           []string `json:"low_fields,omitempty"`
+		FieldsSort          []string `json:"fields_sort,omitempty"`
+		CryptLen            int      `json:"crypt_len,omitempty"`
+		DisabledMigrator    bool     `json:"disabled_migrator,omitempty"`
+		SkipFieldValidation bool     `json:"skip_field_validation,omitempty"`
+		SoftDeletes         bool     `json:"soft_deletes,omitempty"`
+		Timestamps          bool     `json:"timestamps,omitempty"`
+		CryptID             bool     `json:"crypt_id,omitempty"`
 	}
 
 	Validations struct {
@@ -43,7 +44,7 @@ type (
 		// Trigger ValidTriggerType `json:"trigger"`
 	}
 
-	ModelRelation struct {
+	Relation struct {
 		Type       RelationType       `json:"type"`
 		Join       builder.JoinOption `json:"-"`
 		Schema     string             `json:"schema"`
@@ -67,8 +68,8 @@ func New(name string, tableName ...string) Schema {
 		Fields:    Fields{},
 		Extend:    ztype.Map{},
 		Values:    ztype.Maps{},
-		Relations: map[string]ModelRelation{},
-		Options:   ModelOptions{},
+		Relations: map[string]Relation{},
+		Options:   Options{},
 	}
 }
 
@@ -93,11 +94,11 @@ func (d *Schema) GetField(name string) (Field, bool) {
 	return f, true
 }
 
-func (d *Schema) SetOptions(opt ModelOptions) {
+func (d *Schema) SetOptions(opt Options) {
 	d.Options = opt
 }
 
-func (d *Schema) GetOptions() ModelOptions {
+func (d *Schema) GetOptions() Options {
 	return d.Options
 }
 

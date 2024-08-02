@@ -18,7 +18,7 @@ func TestSet(t *testing.T) {
 			Name:    "lowcode_logs",
 			Comment: "日志表",
 		},
-		Options: schema.ModelOptions{
+		Options: schema.Options{
 			Timestamps: true,
 			CryptID:    true,
 		},

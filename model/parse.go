@@ -23,22 +23,23 @@ func perfect(alias string, m *Schema) (err error) {
 	m.Hashid = hashid.New(salt, cryptLen)
 
 	m.readOnlyKeys = make([]string, 0)
+	m.relationsKeys = make([]string, 0)
 	m.cryptKeys = make(map[string]CryptProcess, 0)
 	m.afterProcess = make(map[string][]afterProcess, 0)
 	m.beforeProcess = make(map[string][]beforeProcess, 0)
 
-	m.Fields, err = perfectField(m)
+	m.fields, err = perfectField(m)
 	if err != nil {
 		return
 	}
 
 	m.inlayFields = []string{idKey}
 	if m.define.Options.Timestamps {
-		if zarray.Contains(m.Fields, CreatedAtKey) {
+		if zarray.Contains(m.fields, CreatedAtKey) {
 			err = errors.New(CreatedAtKey + " is a reserved field")
 			return
 		}
-		if zarray.Contains(m.Fields, UpdatedAtKey) {
+		if zarray.Contains(m.fields, UpdatedAtKey) {
 			err = errors.New(UpdatedAtKey + " is a reserved field")
 			return
 		}
@@ -61,14 +62,14 @@ func perfect(alias string, m *Schema) (err error) {
 	// }
 
 	if m.define.Options.SoftDeletes {
-		if zarray.Contains(m.Fields, DeletedAtKey) {
+		if zarray.Contains(m.fields, DeletedAtKey) {
 			err = errors.New(DeletedAtKey + " is a reserved field")
 			return
 		}
 		m.inlayFields = append(m.inlayFields, DeletedAtKey)
 	}
 
-	m.fullFields = append([]string{idKey}, m.Fields...)
+	m.fullFields = append([]string{idKey}, m.fields...)
 	m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
 
 	if m.define.Options.SoftDeletes {
@@ -87,20 +88,21 @@ func perfect(alias string, m *Schema) (err error) {
 	if len(m.define.Relations) > 0 {
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
-			if v.ForeignKey == "" || &v.ForeignKey == nil {
+			if v.ForeignKey == "" {
 				v.ForeignKey = idKey
 				m.define.Relations[k] = v
 			}
 		}
 
-		newRelations := make(map[string]schema.ModelRelation, len(m.define.Relations))
+		newRelations := make(map[string]schema.Relation, len(m.define.Relations))
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
 			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
 		}
 		m.define.Relations = newRelations
+		m.relationsKeys = zarray.Keys(m.define.Relations)
 	} else {
-		m.define.Relations = make(map[string]schema.ModelRelation)
+		m.define.Relations = make(map[string]schema.Relation)
 	}
 
 	// if m.model.Options.CreatedBy {

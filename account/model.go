@@ -27,7 +27,7 @@ const roleName = "role"
 func roleModel(ms *model.Schemas) error {
 	_, err := ms.Reg(roleName, mSchema.Schema{
 		Name: roleName,
-		Options: mSchema.ModelOptions{
+		Options: mSchema.Options{
 			CryptID:    true,
 			Timestamps: true,
 		},
@@ -124,7 +124,7 @@ const permName = "permission"
 func permModel(ms *model.Schemas) error {
 	_, err := ms.Reg(permName, mSchema.Schema{
 		Name: permName,
-		Options: mSchema.ModelOptions{
+		Options: mSchema.Options{
 			Timestamps: true,
 		},
 		Fields: map[string]mSchema.Field{
@@ -220,7 +220,7 @@ const logsName = "logs"
 func logModel(ms *model.Schemas) error {
 	_, err := ms.Reg(logsName, mSchema.Schema{
 		Name: logsName,
-		Options: mSchema.ModelOptions{
+		Options: mSchema.Options{
 			CryptID: true,
 		},
 		Fields: map[string]mSchema.Field{

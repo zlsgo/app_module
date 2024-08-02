@@ -15,7 +15,7 @@ const modelName = "member"
 
 var modelDefine = zutil.Once(func() mSchema.Schema {
 	modelDefine := mSchema.New(modelName)
-	modelDefine.SetOptions(mSchema.ModelOptions{
+	modelDefine.SetOptions(mSchema.Options{
 		CryptID:    true,
 		Timestamps: true,
 	})

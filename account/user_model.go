@@ -46,7 +46,7 @@ func accountModelDefine(p *Module) error {
 
 	mod, err := p.mods.Reg(accountName, mSchema.Schema{
 		Name: accountName,
-		Options: mSchema.ModelOptions{
+		Options: mSchema.Options{
 			CryptID:    true,
 			Timestamps: true,
 		},

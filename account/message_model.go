@@ -30,7 +30,7 @@ func messageModelDefine(m *Module) error {
 	const messageName = "message"
 	mod, err := m.mods.Reg(messageName, mSchema.Schema{
 		Name: messageName,
-		Options: mSchema.ModelOptions{
+		Options: mSchema.Options{
 			CryptID:    true,
 			Timestamps: true,
 		},
