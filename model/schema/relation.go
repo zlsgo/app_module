@@ -1,12 +1,28 @@
 package schema
 
+import "github.com/zlsgo/zdb/builder"
+
 type RelationType string
 
 const (
-	// RelationOne 单对单
-	RelationOne RelationType = "o2o"
-	// RelationOneMerge 单对单，结果合并
-	RelationOneMerge RelationType = "o2o_merge"
+	// RelationSingle 单对单
+	RelationSingle RelationType = "single"
+	// RelationSingleMerge 单对单，结果合并
+	RelationSingleMerge RelationType = "single_merge"
 	// RelationMany 单对多
-	RelationMany RelationType = "o2m"
+	RelationMany RelationType = "many"
+)
+
+type (
+	Relations map[string]Relation
+	Relation  struct {
+		Type       RelationType       `json:"type"`
+		Join       builder.JoinOption `json:"-"`
+		Schema     string             `json:"schema"`
+		ForeignKey []string           `json:"foreign_key"`
+		SchemaKey  []string           `json:"schema_key"`
+		Fields     []string           `json:"fields,omitempty"`
+		// Relations  []string           `json:"relations,omitempty"`
+		// Limit   int                `json:"limit,omitempty"`
+	}
 )

@@ -11,8 +11,8 @@ type (
 		service.ModuleLifeCycle
 		Options Options
 
-		Models     *Schemas
-		Operations *Models
+		Schemas *Schemas
+		Models  *Models
 	}
 )
 
@@ -26,8 +26,8 @@ func (p *Module) Name() string {
 }
 
 func (p *Module) String() string {
-	if p != nil && p.Models != nil {
-		return p.Models.String()
+	if p != nil && p.Schemas != nil {
+		return p.Schemas.String()
 	}
 
 	return "[]"

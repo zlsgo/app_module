@@ -46,7 +46,7 @@ type (
 	}
 
 	Model struct {
-		model *Schema
+		schema *Schema
 	}
 )
 

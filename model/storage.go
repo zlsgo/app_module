@@ -58,4 +58,5 @@ type PageInfo struct {
 type Migrationer interface {
 	Auto(deleteColumn ...DealOldColumn) (err error)
 	HasTable() bool
+	GetFields() (ztype.Map, error)
 }

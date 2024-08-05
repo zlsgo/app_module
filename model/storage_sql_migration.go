@@ -90,20 +90,28 @@ func (m *Migration) HasTable() bool {
 	return process(res)
 }
 
-func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
+func (m *Migration) GetFields() (ztype.Map, error) {
 	table := builder.NewTable(m.Model.GetTableName())
-	table.SetDriver(db.GetDriver())
+	table.SetDriver(m.DB.GetDriver())
 	sql, values, process := table.GetColumn()
-	res, err := db.QueryToMaps(sql, values...)
+	res, err := m.DB.QueryToMaps(sql, values...)
 	if err != nil {
-		return err
+		return ztype.Map{}, err
 	}
 
+	return process(res), nil
+}
+
+func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	modelFields := m.Model.GetModelFields()
 	newColumns := zarray.Keys(modelFields)
 	newColumns = append(newColumns, idKey)
 
-	currentColumns := process(res)
+	currentColumns, err := m.GetFields()
+	if err != nil {
+		return err
+	}
+
 	oldColumns := zarray.Keys(currentColumns)
 
 	{
@@ -149,6 +157,11 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	if len(oldColumn) > 0 {
 		dealOldColumn = oldColumn[0]
 	}
+	var (
+		sql    string
+		values []interface{}
+		table  = builder.NewTable(m.Model.GetTableName())
+	)
 	for _, v := range deleteColumns {
 		if dealOldColumn == dealOldColumnNone || isDisableMigratioField(m.Model, v) {
 			continue

@@ -89,15 +89,14 @@ func pages(m *Schema, page, pagesize int, filter ztype.Map, cryptId bool, fn ...
 			fn[0](so)
 		}
 
-		if len(so.Fields) > 0 && len(so.Join) == 0 && !m.define.Options.SkipFieldValidation {
+		childRelationson, foreignKeys = relationson(m, so)
+		if len(so.Fields) > 0 && len(so.Join) == 0 {
 			so.Fields = m.filterFields(so.Fields)
-		} else if len(so.Fields) == 0 && !m.define.Options.SkipFieldValidation {
+		} else if len(so.Fields) == 0 {
 			so.Fields = m.GetFields()
 		} else if len(so.Fields) == 0 {
 			so.Fields = allFields
 		}
-
-		childRelationson, foreignKeys = relationson(m, so)
 	})
 
 	data := &PageData{Items: rows, Page: pages, pagesize: uint(pagesize)}
@@ -151,16 +150,21 @@ func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]stri
 			} else {
 				childRelationson[field[0]] = append(childRelationson[field[0]], field[1])
 			}
-			if !includeAllFields && !zarray.Contains(so.Fields, m.define.Relations[field[0]].ForeignKey) {
-				foreignKeys = append(foreignKeys, m.define.Relations[field[0]].ForeignKey)
+
+			if !includeAllFields {
+				for fki := range m.define.Relations[field[0]].SchemaKey {
+					if !zarray.Contains(so.Fields, m.define.Relations[field[0]].ForeignKey[fki]) {
+						foreignKeys = append(foreignKeys, m.define.Relations[field[0]].ForeignKey[fki])
+					}
+				}
 			}
 		}
 		return !isRelation
 	})
+
 	if len(foreignKeys) > 0 {
 		so.Fields = append(so.Fields, foreignKeys...)
 	}
-
 	return
 }
 
@@ -173,18 +177,26 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		}
 
 		ok = true
-		items, err := find(m, ztype.Map{
-			d.SchemaKey: zarray.Map(rows, func(_ int, row ztype.Map) any {
-				return row.Get(d.ForeignKey).Value()
-			}),
-		}, false, func(co *CondOptions) {
+		schemaKeyLen := len(d.SchemaKey)
+		filter := make(ztype.Map, schemaKeyLen)
+		for i := 0; i < schemaKeyLen; i++ {
+			filter[d.SchemaKey[i]] = zarray.Map(rows, func(_ int, row ztype.Map) any {
+				return row.Get(d.ForeignKey[i]).Value()
+			})
+		}
+		tmpKeys := make([]string, 0, schemaKeyLen)
+		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
 			co.Fields = childRelationson[key]
+
 			if len(co.Fields) == 0 {
 				co.Fields = allFields
 			} else {
-				ok = zarray.Contains(co.Fields, d.SchemaKey)
-				if !ok {
-					co.Fields = append(co.Fields, d.SchemaKey)
+				for i := 0; i < schemaKeyLen; i++ {
+					ok = zarray.Contains(co.Fields, d.SchemaKey[i])
+					if !ok {
+						tmpKeys = append(tmpKeys, d.SchemaKey[i])
+						co.Fields = append(co.Fields, d.SchemaKey[i])
+					}
 				}
 
 				co.Fields = zarray.Unique(co.Fields)
@@ -197,21 +209,28 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		if err != nil {
 			return nil, err
 		}
+
 		if len(items) == 0 {
-			// 需要填充默认值
+			// TODO: 需要填充默认值
 			return rows, nil
 		}
 
 		switch d.Type {
-		case schema.RelationOne:
+		case schema.RelationSingle:
 			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
 				eq := false
 				for i := range items {
-					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+					eqSum := 0
+					for si := 0; si < schemaKeyLen; si++ {
+						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+							eqSum++
+						}
+					}
+					if eqSum == schemaKeyLen {
 						eq = true
 						value := make(ztype.Map, len(items[i]))
 						for k := range items[i] {
-							if !ok && k == d.SchemaKey {
+							if zarray.Contains(tmpKeys, k) {
 								continue
 							}
 							value[k] = items[i][k]
@@ -226,24 +245,24 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				return row
 			}, 10)
 
-		case schema.RelationOneMerge:
+		case schema.RelationSingleMerge:
 			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				eq := false
 				for i := range items {
-					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
-						eq = true
+					eqSum := 0
+					for si := 0; si < schemaKeyLen; si++ {
+						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+							eqSum++
+						}
+					}
+					if eqSum == schemaKeyLen {
 						for k := range items[i] {
-							if !ok && k == d.SchemaKey {
+							if zarray.Contains(tmpKeys, k) {
 								continue
 							}
 							row.Set(k, items[i][k])
 						}
-
 						break
 					}
-				}
-				if !eq {
-					row.Set(key, ztype.Map{})
 				}
 				return row
 			}, 10)
@@ -251,15 +270,20 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
 				values := make(ztype.Maps, 0)
 				for i := range items {
-					if items[i].Get(d.SchemaKey).String() == row.Get(d.ForeignKey).String() {
+					eqSum := 0
+					for si := 0; si < schemaKeyLen; si++ {
+						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+							eqSum++
+						}
+					}
+					if eqSum == schemaKeyLen {
 						value := make(ztype.Map, len(items[i]))
 						for k := range items[i] {
-							if !ok && k == d.SchemaKey {
+							if zarray.Contains(tmpKeys, k) {
 								continue
 							}
 							value[k] = items[i][k]
 						}
-
 						values = append(values, value)
 					}
 				}
@@ -273,8 +297,7 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 	if len(foreignKeys) > 0 {
 		rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
 			for i := range foreignKeys {
-				_ = i
-				// delete(row, foreignKeys[i])
+				delete(row, foreignKeys[i])
 			}
 			return row
 		}, 10)
@@ -301,15 +324,14 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 			fn[i](so)
 		}
 
-		if len(so.Fields) > 0 && len(so.Join) == 0 && !m.define.Options.SkipFieldValidation {
+		childRelationson, foreignKeys = relationson(m, so)
+		if len(so.Fields) > 0 && len(so.Join) == 0 {
 			so.Fields = m.filterFields(so.Fields)
-		} else if len(so.Fields) == 0 && !m.define.Options.SkipFieldValidation {
+		} else if len(so.Fields) == 0 {
 			so.Fields = m.GetFields()
 		} else if len(so.Fields) == 0 {
 			so.Fields = allFields
 		}
-
-		childRelationson, foreignKeys = relationson(m, so)
 	})
 	if err != nil {
 		return rows, err
@@ -419,7 +441,12 @@ func FindCol[T filter](m *Schema, field string, filter T, fn ...func(*CondOption
 }
 
 func Count[T Filter](m *Schema, filter T, fn ...func(*CondOptions)) (uint64, error) {
-	data, err := FindCols(m, "count(*) as count", filter, fn...)
+	data, err := FindCols(m, "count(*) as count", filter, func(co *CondOptions) {
+		for i := range fn {
+			fn[i](co)
+		}
+		co.OrderBy = nil
+	})
 	if err != nil {
 		return 0, err
 	}

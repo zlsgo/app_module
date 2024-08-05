@@ -17,12 +17,23 @@ import (
 )
 
 func (m *Schema) filterFields(fields []string) []string {
+	hasAllFields := zarray.Contains(fields, allFields[0])
 	return zarray.Filter(fields, func(_ int, f string) bool {
+		if f == allFields[0] {
+			return true
+		}
+
 		f = zstring.TrimSpace(f)
 		if strings.ContainsRune(f, '(') || strings.ContainsRune(f, ' ') {
 			return true
 		}
-		return zarray.Contains(m.fullFields, f)
+
+		ok := zarray.Contains(m.fullFields, f)
+		if hasAllFields && ok {
+			return false
+		}
+
+		return ok
 	})
 }
 

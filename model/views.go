@@ -13,6 +13,27 @@ import (
 // 	Filters  []interface{} `json:"filters"`
 // }
 
+func (m *Schema) ParseLables(items ztype.Maps) ztype.Maps {
+	return zarray.Map(items, func(_ int, v ztype.Map) ztype.Map {
+		for k := range v {
+			s, ok := m.getField(k)
+			if !ok {
+				continue
+			}
+
+			if len(s.Options.Enum) > 0 {
+				for i := range s.Options.Enum {
+					if s.Options.Enum[i].Value == v.Get(k).String() {
+						v[k+"_label"] = s.Options.Enum[i].Label
+						break
+					}
+				}
+			}
+		}
+		return v
+	}, 10)
+}
+
 func (m *Schema) GetViewFields(view string) []string {
 	v := m.define.Extend.Get("views").Get(view).Map()
 	if v.Get("disabled").Bool() {

@@ -108,9 +108,6 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 
 	for i := range opt.Schemas {
 		d := opt.Schemas[i]
-		if opt.DisabledMigrator {
-			d.Options.DisabledMigrator = true
-		}
 
 		if d.Name == "" && d.SchemaPath != "" {
 			return errors.New("model name can not be empty, schema path: " + d.SchemaPath)
@@ -126,8 +123,8 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 
 	_ = mapper.Maps(mod, opers)
 
-	m.Models = mod
-	m.Operations = opers
+	m.Schemas = mod
+	m.Models = opers
 
 	zlog.Debugf("Models %s\n", mod)
 

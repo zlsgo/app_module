@@ -88,7 +88,7 @@ func (h *schemaController) Init(r *znet.Engine) error {
 func (h *schemaController) GET(c *znet.Context) (any, error) {
 	schemas := ztype.Map{}
 
-	h.module.Models.ForEach(func(key string, m *Schema) bool {
+	h.module.Schemas.ForEach(func(key string, m *Schema) bool {
 		schemas[key] = ztype.Map{
 			"name":    m.GetName(),
 			"comment": m.GetComment(),

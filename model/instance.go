@@ -99,6 +99,16 @@ func (ms *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 	}
 
 	if m.GetDefine().Options.DisabledMigrator {
+		migration := m.Migration()
+		if migration.HasTable() {
+			go func() {
+				if mFields, err := migration.GetFields(); err == nil {
+					inlayFields := zarray.Keys(mFields)
+					m.inlayFields = zarray.Unique(append(m.inlayFields, inlayFields...))
+					m.fullFields = zarray.Unique(append(m.fullFields, inlayFields...))
+				}
+			}()
+		}
 		return m, nil
 	}
 

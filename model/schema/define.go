@@ -4,20 +4,19 @@ import (
 	"errors"
 
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/zdb/builder"
 )
 
 type (
 	Schemas []Schema
 	Schema  struct {
-		Fields     Fields              `json:"fields"`
-		Extend     ztype.Map           `json:"extend,omitempty"`
-		Relations  map[string]Relation `json:"relations,omitempty"`
-		Table      Table               `json:"table,omitempty"`
-		Name       string              `json:"name"`
-		SchemaPath string              `json:"-"`
-		Values     ztype.Maps          `json:"values,omitempty"`
-		Options    Options             `json:"options,omitempty"`
+		Fields     Fields     `json:"fields"`
+		Extend     ztype.Map  `json:"extend,omitempty"`
+		Relations  Relations  `json:"relations,omitempty"`
+		Table      Table      `json:"table,omitempty"`
+		Name       string     `json:"name"`
+		SchemaPath string     `json:"-"`
+		Values     ztype.Maps `json:"values,omitempty"`
+		Options    Options    `json:"options,omitempty"`
 	}
 
 	Table struct {
@@ -26,15 +25,15 @@ type (
 	}
 
 	Options struct {
-		Salt                string   `json:"crypt_salt,omitempty"`
-		LowFields           []string `json:"low_fields,omitempty"`
-		FieldsSort          []string `json:"fields_sort,omitempty"`
-		CryptLen            int      `json:"crypt_len,omitempty"`
-		DisabledMigrator    bool     `json:"disabled_migrator,omitempty"`
-		SkipFieldValidation bool     `json:"skip_field_validation,omitempty"`
-		SoftDeletes         bool     `json:"soft_deletes,omitempty"`
-		Timestamps          bool     `json:"timestamps,omitempty"`
-		CryptID             bool     `json:"crypt_id,omitempty"`
+		Salt             string   `json:"crypt_salt,omitempty"`
+		LowFields        []string `json:"low_fields,omitempty"`
+		FieldsSort       []string `json:"fields_sort,omitempty"`
+		CryptLen         int      `json:"crypt_len,omitempty"`
+		DisabledMigrator bool     `json:"disabled_migrator,omitempty"`
+		// SkipFieldValidation bool     `json:"skip_field_validation,omitempty"`
+		SoftDeletes bool `json:"soft_deletes,omitempty"`
+		Timestamps  bool `json:"timestamps,omitempty"`
+		CryptID     bool `json:"crypt_id,omitempty"`
 	}
 
 	Validations struct {
@@ -42,17 +41,6 @@ type (
 		Method  string      `json:"method"`
 		Message string      `json:"message,omitempty"`
 		// Trigger ValidTriggerType `json:"trigger"`
-	}
-
-	Relation struct {
-		Type       RelationType       `json:"type"`
-		Join       builder.JoinOption `json:"-"`
-		Schema     string             `json:"schema"`
-		ForeignKey string             `json:"foreign_key"`
-		SchemaKey  string             `json:"schema_key"`
-		Fields     []string           `json:"fields,omitempty"`
-		Relations  []string           `json:"relations,omitempty"`
-		// Limit   int                `json:"limit,omitempty"`
 	}
 )
 
@@ -100,6 +88,10 @@ func (d *Schema) SetOptions(opt Options) {
 
 func (d *Schema) GetOptions() Options {
 	return d.Options
+}
+
+func (d *Schema) AddRelation(name string, relation Relation) {
+	(*d).Relations[name] = relation
 }
 
 func (d *Schemas) Append(define ...Schema) {

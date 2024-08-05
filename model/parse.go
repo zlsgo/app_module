@@ -10,7 +10,7 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 )
 
-// perfect 完善模型
+// perfect is perfect
 func perfect(alias string, m *Schema) (err error) {
 	m.alias = alias
 
@@ -28,70 +28,75 @@ func perfect(alias string, m *Schema) (err error) {
 	m.afterProcess = make(map[string][]afterProcess, 0)
 	m.beforeProcess = make(map[string][]beforeProcess, 0)
 
+	isNotFields := len(m.define.Fields) == 0
 	m.fields, err = perfectField(m)
 	if err != nil {
 		return
 	}
 
-	m.inlayFields = []string{idKey}
-	if m.define.Options.Timestamps {
-		if zarray.Contains(m.fields, CreatedAtKey) {
-			err = errors.New(CreatedAtKey + " is a reserved field")
-			return
+	if !isNotFields {
+		m.inlayFields = []string{idKey}
+		if m.define.Options.Timestamps {
+			if zarray.Contains(m.fields, CreatedAtKey) {
+				err = errors.New(CreatedAtKey + " is a reserved field")
+				return
+			}
+			if zarray.Contains(m.fields, UpdatedAtKey) {
+				err = errors.New(UpdatedAtKey + " is a reserved field")
+				return
+			}
+			var after []afterProcess
+			after, err = m.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
+			if err != nil {
+				return
+			}
+			m.afterProcess[CreatedAtKey] = after
+			m.afterProcess[UpdatedAtKey] = after
+			m.inlayFields = append(m.inlayFields, CreatedAtKey, UpdatedAtKey)
 		}
-		if zarray.Contains(m.fields, UpdatedAtKey) {
-			err = errors.New(UpdatedAtKey + " is a reserved field")
-			return
+
+		// if m.model.Options.CreatedBy {
+		// 	if zarray.Contains(m.Fields, CreatedByKey) {
+		// 		err = errors.New(CreatedByKey + " is a reserved field")
+		// 		return
+		// 	}
+		// 	m.inlayFields = append(m.inlayFields, CreatedByKey)
+		// }
+
+		if m.define.Options.SoftDeletes {
+			if zarray.Contains(m.fields, DeletedAtKey) {
+				err = errors.New(DeletedAtKey + " is a reserved field")
+				return
+			}
+			m.inlayFields = append(m.inlayFields, DeletedAtKey)
 		}
-		var after []afterProcess
-		after, err = m.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
-		if err != nil {
-			return
-		}
-		m.afterProcess[CreatedAtKey] = after
-		m.afterProcess[UpdatedAtKey] = after
-		m.inlayFields = append(m.inlayFields, CreatedAtKey, UpdatedAtKey)
-	}
 
-	// if m.model.Options.CreatedBy {
-	// 	if zarray.Contains(m.Fields, CreatedByKey) {
-	// 		err = errors.New(CreatedByKey + " is a reserved field")
-	// 		return
-	// 	}
-	// 	m.inlayFields = append(m.inlayFields, CreatedByKey)
-	// }
+		m.fullFields = append([]string{idKey}, m.fields...)
+		m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
 
-	if m.define.Options.SoftDeletes {
-		if zarray.Contains(m.fields, DeletedAtKey) {
-			err = errors.New(DeletedAtKey + " is a reserved field")
-			return
-		}
-		m.inlayFields = append(m.inlayFields, DeletedAtKey)
-	}
-
-	m.fullFields = append([]string{idKey}, m.fields...)
-	m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
-
-	if m.define.Options.SoftDeletes {
-		flen := len(m.fullFields)
-		for i := 0; i < flen; i++ {
-			f := m.fullFields[i]
-			if f == DeletedAtKey {
-				m.fullFields = append(m.fullFields[0:i], m.fullFields[i+1:]...)
-				break
+		if m.define.Options.SoftDeletes {
+			flen := len(m.fullFields)
+			for i := 0; i < flen; i++ {
+				f := m.fullFields[i]
+				if f == DeletedAtKey {
+					m.fullFields = append(m.fullFields[0:i], m.fullFields[i+1:]...)
+					break
+				}
 			}
 		}
-	}
 
-	m.lowFields = m.define.Options.LowFields
+		m.lowFields = m.define.Options.LowFields
+	} else {
+		m.define.Options.DisabledMigrator = true
+	}
 
 	if len(m.define.Relations) > 0 {
 		for k := range m.define.Relations {
 			v := m.define.Relations[k]
-			if v.ForeignKey == "" {
-				v.ForeignKey = idKey
-				m.define.Relations[k] = v
+			if len(v.ForeignKey) != len(v.SchemaKey) {
+				return errors.New("ForeignKey and SchemaKey must be the same length")
 			}
+
 		}
 
 		newRelations := make(map[string]schema.Relation, len(m.define.Relations))

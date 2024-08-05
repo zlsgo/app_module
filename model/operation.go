@@ -28,7 +28,7 @@ func (f Filter) Set(field string, cond any) Filter {
 func (m *Schema) Model() *Model {
 	if m.model == nil {
 		m.model = &Model{
-			model: m,
+			schema: m,
 		}
 	}
 	return m.model
@@ -53,97 +53,97 @@ func (m *Models) MustGet(name string) *Model {
 	return o
 }
 
-// Model 获取模型
-func (o *Model) Model() *Schema {
-	return o.model
+// Schema 获取模型
+func (o *Model) Schema() *Schema {
+	return o.schema
 }
 
 // EnCryptID 加密 ID
 func (o *Model) EnCryptID(id string) (nid string, err error) {
-	return o.model.EnCryptID(id)
+	return o.schema.EnCryptID(id)
 }
 
 // DeCryptID 解密 ID
 func (o *Model) DeCryptID(nid string) (id string, err error) {
-	return o.model.DeCryptID(nid)
+	return o.schema.DeCryptID(nid)
 }
 
 // Insert 插入数据
 func (o *Model) Insert(data ztype.Map) (lastId interface{}, err error) {
-	return Insert(o.model, data)
+	return Insert(o.schema, data)
 }
 
 // InsertMany 批量插入数据
 func (o *Model) InsertMany(data ztype.Maps) (lastId interface{}, err error) {
-	return InsertMany(o.model, data)
+	return InsertMany(o.schema, data)
 }
 
 // Count 统计数量
 func (o *Model) Count(filter Filter, fn ...func(*CondOptions)) (uint64, error) {
-	return Count(o.model, filter, fn...)
+	return Count(o.schema, filter, fn...)
 }
 
 // Exists 数据是否存在
 func (o *Model) Exists(filter Filter, fn ...func(*CondOptions)) (bool, error) {
-	total, err := Count(o.model, filter, fn...)
+	total, err := Count(o.schema, filter, fn...)
 	return total > 0, err
 }
 
 // FindCols 查询指定字段
 func (o *Model) FindCols(field string, filter Filter) (ztype.SliceType, error) {
-	return FindCols(o.model, field, filter, func(co *CondOptions) {
+	return FindCols(o.schema, field, filter, func(co *CondOptions) {
 		co.Fields = []string{field}
 	})
 }
 
 // Find 查询数据
 func (o *Model) Find(filter Filter, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	return Find(o.model, filter, fn...)
+	return Find(o.schema, filter, fn...)
 }
 
 // FindOne 查询一条数据
 func (o *Model) FindOne(filter Filter, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o.model, filter, fn...)
+	return FindOne(o.schema, filter, fn...)
 }
 
 // FindOneByID 通过ID查询
 func (o *Model) FindOneByID(id any, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o.model, ztype.Map{idKey: id}, fn...)
+	return FindOne(o.schema, ztype.Map{idKey: id}, fn...)
 }
 
 // Pages 分页查询
 func (o *Model) Pages(page, pagesize int, filter Filter, fn ...func(*CondOptions)) (*PageData, error) {
-	return Pages(o.model, page, pagesize, filter, fn...)
+	return Pages(o.schema, page, pagesize, filter, fn...)
 }
 
 // Update 更新数据
 func (o *Model) Update(filter Filter, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
-	return Update(o.model, filter, data, fn...)
+	return Update(o.schema, filter, data, fn...)
 }
 
 // UpdateMany 更新多条数据
 func (o *Model) UpdateMany(filter Filter, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
-	return UpdateMany(o.model, filter, data, fn...)
+	return UpdateMany(o.schema, filter, data, fn...)
 }
 
 // UpdateByID 通过ID更新
 func (o *Model) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
 	filter := ztype.Map{idKey: id}
-	return Update(o.model, filter, data, fn...)
+	return Update(o.schema, filter, data, fn...)
 }
 
 // Delete 删除数据
 func (o *Model) Delete(id any, filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
-	return Delete(o.model, filter, fn...)
+	return Delete(o.schema, filter, fn...)
 }
 
 // DeleteMany 删除多条数据
 func (o *Model) DeleteMany(id any, filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
-	return DeleteMany(o.model, filter, fn...)
+	return DeleteMany(o.schema, filter, fn...)
 }
 
 // DeleteByID 通过ID删除数据
 func (o *Model) DeleteByID(id any, fn ...func(*CondOptions)) (total int64, err error) {
 	filter := ztype.Map{idKey: id}
-	return Delete(o.model, filter, fn...)
+	return Delete(o.schema, filter, fn...)
 }

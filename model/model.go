@@ -17,7 +17,6 @@ type (
 		SchemaDir        string
 		SchemaApi        string
 		Schemas          schema.Schemas
-		DisabledMigrator bool
 	}
 )
 
