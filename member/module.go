@@ -17,7 +17,8 @@ import (
 type Module struct {
 	service.ModuleLifeCycle
 	db          *zdb.DB
-	mods        *model.Schemas
+	ss          *model.Schemas
+	mods        *model.Models
 	jwtParse    func(c *znet.Context) (string, error)
 	instance    *Instance
 	controllers []service.Controller
@@ -104,13 +105,14 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db))
+	m.ss = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db))
 
-	mod, err := m.mods.Reg(modelName, modelDefine(), false)
+	mod, err := m.ss.Reg(modelName, modelDefine(), false)
 	if err != nil {
 		return err
 	}
-	di.(zdi.Injector).Map(&Operation{
+
+	di.(zdi.Injector).Map(&Model{
 		Model: *mod.Model(),
 	})
 	return

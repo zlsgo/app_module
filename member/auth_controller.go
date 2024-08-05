@@ -14,7 +14,7 @@ import (
 type Auth struct {
 	service.App
 	module   *Module
-	userOper *Operation
+	userOper *Model
 	Path     string
 }
 

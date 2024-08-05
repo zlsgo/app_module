@@ -121,6 +121,10 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		opers.items.Set(d.Name, m.Model())
 	}
 
+	if opt.GetWrapModels != nil {
+		mod.getWrapModels = opt.GetWrapModels
+	}
+
 	_ = mapper.Maps(mod, opers)
 
 	m.Schemas = mod

@@ -180,9 +180,19 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		schemaKeyLen := len(d.SchemaKey)
 		filter := make(ztype.Map, schemaKeyLen)
 		for i := 0; i < schemaKeyLen; i++ {
-			filter[d.SchemaKey[i]] = zarray.Map(rows, func(_ int, row ztype.Map) any {
-				return row.Get(d.ForeignKey[i]).Value()
-			})
+			vales := make([]any, 0, len(rows))
+			repeat := make(map[any]struct{}, len(rows))
+
+			for ir := range rows {
+				v := rows[ir].Get(d.ForeignKey[i]).Value()
+				if _, ok := repeat[v]; ok {
+					continue
+				}
+				repeat[v] = struct{}{}
+				vales = append(vales, v)
+			}
+
+			filter[d.SchemaKey[i]] = vales
 		}
 		if len(d.Filter) > 0 {
 			for k := range d.Filter {

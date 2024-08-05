@@ -5,6 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/zlsgo/app_module/account/jwt"
+	"github.com/zlsgo/app_module/model"
 )
 
 type Instance struct {
@@ -14,6 +15,18 @@ type Instance struct {
 
 func (ins *Instance) GetMiddleware(optionalRoute ...string) (middleware func(c *znet.Context) error) {
 	return ins.middleware(optionalRoute...)
+}
+
+func (ins *Instance) GetMemberModel() *model.Model {
+	return ins.module.ss.MustGet(modelName).Model()
+}
+
+func (ins *Instance) GetModel(name string) (*model.Model, bool) {
+	s, ok := ins.module.ss.Get(name)
+	if !ok {
+		return nil, false
+	}
+	return s.Model(), true
 }
 
 func (m *Module) Instance() *Instance {

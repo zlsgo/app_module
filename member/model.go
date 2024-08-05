@@ -7,7 +7,7 @@ import (
 	"github.com/zlsgo/zdb/schema"
 )
 
-type Operation struct {
+type Model struct {
 	model.Model
 }
 

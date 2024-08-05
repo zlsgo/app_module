@@ -22,7 +22,7 @@ func (m *Module) UserById(id any) (u *User, err error) {
 	}
 
 	info, ok := userCache.ProvideGet(ztype.ToString(id), func() (interface{}, bool) {
-		info, err := mod.Model().FindOneByID(id)
+		info, err := mod.FindOneByID(id)
 		if err != nil {
 			return nil, false
 		}

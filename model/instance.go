@@ -11,9 +11,10 @@ import (
 )
 
 type Schemas struct {
-	data    *zarray.Maper[string, *Schema]
-	di      zdi.Injector
-	storage Storageer
+	data          *zarray.Maper[string, *Schema]
+	di            zdi.Injector
+	storage       Storageer
+	getWrapModels func() []*Model
 }
 
 func NewSchemas(di zdi.Injector, s Storageer) *Schemas {
@@ -51,11 +52,20 @@ func (ms *Schemas) set(alias string, m *Schema, force ...bool) (err error) {
 }
 
 func (ms *Schemas) Get(alias string) (*Schema, bool) {
-	return ms.data.Get(alias)
+	s, ok := ms.data.Get(alias)
+	if !ok && ms.getWrapModels != nil {
+		for _, m := range ms.getWrapModels() {
+			if alias == m.schema.GetAlias() {
+				return m.schema, true
+			}
+		}
+	}
+
+	return s, ok
 }
 
 func (ms *Schemas) MustGet(alias string) *Schema {
-	m, ok := ms.data.Get(alias)
+	m, ok := ms.Get(alias)
 	if !ok {
 		panic("model " + alias + " not found")
 	}

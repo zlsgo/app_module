@@ -12,6 +12,7 @@ import (
 type (
 	Options struct {
 		GetDB            func() (*zdb.DB, error)
+		GetWrapModels    func() []*Model
 		SchemaMiddleware func() []znet.Handler
 		Prefix           string
 		SchemaDir        string
