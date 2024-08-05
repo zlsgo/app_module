@@ -1,6 +1,9 @@
 package schema
 
-import "github.com/zlsgo/zdb/builder"
+import (
+	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/zdb/builder"
+)
 
 type RelationType string
 
@@ -22,6 +25,8 @@ type (
 		ForeignKey []string           `json:"foreign_key"`
 		SchemaKey  []string           `json:"schema_key"`
 		Fields     []string           `json:"fields,omitempty"`
+		Filter     ztype.Map          `json:"filter,omitempty"`
+
 		// Relations  []string           `json:"relations,omitempty"`
 		// Limit   int                `json:"limit,omitempty"`
 	}

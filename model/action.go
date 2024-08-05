@@ -184,6 +184,11 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				return row.Get(d.ForeignKey[i]).Value()
 			})
 		}
+		if len(d.Filter) > 0 {
+			for k := range d.Filter {
+				filter[k] = d.Filter[k]
+			}
+		}
 		tmpKeys := make([]string, 0, schemaKeyLen)
 		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
 			co.Fields = childRelationson[key]
