@@ -168,17 +168,24 @@ func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]stri
 	return
 }
 
-func relationsonValue(key string, typ schema.RelationType, rows ztype.Maps) ztype.Maps {
-	if len(rows) == 0 || typ == schema.RelationSingleMerge {
+func relationsonValue(key string, typ schema.RelationType, fields []string, rows ztype.Maps) ztype.Maps {
+	if len(rows) == 0 {
 		return rows
+	}
+
+	m := ztype.Map{}
+	for _, field := range fields {
+		m[field] = nil
 	}
 
 	var value any
 	switch typ {
 	case schema.RelationSingle:
-		value = ztype.Map{}
+		value = m
 	case schema.RelationMany:
-		value = ztype.Maps{}
+		value = ztype.Maps{m}
+	case schema.RelationSingleMerge:
+		value = m
 	}
 
 	return zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
@@ -196,7 +203,7 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		}
 
 		ok = true
-		schemaKeyLen := len(d.SchemaKey)
+		schemaKeyLen, fields := len(d.SchemaKey), childRelationson[key]
 		filter := make(ztype.Map, schemaKeyLen)
 		for i := 0; i < schemaKeyLen; i++ {
 			value := make([]any, 0, len(rows))
@@ -214,19 +221,23 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				filter[d.SchemaKey[i]] = value
 			}
 		}
+
 		if len(d.Filter) > 0 {
 			for k := range d.Filter {
 				filter[k] = d.Filter[k]
 			}
 		}
+
 		if len(filter) == 0 {
-			rows = relationsonValue(key, d.Type, rows)
+			if d.Nullable {
+				rows = relationsonValue(key, d.Type, fields, rows)
+			}
 			continue
 		}
 
 		tmpKeys := make([]string, 0, schemaKeyLen)
 		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
-			co.Fields = childRelationson[key]
+			co.Fields = fields
 
 			if len(co.Fields) == 0 {
 				co.Fields = allFields
@@ -251,7 +262,9 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		}
 
 		if len(items) == 0 {
-			rows = relationsonValue(key, d.Type, rows)
+			if d.Nullable {
+				rows = relationsonValue(key, d.Type, fields, rows)
+			}
 			continue
 		}
 

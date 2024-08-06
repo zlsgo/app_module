@@ -26,7 +26,7 @@ type (
 		SchemaKey  []string           `json:"schema_key"`
 		Fields     []string           `json:"fields,omitempty"`
 		Filter     ztype.Map          `json:"filter,omitempty"`
-
+		Nullable   bool               `json:"nullable,omitempty"`
 		// Relations  []string           `json:"relations,omitempty"`
 		// Limit   int                `json:"limit,omitempty"`
 	}
