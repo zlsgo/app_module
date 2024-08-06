@@ -79,9 +79,11 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 
 		injector := di.(zdi.Injector)
 
-		_ = initInstance(m)
+		if err := initInstance(m); err != nil {
+			return err
+		}
 
-		injector.Map(m.instance)
+		_ = injector.Map(m.instance)
 
 		m.controllers = []service.Controller{
 			&Auth{
@@ -107,13 +109,14 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 
 	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db))
 
-	mod, err := m.schemas.Reg(modelName, modelDefine(), false)
+	schema, err := m.schemas.Reg(modelName, modelDefine(), false)
 	if err != nil {
 		return err
 	}
 
+	m.models = m.schemas.Models()
 	di.(zdi.Injector).Map(&Model{
-		Model: *mod.Model(),
+		Model: *schema.Model(),
 	})
 	return
 }

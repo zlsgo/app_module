@@ -14,13 +14,13 @@ type Model struct {
 const modelName = "member"
 
 var modelDefine = zutil.Once(func() mSchema.Schema {
-	modelDefine := mSchema.New(modelName)
-	modelDefine.SetOptions(mSchema.Options{
+	s := mSchema.New(modelName)
+	s.SetOptions(mSchema.Options{
 		CryptID:    true,
 		Timestamps: true,
 	})
 
-	modelDefine.AddField("avatar", mSchema.Field{
+	s.AddField("avatar", mSchema.Field{
 		Label:    "头像",
 		Nullable: true,
 		Default:  "",
@@ -34,7 +34,7 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		},
 	})
 
-	modelDefine.AddField("nickname", mSchema.Field{
+	s.AddField("nickname", mSchema.Field{
 		Type:     schema.String,
 		Size:     20,
 		Label:    "昵称",
@@ -42,7 +42,7 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		Default:  "",
 	})
 
-	modelDefine.AddField("status", mSchema.Field{
+	s.AddField("status", mSchema.Field{
 		Type:    schema.Int8,
 		Size:    9,
 		Label:   "状态",
@@ -55,21 +55,21 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		},
 	})
 
-	modelDefine.AddField("salt", mSchema.Field{
+	s.AddField("salt", mSchema.Field{
 		Type:     schema.String,
 		Size:     4,
 		Nullable: true,
 		Label:    "盐",
 	})
 
-	modelDefine.AddField("login_at", mSchema.Field{
+	s.AddField("login_at", mSchema.Field{
 		Type:     schema.Time,
 		Nullable: true,
 		Options:  mSchema.FieldOption{},
 		Label:    "登录时间",
 	})
 
-	modelDefine.AddField("remark", mSchema.Field{
+	s.AddField("remark", mSchema.Field{
 		Type:     schema.String,
 		Size:     100,
 		Default:  "",
@@ -77,35 +77,35 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		Label:    "备注",
 	})
 
-	modelDefine.AddField("extension", mSchema.Field{
+	s.AddField("extension", mSchema.Field{
 		Type:     schema.JSON,
 		Default:  "{}",
 		Nullable: true,
 		Label:    "扩展信息",
 	})
 
-	modelDefine.AddField("provider", mSchema.Field{
+	s.AddField("provider", mSchema.Field{
 		Type:     schema.String,
 		Default:  "",
 		Nullable: true,
 		Label:    "第三方登录",
 	})
 
-	modelDefine.AddField("provider_id", mSchema.Field{
+	s.AddField("provider_id", mSchema.Field{
 		Type:     schema.String,
 		Default:  "",
 		Nullable: true,
 		Label:    "第三方ID",
 	})
 
-	modelDefine.AddField("provider_username", mSchema.Field{
+	s.AddField("provider_username", mSchema.Field{
 		Type:     schema.String,
 		Default:  "",
 		Nullable: true,
 		Label:    "第三方用户名",
 	})
 
-	modelDefine.AddField("account", mSchema.Field{
+	s.AddField("account", mSchema.Field{
 		Label:  "账号",
 		Type:   schema.String,
 		Unique: true,
@@ -124,7 +124,7 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		},
 	})
 
-	modelDefine.AddField("password", mSchema.Field{
+	s.AddField("password", mSchema.Field{
 		Label:    "密码",
 		Type:     schema.String,
 		Nullable: true,
@@ -143,5 +143,5 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		},
 	})
 
-	return modelDefine
+	return s
 })
