@@ -11,13 +11,13 @@ import (
 
 type (
 	Options struct {
-		GetDB            func() (*zdb.DB, error)
-		GetWrapModels    func() []*Model
-		SchemaMiddleware func() []znet.Handler
-		Prefix           string
-		SchemaDir        string
-		SchemaApi        string
-		Schemas          schema.Schemas
+		SetDB              func() (*zdb.DB, error)
+		SetAlternateModels func() ([]*Model, error)
+		SchemaMiddleware   func() []znet.Handler
+		Prefix             string
+		SchemaDir          string
+		SchemaApi          string
+		Schemas            schema.Schemas
 	}
 )
 

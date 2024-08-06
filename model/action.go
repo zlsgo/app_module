@@ -180,7 +180,7 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		schemaKeyLen := len(d.SchemaKey)
 		filter := make(ztype.Map, schemaKeyLen)
 		for i := 0; i < schemaKeyLen; i++ {
-			vales := make([]any, 0, len(rows))
+			value := make([]any, 0, len(rows))
 			repeat := make(map[any]struct{}, len(rows))
 
 			for ir := range rows {
@@ -189,15 +189,19 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 					continue
 				}
 				repeat[v] = struct{}{}
-				vales = append(vales, v)
+				value = append(value, v)
 			}
-
-			filter[d.SchemaKey[i]] = vales
+			if len(value) > 0 {
+				filter[d.SchemaKey[i]] = value
+			}
 		}
 		if len(d.Filter) > 0 {
 			for k := range d.Filter {
 				filter[k] = d.Filter[k]
 			}
+		}
+		if len(filter) == 0 {
+			continue
 		}
 		tmpKeys := make([]string, 0, schemaKeyLen)
 		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
@@ -227,7 +231,7 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 
 		if len(items) == 0 {
 			// TODO: 需要填充默认值
-			return rows, nil
+			continue
 		}
 
 		switch d.Type {

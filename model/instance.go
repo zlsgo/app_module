@@ -56,6 +56,7 @@ func (ms *Schemas) Get(alias string) (*Schema, bool) {
 	if !ok && ms.getWrapModels != nil {
 		for _, m := range ms.getWrapModels() {
 			if alias == m.schema.GetAlias() {
+				ms.data.Set(alias, m.schema)
 				return m.schema, true
 			}
 		}

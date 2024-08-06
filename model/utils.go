@@ -13,6 +13,7 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 )
@@ -80,22 +81,22 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		db  *zdb.DB
 		opt = &m.Options
 	)
-	if opt.GetDB == nil {
-		err = di.Resolve(&db)
+	if opt.SetDB != nil {
+		db, err = opt.SetDB()
 	} else {
-		db, err = opt.GetDB()
+		err = di.Resolve(&db)
 	}
 
 	if err != nil {
 		return zerror.With(err, "init db error")
 	}
 
-	mod := NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
+	m.Schemas = NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
 		o.Prefix = m.Options.Prefix
 	}))
 
 	mapper := di.(zdi.TypeMapper)
-	opers := &Models{items: zarray.NewHashMap[string, *Model]()}
+	m.Models = &Models{items: zarray.NewHashMap[string, *Model]()}
 
 	if opt.SchemaDir != "" {
 		schemaModelsDefine, err := parseSchema(opt.SchemaDir)
@@ -113,24 +114,27 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 			return errors.New("model name can not be empty, schema path: " + d.SchemaPath)
 		}
 
-		m, err := mod.Reg(d.Name, d, false)
+		s, err := m.Schemas.Reg(d.Name, d, false)
 		if err != nil {
 			return err
 		}
 
-		opers.items.Set(d.Name, m.Model())
+		m.Models.items.Set(d.Name, s.Model())
 	}
 
-	if opt.GetWrapModels != nil {
-		mod.getWrapModels = opt.GetWrapModels
+	if opt.SetAlternateModels != nil {
+		m.Schemas.getWrapModels = zutil.Once(func() []*Model {
+			lists, err := opt.SetAlternateModels()
+			if err != nil {
+				panic(err)
+			}
+			return lists
+		})
 	}
 
-	_ = mapper.Maps(mod, opers)
+	_ = mapper.Maps(m.Schemas, m.Models)
 
-	m.Schemas = mod
-	m.Models = opers
-
-	zlog.Debugf("Models %s\n", mod)
+	zlog.Debugf("Models %s\n", m.Schemas)
 
 	return nil
 }
