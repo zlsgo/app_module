@@ -16,7 +16,7 @@ type User struct {
 var userCache = zcache.NewFast()
 
 func (m *Module) UserById(id any) (u *User, err error) {
-	mod, ok := m.mods.Get(modelName)
+	mod, ok := m.models.Get(modelName)
 	if !ok {
 		return nil, errors.New("not found model")
 	}

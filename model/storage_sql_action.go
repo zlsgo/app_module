@@ -77,7 +77,12 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 
 					exprs = append(exprs, d.Or(e...))
 				case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
-					exprs = append(exprs, d.In(f[0], ztype.ToSlice(v.Value()).Value()...))
+					values := ztype.ToSlice(v.Value()).Value()
+					if len(values) == 1 {
+						exprs = append(exprs, d.EQ(f[0], values[0]))
+					} else {
+						exprs = append(exprs, d.In(f[0], values...))
+					}
 				default:
 					exprs = append(exprs, d.EQ(f[0], val))
 				}

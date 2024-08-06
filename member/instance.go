@@ -18,11 +18,11 @@ func (ins *Instance) GetMiddleware(optionalRoute ...string) (middleware func(c *
 }
 
 func (ins *Instance) GetMemberModel() *model.Model {
-	return ins.module.ss.MustGet(modelName).Model()
+	return ins.module.schemas.MustGet(modelName).Model()
 }
 
 func (ins *Instance) GetModel(name string) (*model.Model, bool) {
-	s, ok := ins.module.ss.Get(name)
+	s, ok := ins.module.schemas.Get(name)
 	if !ok {
 		return nil, false
 	}

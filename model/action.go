@@ -168,6 +168,25 @@ func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]stri
 	return
 }
 
+func relationsonValue(key string, typ schema.RelationType, rows ztype.Maps) ztype.Maps {
+	if len(rows) == 0 || typ == schema.RelationSingleMerge {
+		return rows
+	}
+
+	var value any
+	switch typ {
+	case schema.RelationSingle:
+		value = ztype.Map{}
+	case schema.RelationMany:
+		value = ztype.Maps{}
+	}
+
+	return zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+		row[key] = value
+		return row
+	}, 10)
+}
+
 func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string][]string, foreignKeys []string) (ztype.Maps, error) {
 	for key := range childRelationson {
 		d := m.define.Relations[key]
@@ -201,8 +220,10 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 			}
 		}
 		if len(filter) == 0 {
+			rows = relationsonValue(key, d.Type, rows)
 			continue
 		}
+
 		tmpKeys := make([]string, 0, schemaKeyLen)
 		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
 			co.Fields = childRelationson[key]
@@ -230,7 +251,7 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 		}
 
 		if len(items) == 0 {
-			// TODO: 需要填充默认值
+			rows = relationsonValue(key, d.Type, rows)
 			continue
 		}
 

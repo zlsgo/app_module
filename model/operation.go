@@ -53,6 +53,18 @@ func (m *Models) MustGet(name string) *Model {
 	return o
 }
 
+// All 全部模型
+func (m *Models) All() (models []*Model) {
+	models = make([]*Model, 0, m.items.Len())
+
+	m.items.ForEach(func(key string, value *Model) bool {
+		models = append(models, value)
+		return true
+	})
+
+	return
+}
+
 // Schema 获取模型
 func (o *Model) Schema() *Schema {
 	return o.schema
