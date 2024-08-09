@@ -45,7 +45,7 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 	}
 
 	if m.define.Options.SoftDeletes {
-		if InsideOption.softDeleteIsNull {
+		if InsideOption.softDeleteIsTime {
 			filterMap[DeletedAtKey] = nil
 		} else {
 			filterMap[DeletedAtKey] = 0
@@ -579,7 +579,7 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	// }
 
 	if m.define.Options.SoftDeletes {
-		if InsideOption.softDeleteIsNull {
+		if InsideOption.softDeleteIsTime {
 			data[DeletedAtKey] = nil
 		} else {
 			data[DeletedAtKey] = 0
@@ -633,9 +633,14 @@ func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64,
 	f := getFilter(m, filter)
 	m.DeCrypt(f)
 	if m.define.Options.SoftDeletes {
-		return m.Storage.Update(m.GetTableName(), ztype.Map{
-			DeletedAtKey: ztime.Time().Unix(),
-		}, f)
+		data := make(ztype.Map, 1)
+		now := ztime.Time()
+		if InsideOption.softDeleteIsTime {
+			data[DeletedAtKey] = now
+		} else {
+			data[DeletedAtKey] = now.Unix()
+		}
+		return m.Storage.Update(m.GetTableName(), data, f)
 	}
 
 	return m.Storage.Delete(m.GetTableName(), f, fn...)

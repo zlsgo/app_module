@@ -2,7 +2,7 @@ package model
 
 type inside struct {
 	oldColumn        DealOldColumn
-	softDeleteIsNull bool
+	softDeleteIsTime bool
 }
 
 type DealOldColumn uint8
@@ -27,11 +27,11 @@ func (i *inside) OldColumnRename() {
 	i.oldColumn = dealOldColumnRename
 }
 
-func (i *inside) SoftDeleteIsNull(b ...bool) {
-	softDeleteIsNull := true
+func (i *inside) SoftDeleteIsTime(b ...bool) {
+	is := true
 
 	if len(b) > 0 {
-		softDeleteIsNull = b[0]
+		is = b[0]
 	}
-	i.softDeleteIsNull = softDeleteIsNull
+	i.softDeleteIsTime = is
 }

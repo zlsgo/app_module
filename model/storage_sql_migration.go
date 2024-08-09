@@ -183,10 +183,21 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 
 	if m.Model.define.Options.SoftDeletes {
 		if !zarray.Contains(oldColumns, DeletedAtKey) {
-			sql, values := table.AddColumn(DeletedAtKey, "int", func(f *schema.Field) {
-				f.Comment = "删除时间戳"
-				f.NotNull = false
-			})
+			var (
+				sql    string
+				values []interface{}
+			)
+			if InsideOption.softDeleteIsTime {
+				sql, values = table.AddColumn(DeletedAtKey, schema.Time, func(f *schema.Field) {
+					f.Comment = "删除时间"
+					f.NotNull = false
+				})
+			} else {
+				sql, values = table.AddColumn(DeletedAtKey, schema.Int, func(f *schema.Field) {
+					f.Comment = "删除时间戳"
+					f.NotNull = false
+				})
+			}
 			_, err := db.Exec(sql, values...)
 			if err != nil {
 				return err
@@ -210,7 +221,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 
 	if m.Model.define.Options.Timestamps {
 		if !zarray.Contains(oldColumns, CreatedAtKey) {
-			sql, values := table.AddColumn(CreatedAtKey, "time", func(f *schema.Field) {
+			sql, values := table.AddColumn(CreatedAtKey, schema.Time, func(f *schema.Field) {
 				f.Comment = "更新时间"
 			})
 			_, err := db.Exec(sql, values...)
@@ -219,7 +230,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 			}
 		}
 		if !zarray.Contains(oldColumns, UpdatedAtKey) {
-			sql, values := table.AddColumn(UpdatedAtKey, "time", func(f *schema.Field) {
+			sql, values := table.AddColumn(UpdatedAtKey, schema.Time, func(f *schema.Field) {
 				f.Comment = "更新时间"
 			})
 			_, err := db.Exec(sql, values...)
@@ -315,11 +326,19 @@ func (m *Migration) execAddColumn(
 
 func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 	if m.Model.define.Options.SoftDeletes {
-		fields = append(fields, schema.NewField(DeletedAtKey, schema.Int, func(f *schema.Field) {
-			f.Size = 9999999999
-			f.NotNull = false
-			f.Comment = "删除时间"
-		}))
+		if InsideOption.softDeleteIsTime {
+			fields = append(fields, schema.NewField(DeletedAtKey, schema.Time, func(f *schema.Field) {
+				f.Size = 9999999999
+				f.NotNull = false
+				f.Comment = "删除时间"
+			}))
+		} else {
+			fields = append(fields, schema.NewField(DeletedAtKey, schema.Int, func(f *schema.Field) {
+				f.Size = 9999999999
+				f.NotNull = false
+				f.Comment = "删除时间"
+			}))
+		}
 	}
 
 	if m.Model.define.Options.Timestamps {
@@ -404,6 +423,7 @@ func (m *Migration) getPrimaryKey() *schema.Field {
 func (m *Migration) Indexs(db *zdb.DB) error {
 	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(db.GetDriver())
+
 	modelFields := m.Model.GetModelFields()
 	uniques := make(map[string][]string, 0)
 	indexs := make(map[string][]string, 0)
@@ -426,8 +446,12 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 		}
 	}
 
+	if m.Model.define.Options.SoftDeletes {
+		indexs[DeletedAtKey] = []string{DeletedAtKey}
+	}
+
 	for name, v := range uniques {
-		name = m.Model.GetTableName() + "__unique__" + name
+		name = m.Model.GetTableName() + "__u__" + name
 		sql, values, process := table.HasIndex(name)
 		res, err := db.QueryToMaps(sql, values...)
 
@@ -441,7 +465,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 	}
 
 	for name, v := range indexs {
-		name = m.Model.GetTableName() + "__idx__" + name
+		name = m.Model.GetTableName() + "__i__" + name
 		sql, values, process := table.HasIndex(name)
 		res, err := db.QueryToMaps(sql, values...)
 		if err == nil && !process(res) {

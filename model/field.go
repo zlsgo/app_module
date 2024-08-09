@@ -85,6 +85,14 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 
 	if m.define.Options.SoftDeletes {
 		if name == DeletedAtKey {
+			if InsideOption.softDeleteIsTime {
+				return &mSchema.Field{
+					Type:     schema.Time,
+					Nullable: true,
+					Label:    "删除时间",
+				}, true
+			}
+
 			return &mSchema.Field{
 				Type:     schema.Int,
 				Size:     11,
