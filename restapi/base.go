@@ -93,6 +93,20 @@ func HanderPage(
 	return res.(*model.PageData), nil
 }
 
+func HanderGets(
+	c *znet.Context,
+	mod *model.Model,
+	filter model.Filter,
+	fn func(o *model.CondOptions),
+) (ztype.Maps, error) {
+	res, err := handerGet(c, mod, "*", filter, fn)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.(ztype.Maps), nil
+}
+
 func handerGet(
 	c *znet.Context,
 	mod *model.Model,
@@ -106,6 +120,13 @@ func handerGet(
 		return mod.Pages(page, pagesize, filter, func(o *model.CondOptions) {
 			o.OrderBy = map[string]string{model.IDKey(): "desc"}
 
+			if fn != nil {
+				fn(o)
+			}
+		})
+	case "*":
+		return mod.Find(filter, func(o *model.CondOptions) {
+			o.OrderBy = map[string]string{model.IDKey(): "desc"}
 			if fn != nil {
 				fn(o)
 			}
