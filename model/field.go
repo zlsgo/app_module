@@ -223,16 +223,21 @@ func parseField(m *Schema, name string, f *mSchema.Field) error {
 
 func parseFieldModelOptions(_ string, c *mSchema.Field) {
 	if len(c.Options.Enum) > 0 {
-		c.Options.Enum = zarray.Map(c.Options.Enum, func(_ int, v mSchema.FieldEnum) mSchema.FieldEnum {
-			if v.Label == "" {
-				v.Label = v.Value
-			}
-			return v
-		})
+		c.Options.Enum = zarray.Map(
+			c.Options.Enum,
+			func(_ int, v mSchema.FieldEnum) mSchema.FieldEnum {
+				if v.Label == "" {
+					v.Label = v.Value
+				}
+				return v
+			},
+		)
 
-		c.ValidRules = c.ValidRules.EnumString(zarray.Map(c.Options.Enum, func(_ int, v mSchema.FieldEnum) string {
-			return v.Value
-		}))
+		c.ValidRules = c.ValidRules.EnumString(
+			zarray.Map(c.Options.Enum, func(_ int, v mSchema.FieldEnum) string {
+				return v.Value
+			}),
+		)
 	}
 }
 
@@ -248,7 +253,16 @@ func parseFieldValidRule(name string, c *mSchema.Field) {
 		case schema.JSON:
 		case schema.String:
 			rule = rule.MaxUTF8Length(int(c.Size))
-		case schema.Int, schema.Int8, schema.Int16, schema.Int32, schema.Int64, schema.Uint, schema.Uint8, schema.Uint16, schema.Uint32, schema.Uint64:
+		case schema.Int,
+			schema.Int8,
+			schema.Int16,
+			schema.Int32,
+			schema.Int64,
+			schema.Uint,
+			schema.Uint8,
+			schema.Uint16,
+			schema.Uint32,
+			schema.Uint64:
 			rule = rule.MaxInt(int(c.Size))
 		case schema.Float:
 			rule = rule.MaxFloat(float64(c.Size))

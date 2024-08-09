@@ -162,6 +162,9 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 		values []interface{}
 		table  = builder.NewTable(m.Model.GetTableName())
 	)
+
+	table.SetDriver(db.GetDriver())
+
 	for _, v := range deleteColumns {
 		if dealOldColumn == dealOldColumnNone || isDisableMigratioField(m.Model, v) {
 			continue
@@ -261,7 +264,14 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	return nil
 }
 
-func (m *Migration) execAddColumn(db *zdb.DB, deleteColumn bool, modelFields mSchema.Fields, v string, table *builder.TableBuilder, oldColumns []string) error {
+func (m *Migration) execAddColumn(
+	db *zdb.DB,
+	deleteColumn bool,
+	modelFields mSchema.Fields,
+	v string,
+	table *builder.TableBuilder,
+	oldColumns []string,
+) error {
 	var (
 		ok    bool
 		field *mSchema.Field

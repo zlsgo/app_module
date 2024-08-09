@@ -115,6 +115,7 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 					val interface{}
 					err error
 				)
+
 				switch typ {
 				case schema.Bytes:
 					val = v
@@ -132,7 +133,10 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 					case "int", "int8", "int16", "int32", "int64":
 						val, err = rule.Int()
 					case "uint", "uint8", "uint16", "uint32", "uint64":
-						val = ztype.ToUint(rule.Value())
+						val, err = rule.Int()
+						if err == nil {
+							val = ztype.ToUint(val)
+						}
 					default:
 						val, err = rule.Float64()
 					}
@@ -141,6 +145,7 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 				if err != nil {
 					return d, err
 				}
+
 				d[name] = val
 			}
 		}

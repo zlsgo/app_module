@@ -82,13 +82,11 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		opt = &m.Options
 	)
 	if opt.SetDB != nil {
-		db, err = opt.SetDB()
-	} else {
-		err = di.Resolve(&db)
-	}
-
-	if err != nil {
-		return zerror.With(err, "init db error")
+		if db, err = opt.SetDB(); err != nil {
+			return zerror.With(err, "init db error")
+		}
+	} else if err = di.Resolve(&db); err != nil {
+		return zerror.With(err, "please set db")
 	}
 
 	m.Schemas = NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {

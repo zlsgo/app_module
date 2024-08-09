@@ -70,11 +70,22 @@ func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ..
 	return p
 }
 
-func Pages[T filter](m *Schema, page, pagesize int, filter T, fn ...func(*CondOptions)) (*PageData, error) {
+func Pages[T filter](
+	m *Schema,
+	page, pagesize int,
+	filter T,
+	fn ...func(*CondOptions),
+) (*PageData, error) {
 	return pages(m, page, pagesize, getFilter(m, filter), true, fn...)
 }
 
-func pages(m *Schema, page, pagesize int, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (*PageData, error) {
+func pages(
+	m *Schema,
+	page, pagesize int,
+	filter ztype.Map,
+	cryptId bool,
+	fn ...func(*CondOptions),
+) (*PageData, error) {
 	if cryptId {
 		_ = m.DeCrypt(filter)
 	}
@@ -84,20 +95,26 @@ func pages(m *Schema, page, pagesize int, filter ztype.Map, cryptId bool, fn ...
 		foreignKeys      []string
 	)
 
-	rows, pages, err := m.Storage.Pages(m.GetTableName(), page, pagesize, filter, func(so *CondOptions) {
-		if len(fn) > 0 {
-			fn[0](so)
-		}
+	rows, pages, err := m.Storage.Pages(
+		m.GetTableName(),
+		page,
+		pagesize,
+		filter,
+		func(so *CondOptions) {
+			if len(fn) > 0 {
+				fn[0](so)
+			}
 
-		childRelationson, foreignKeys = relationson(m, so)
-		if len(so.Fields) > 0 && len(so.Join) == 0 {
-			so.Fields = m.filterFields(so.Fields)
-		} else if len(so.Fields) == 0 {
-			so.Fields = m.GetFields()
-		} else if len(so.Fields) == 0 {
-			so.Fields = allFields
-		}
-	})
+			childRelationson, foreignKeys = relationson(m, so)
+			if len(so.Fields) > 0 && len(so.Join) == 0 {
+				so.Fields = m.filterFields(so.Fields)
+			} else if len(so.Fields) == 0 {
+				so.Fields = m.GetFields()
+			} else if len(so.Fields) == 0 {
+				so.Fields = allFields
+			}
+		},
+	)
 
 	data := &PageData{Items: rows, Page: pages, pagesize: uint(pagesize)}
 	if err != nil {
@@ -135,7 +152,10 @@ func pages(m *Schema, page, pagesize int, filter ztype.Map, cryptId bool, fn ...
 
 var allFields = []string{"*"}
 
-func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]string, foreignKeys []string) {
+func relationson(
+	m *Schema,
+	so *CondOptions,
+) (childRelationson map[string][]string, foreignKeys []string) {
 	childRelationson = make(map[string][]string)
 	includeAllFields := zarray.Contains(so.Fields, allFields[0])
 	so.Fields = zarray.Filter(so.Fields, func(_ int, f string) bool {
@@ -154,7 +174,10 @@ func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]stri
 			if !includeAllFields {
 				for fki := range m.define.Relations[field[0]].SchemaKey {
 					if !zarray.Contains(so.Fields, m.define.Relations[field[0]].ForeignKey[fki]) {
-						foreignKeys = append(foreignKeys, m.define.Relations[field[0]].ForeignKey[fki])
+						foreignKeys = append(
+							foreignKeys,
+							m.define.Relations[field[0]].ForeignKey[fki],
+						)
 					}
 				}
 			}
@@ -168,7 +191,12 @@ func relationson(m *Schema, so *CondOptions) (childRelationson map[string][]stri
 	return
 }
 
-func relationsonValue(key string, typ schema.RelationType, fields []string, rows ztype.Maps) ztype.Maps {
+func relationsonValue(
+	key string,
+	typ schema.RelationType,
+	fields []string,
+	rows ztype.Maps,
+) ztype.Maps {
 	if len(rows) == 0 {
 		return rows
 	}
@@ -194,7 +222,12 @@ func relationsonValue(key string, typ schema.RelationType, fields []string, rows
 	}, 10)
 }
 
-func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string][]string, foreignKeys []string) (ztype.Maps, error) {
+func handlerRelationson(
+	m *Schema,
+	rows ztype.Maps,
+	childRelationson map[string][]string,
+	foreignKeys []string,
+) (ztype.Maps, error) {
 	for key := range childRelationson {
 		d := m.define.Relations[key]
 		m, ok := m.getSchema(d.Schema)
@@ -275,7 +308,10 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				for i := range items {
 					eqSum := 0
 					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+						if items[i].Get(d.SchemaKey[si]).
+							String() ==
+							row.Get(d.ForeignKey[si]).
+								String() {
 							eqSum++
 						}
 					}
@@ -303,7 +339,10 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				for i := range items {
 					eqSum := 0
 					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+						if items[i].Get(d.SchemaKey[si]).
+							String() ==
+							row.Get(d.ForeignKey[si]).
+								String() {
 							eqSum++
 						}
 					}
@@ -325,7 +364,10 @@ func handlerRelationson(m *Schema, rows ztype.Maps, childRelationson map[string]
 				for i := range items {
 					eqSum := 0
 					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).String() == row.Get(d.ForeignKey[si]).String() {
+						if items[i].Get(d.SchemaKey[si]).
+							String() ==
+							row.Get(d.ForeignKey[si]).
+								String() {
 							eqSum++
 						}
 					}
@@ -463,7 +505,12 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 	return rows.Index(0), nil
 }
 
-func FindCols[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.SliceType, error) {
+func FindCols[T filter](
+	m *Schema,
+	field string,
+	filter T,
+	fn ...func(*CondOptions),
+) (ztype.SliceType, error) {
 	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
@@ -485,7 +532,12 @@ func FindCols[T filter](m *Schema, field string, filter T, fn ...func(*CondOptio
 	return data, nil
 }
 
-func FindCol[T filter](m *Schema, field string, filter T, fn ...func(*CondOptions)) (ztype.Type, bool, error) {
+func FindCol[T filter](
+	m *Schema,
+	field string,
+	filter T,
+	fn ...func(*CondOptions),
+) (ztype.Type, bool, error) {
 	values, err := FindCols(m, field, filter, fn...)
 	if err != nil || values.Len() == 0 {
 		return ztype.Type{}, false, err
@@ -589,7 +641,12 @@ func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64,
 	return m.Storage.Delete(m.GetTableName(), f, fn...)
 }
 
-func Update[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+func Update[T filter](
+	m *Schema,
+	filter T,
+	data ztype.Map,
+	fn ...func(*CondOptions),
+) (total int64, err error) {
 	return UpdateMany(m, filter, data, func(so *CondOptions) {
 		if fn != nil {
 			for i := range fn {
@@ -600,16 +657,21 @@ func Update[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptio
 	})
 }
 
-func UpdateMany[T filter](m *Schema, filter T, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+func UpdateMany[T filter](
+	m *Schema,
+	filter T,
+	data ztype.Map,
+	fn ...func(*CondOptions),
+) (total int64, err error) {
 	data = filterDate(data, m.readOnlyKeys)
 	data, err = m.valuesBeforeProcess(data)
 	if err != nil {
-		return 0, zerror.With(err, "data preprocessing failed")
+		return 0, err
 	}
 
 	data, err = VerifiData(data, m.GetModelFields(), activeUpdate)
 	if err != nil {
-		return 0, zerror.With(err, "data verification failed")
+		return 0, zerror.InvalidInput.Text(err.Error())
 	}
 
 	if m.define.Options.Timestamps {

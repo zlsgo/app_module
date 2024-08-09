@@ -19,6 +19,8 @@ const (
 type (
 	Relations map[string]Relation
 	Relation  struct {
+		Comment    string             `json:"comment,omitempty"`
+		Label      string             `json:"label"`
 		Type       RelationType       `json:"type"`
 		Join       builder.JoinOption `json:"-"`
 		Schema     string             `json:"schema"`

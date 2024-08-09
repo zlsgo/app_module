@@ -66,8 +66,8 @@ func (d *Schema) SetComment(comment string) {
 }
 
 func (d *Schema) AddField(name string, field Field) error {
-	if _, ok := d.Fields[name]; ok {
-		return errors.New("field " + name + " already exists")
+	if err := d.exists(name); err != nil {
+		return err
 	}
 
 	d.Fields[name] = field
@@ -90,8 +90,22 @@ func (d *Schema) GetOptions() Options {
 	return d.Options
 }
 
-func (d *Schema) AddRelation(name string, relation Relation) {
-	(*d).Relations[name] = relation
+func (d *Schema) exists(name string) error {
+	if _, ok := d.GetField(name); ok {
+		return errors.New("field " + name + " already exists")
+	}
+	if _, ok := d.Relations[name]; ok {
+		return errors.New("relation " + name + " already exists")
+	}
+	return nil
+}
+
+func (d *Schema) AddRelation(name string, relation Relation) error {
+	if err := d.exists(name); err != nil {
+		return err
+	}
+	d.Relations[name] = relation
+	return nil
 }
 
 func (d *Schemas) Append(define ...Schema) {

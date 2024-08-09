@@ -85,7 +85,7 @@ func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
 		}
 	}
 
-	return
+	return true
 }
 
 // EnCrypt  加密 ID
