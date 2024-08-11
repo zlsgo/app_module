@@ -89,12 +89,12 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		return zerror.With(err, "please set db")
 	}
 
-	m.Schemas = NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
+	m.schemas = NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
 		o.Prefix = m.Options.Prefix
-	}))
+	}), opt.SchemaOptions)
 
 	mapper := di.(zdi.TypeMapper)
-	m.Models = &Models{items: zarray.NewHashMap[string, *Model]()}
+	m.models = &Models{items: zarray.NewHashMap[string, *Model]()}
 
 	if opt.SchemaDir != "" {
 		schemaModelsDefine, err := parseSchema(opt.SchemaDir)
@@ -109,19 +109,19 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		d := opt.Schemas[i]
 
 		if d.Name == "" && d.SchemaPath != "" {
-			return errors.New("model name can not be empty, schema path: " + d.SchemaPath)
+			return errors.New("models name can not be empty, schema path: " + d.SchemaPath)
 		}
 
-		s, err := m.Schemas.Reg(d.Name, d, false)
+		s, err := m.schemas.Reg(d.Name, d, false)
 		if err != nil {
 			return err
 		}
 
-		m.Models.items.Set(d.Name, s.Model())
+		m.models.items.Set(d.Name, s.Model())
 	}
 
 	if opt.SetAlternateModels != nil {
-		m.Schemas.getWrapModels = zutil.Once(func() []*Model {
+		m.schemas.getWrapModels = zutil.Once(func() []*Model {
 			lists, err := opt.SetAlternateModels()
 			if err != nil {
 				panic(err)
@@ -130,9 +130,9 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		})
 	}
 
-	_ = mapper.Maps(m.Schemas, m.Models)
+	_ = mapper.Maps(m.schemas, m.models)
 
-	zlog.Debugf("Models %s\n", m.Schemas)
+	zlog.Debugf("models %s\n", m.schemas)
 
 	return nil
 }

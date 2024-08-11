@@ -103,7 +103,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 		}
 	}
 
-	// if m.model.Options.CreatedBy {
+	// if m.models.Options.CreatedBy {
 	// 	if name == CreatedByKey {
 	// 		return &Field{
 	// 			Type:     schema.String,
@@ -129,7 +129,7 @@ func (m *Schema) isInlayField(field string) bool {
 	if *m.define.Options.Timestamps {
 		inlayFields = append(inlayFields, CreatedAtKey, UpdatedAtKey)
 	}
-	// if m.model.Options.CreatedBy {
+	// if m.models.Options.CreatedBy {
 	// 	inlayFields = append(inlayFields, CreatedByKey)
 	// }
 	if *m.define.Options.SoftDeletes {
@@ -330,6 +330,24 @@ func parseFieldValidRule(name string, c *mSchema.Field) {
 	}
 
 	c.ValidRules = rule
+}
+
+func perfectOptions(m *Schema, o *SchemaOptions) error {
+	if m.define.Options.DisabledMigrator == nil {
+		m.define.Options.DisabledMigrator = &o.DisabledMigrator
+	}
+
+	if m.define.Options.SoftDeletes == nil {
+		m.define.Options.SoftDeletes = &o.SoftDeletes
+	}
+	if m.define.Options.Timestamps == nil {
+		m.define.Options.Timestamps = &o.Timestamps
+	}
+
+	if m.define.Options.CryptID == nil {
+		m.define.Options.CryptID = &o.CryptID
+	}
+	return nil
 }
 
 func isDisableMigratioField(m *Schema, name string) bool {

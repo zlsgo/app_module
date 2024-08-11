@@ -28,7 +28,7 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 
 	if !ok {
 		idVal := f
-		// if m.model.Options.CryptID {
+		// if m.models.Options.CryptID {
 		// 	if id, err := m.DeCryptID(ztype.ToString(filter)); err == nil {
 		// 		idVal = id
 		// 	}
@@ -574,7 +574,7 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 		data[UpdatedAtKey] = ztime.Time()
 	}
 
-	// if m.model.Options.CreatedBy {
+	// if m.models.Options.CreatedBy {
 	// 	data[CreatedByKey] = createdBy
 	// }
 
@@ -718,7 +718,7 @@ func UpdateMany[T filter](
 // 		return 0, err
 // 	}
 //
-// 	if m.model.Options.Timestamps {
+// 	if m.models.Options.Timestamps {
 // 		data[UpdatedAtKey] = ztime.Time()
 // 	}
 //

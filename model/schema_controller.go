@@ -65,10 +65,10 @@ func (m *Schema) DI() zdi.Injector {
 
 func (m *Schema) hook(name string) error {
 	// TODO: 钩子
-	// if m.model.Hook == nil {
+	// if m.models.Hook == nil {
 	// 	return nil
 	// }
-	// return m.model.Hook(name, m)
+	// return m.models.Hook(name, m)
 	return nil
 }
 
@@ -88,7 +88,7 @@ func (h *schemaController) Init(r *znet.Engine) error {
 func (h *schemaController) GET(c *znet.Context) (any, error) {
 	schemas := ztype.Map{}
 
-	h.module.Schemas.ForEach(func(key string, m *Schema) bool {
+	h.module.schemas.ForEach(func(key string, m *Schema) bool {
 		schemas[key] = ztype.Map{
 			"name":    m.GetName(),
 			"comment": m.GetComment(),

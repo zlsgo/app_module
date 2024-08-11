@@ -119,7 +119,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 			newColumns = append(newColumns, DeletedAtKey)
 		}
 
-		// if m.Model.model.Options.CreatedBy {
+		// if m.Model.models.Options.CreatedBy {
 		// 	newColumns = append(newColumns, CreatedByKey)
 		// }
 
@@ -205,7 +205,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 		}
 	}
 
-	// if m.Model.model.Options.CreatedBy {
+	// if m.Model.models.Options.CreatedBy {
 	// 	if !zarray.Contains(oldColumns, CreatedByKey) {
 	// 		sql, values := table.AddColumn(CreatedByKey, "string", func(f *schema.Field) {
 	// 			f.Comment = "创建人 ID"
@@ -350,7 +350,7 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 		}))
 	}
 
-	// if m.Model.model.Options.CreatedBy {
+	// if m.Model.models.Options.CreatedBy {
 	// 	fields = append(fields, schema.NewField(CreatedByKey, schema.String, func(f *schema.Field) {
 	// 		f.Comment = "创建人 ID"
 	// 		f.NotNull = false

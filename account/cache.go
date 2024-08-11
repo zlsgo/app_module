@@ -19,7 +19,7 @@ func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 		if err != nil {
 			return ztype.Map{}, false
 		}
-		if m.GetDefine().Options.CryptID {
+		if *m.GetDefine().Options.CryptID {
 			id, _ := m.DeCryptID(uid)
 			_ = f.Set("raw_id", id)
 		}

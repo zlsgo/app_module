@@ -10,6 +10,12 @@ import (
 )
 
 type (
+	SchemaOptions struct {
+		DisabledMigrator bool `json:"disabled_migrator,omitempty"`
+		SoftDeletes      bool `json:"soft_deletes,omitempty"`
+		Timestamps       bool `json:"timestamps,omitempty"`
+		CryptID          bool `json:"crypt_id,omitempty"`
+	}
 	Options struct {
 		SetDB              func() (*zdb.DB, error)
 		SetAlternateModels func() ([]*Model, error)
@@ -18,6 +24,7 @@ type (
 		SchemaDir          string
 		SchemaApi          string
 		Schemas            schema.Schemas
+		SchemaOptions
 	}
 )
 
