@@ -36,7 +36,7 @@ func (m *Schema) GetCryptProcess(cryptName string) (fn CryptProcess, err error) 
 
 // DeCrypt 解密 ID
 func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
-	if m.define.Options.CryptID {
+	if *m.define.Options.CryptID {
 		if id, ok := row[idKey]; ok {
 			var (
 				err error
@@ -90,7 +90,7 @@ func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
 
 // EnCrypt  加密 ID
 func (m *Schema) EnCrypt(row *ztype.Map) (err error) {
-	if m.define.Options.CryptID {
+	if *m.define.Options.CryptID {
 		if _, ok := (*row)[idKey]; ok {
 			(*row)[idKey], err = hashid.EncryptID(m.Hashid, (*row).Get(idKey).Int64())
 		}
@@ -102,7 +102,7 @@ func (m *Schema) EnCrypt(row *ztype.Map) (err error) {
 // EnCryptID  加密 ID
 func (m *Schema) EnCryptID(id string) (nid string, err error) {
 	i := ztype.ToInt64(id)
-	if m.define.Options.CryptID && id != "" {
+	if *m.define.Options.CryptID && id != "" {
 		if i == 0 {
 			return "", errors.New("id cannot be empty")
 		}
@@ -116,7 +116,7 @@ func (m *Schema) EnCryptID(id string) (nid string, err error) {
 
 // DeCryptID 解密 ID
 func (m *Schema) DeCryptID(nid string) (id string, err error) {
-	if m.define.Options.CryptID && nid != "" {
+	if *m.define.Options.CryptID && nid != "" {
 		rid, err := hashid.DecryptID(m.Hashid, ztype.ToString(nid))
 		if err != nil {
 			return "", err

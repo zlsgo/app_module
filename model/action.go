@@ -44,7 +44,7 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 		filterMap = ztype.Map{}
 	}
 
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		if InsideOption.softDeleteIsTime {
 			filterMap[DeletedAtKey] = nil
 		} else {
@@ -142,7 +142,7 @@ func pages(
 			}
 		}
 
-		if cryptId && m.define.Options.CryptID {
+		if cryptId && *m.define.Options.CryptID {
 			_ = m.EnCrypt(row)
 		}
 	}
@@ -448,7 +448,7 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 					}
 				}
 			}
-			if cryptId && m.define.Options.CryptID {
+			if cryptId && *m.define.Options.CryptID {
 				m.EnCrypt(row)
 			}
 		}
@@ -569,7 +569,7 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 		return nil, err
 	}
 
-	if m.define.Options.Timestamps {
+	if *m.define.Options.Timestamps {
 		data[CreatedAtKey] = ztime.Time()
 		data[UpdatedAtKey] = ztime.Time()
 	}
@@ -578,7 +578,7 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	// 	data[CreatedByKey] = createdBy
 	// }
 
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		if InsideOption.softDeleteIsTime {
 			data[DeletedAtKey] = nil
 		} else {
@@ -595,7 +595,7 @@ func Insert(m *Schema, data ztype.Map) (lastId interface{}, err error) {
 	}
 
 	id, err := m.Storage.Insert(m.GetTableName(), data)
-	if err == nil && m.define.Options.CryptID {
+	if err == nil && *m.define.Options.CryptID {
 		id, err = m.EnCryptID(ztype.ToString(id))
 	}
 	return id, err
@@ -610,7 +610,7 @@ func InsertMany(m *Schema, datas ztype.Maps) (lastIds []interface{}, err error) 
 	}
 
 	lastIds, err = m.Storage.InsertMany(m.GetTableName(), datas)
-	if err == nil && m.define.Options.CryptID {
+	if err == nil && *m.define.Options.CryptID {
 		for i := range lastIds {
 			lastIds[i], err = m.EnCryptID(ztype.ToString(lastIds[i]))
 		}
@@ -632,7 +632,7 @@ func Delete[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64, err
 func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64, error) {
 	f := getFilter(m, filter)
 	m.DeCrypt(f)
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		data := make(ztype.Map, 1)
 		now := ztime.Time()
 		if InsideOption.softDeleteIsTime {
@@ -679,7 +679,7 @@ func UpdateMany[T filter](
 		return 0, zerror.InvalidInput.Text(err.Error())
 	}
 
-	if m.define.Options.Timestamps {
+	if *m.define.Options.Timestamps {
 		data[UpdatedAtKey] = ztime.Time()
 	}
 

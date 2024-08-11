@@ -122,7 +122,7 @@ func (ms *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 		return nil, err
 	}
 
-	if m.GetDefine().Options.DisabledMigrator {
+	if *m.GetDefine().Options.DisabledMigrator {
 		migration := m.Migration()
 		if migration.HasTable() {
 			go func() {

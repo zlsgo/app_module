@@ -63,7 +63,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 			},
 		}, true
 	}
-	if m.define.Options.Timestamps {
+	if *m.define.Options.Timestamps {
 		switch name {
 		case CreatedAtKey:
 			return &mSchema.Field{
@@ -83,7 +83,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 		}
 	}
 
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		if name == DeletedAtKey {
 			if InsideOption.softDeleteIsTime {
 				return &mSchema.Field{
@@ -94,7 +94,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 			}
 
 			return &mSchema.Field{
-				Type:     schema.Int,
+				Type:     schema.Uint,
 				Size:     11,
 				Nullable: true,
 				Default:  0,
@@ -126,13 +126,13 @@ func (m *Schema) GetModelFields() mSchema.Fields {
 
 func (m *Schema) isInlayField(field string) bool {
 	inlayFields := []string{idKey}
-	if m.define.Options.Timestamps {
+	if *m.define.Options.Timestamps {
 		inlayFields = append(inlayFields, CreatedAtKey, UpdatedAtKey)
 	}
 	// if m.model.Options.CreatedBy {
 	// 	inlayFields = append(inlayFields, CreatedByKey)
 	// }
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		inlayFields = append(inlayFields, DeletedAtKey)
 	}
 	return zarray.Contains(inlayFields, field)

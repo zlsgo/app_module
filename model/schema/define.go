@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 )
 
 type (
@@ -22,18 +23,6 @@ type (
 	Table struct {
 		Name    string `json:"name,omitempty"`
 		Comment string `json:"comment,omitempty"`
-	}
-
-	Options struct {
-		Salt             string   `json:"crypt_salt,omitempty"`
-		LowFields        []string `json:"low_fields,omitempty"`
-		FieldsSort       []string `json:"fields_sort,omitempty"`
-		CryptLen         int      `json:"crypt_len,omitempty"`
-		DisabledMigrator bool     `json:"disabled_migrator,omitempty"`
-		// SkipFieldValidation bool     `json:"skip_field_validation,omitempty"`
-		SoftDeletes bool `json:"soft_deletes,omitempty"`
-		Timestamps  bool `json:"timestamps,omitempty"`
-		CryptID     bool `json:"crypt_id,omitempty"`
 	}
 
 	Validations struct {
@@ -82,8 +71,8 @@ func (d *Schema) GetField(name string) (Field, bool) {
 	return f, true
 }
 
-func (d *Schema) SetOptions(opt Options) {
-	d.Options = opt
+func (d *Schema) SetOptions(fn func(opt *Options)) {
+	d.Options = zutil.Optional(d.Options, fn)
 }
 
 func (d *Schema) GetOptions() Options {
