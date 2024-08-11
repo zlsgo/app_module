@@ -12,6 +12,7 @@ import (
 
 func TestSet(t *testing.T) {
 	tt := zlsgo.NewTest(t)
+	b := true
 	data := schema.Schema{
 		Name: "日志模型",
 		Table: schema.Table{
@@ -19,8 +20,8 @@ func TestSet(t *testing.T) {
 			Comment: "日志表",
 		},
 		Options: schema.Options{
-			Timestamps: true,
-			CryptID:    true,
+			Timestamps: &b,
+			CryptID:    &b,
 		},
 	}
 

@@ -12,6 +12,8 @@ import (
 
 func TestDefine(t *testing.T) {
 	tt := zlsgo.NewTest(t)
+
+	b := true
 	m := mSchema.Schema{
 		Name: "test",
 		Fields: map[string]mSchema.Field{
@@ -25,7 +27,7 @@ func TestDefine(t *testing.T) {
 			// 	Label: "新的",
 			// },
 		},
-		Options: mSchema.Options{DisabledMigrator: true},
+		Options: mSchema.Options{DisabledMigrator: &b},
 	}
 	s := NewSchemas(nil, nil)
 

@@ -36,7 +36,7 @@ func perfect(alias string, m *Schema) (err error) {
 
 	if !isNotFields {
 		m.inlayFields = []string{idKey}
-		if m.define.Options.Timestamps {
+		if *m.define.Options.Timestamps {
 			if zarray.Contains(m.fields, CreatedAtKey) {
 				err = errors.New(CreatedAtKey + " is a reserved field")
 				return
@@ -63,7 +63,7 @@ func perfect(alias string, m *Schema) (err error) {
 		// 	m.inlayFields = append(m.inlayFields, CreatedByKey)
 		// }
 
-		if m.define.Options.SoftDeletes {
+		if *m.define.Options.SoftDeletes {
 			if zarray.Contains(m.fields, DeletedAtKey) {
 				err = errors.New(DeletedAtKey + " is a reserved field")
 				return
@@ -74,7 +74,7 @@ func perfect(alias string, m *Schema) (err error) {
 		m.fullFields = append([]string{idKey}, m.fields...)
 		m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
 
-		if m.define.Options.SoftDeletes {
+		if *m.define.Options.SoftDeletes {
 			flen := len(m.fullFields)
 			for i := 0; i < flen; i++ {
 				f := m.fullFields[i]
@@ -87,7 +87,8 @@ func perfect(alias string, m *Schema) (err error) {
 
 		m.lowFields = m.define.Options.LowFields
 	} else {
-		m.define.Options.DisabledMigrator = true
+		b := true
+		m.define.Options.DisabledMigrator = &b
 	}
 
 	if len(m.define.Relations) > 0 {

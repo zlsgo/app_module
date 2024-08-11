@@ -115,7 +115,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	oldColumns := zarray.Keys(currentColumns)
 
 	{
-		if m.Model.define.Options.SoftDeletes {
+		if *m.Model.define.Options.SoftDeletes {
 			newColumns = append(newColumns, DeletedAtKey)
 		}
 
@@ -123,7 +123,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 		// 	newColumns = append(newColumns, CreatedByKey)
 		// }
 
-		if m.Model.define.Options.Timestamps {
+		if *m.Model.define.Options.Timestamps {
 			if zarray.Contains(oldColumns, CreatedAtKey) {
 				newColumns = append(newColumns, CreatedAtKey)
 			}
@@ -181,7 +181,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 		}
 	}
 
-	if m.Model.define.Options.SoftDeletes {
+	if *m.Model.define.Options.SoftDeletes {
 		if !zarray.Contains(oldColumns, DeletedAtKey) {
 			var (
 				sql    string
@@ -193,7 +193,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 					f.NotNull = false
 				})
 			} else {
-				sql, values = table.AddColumn(DeletedAtKey, schema.Int, func(f *schema.Field) {
+				sql, values = table.AddColumn(DeletedAtKey, schema.Uint, func(f *schema.Field) {
 					f.Comment = "删除时间戳"
 					f.NotNull = false
 				})
@@ -219,7 +219,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	// 	}
 	// }
 
-	if m.Model.define.Options.Timestamps {
+	if *m.Model.define.Options.Timestamps {
 		if !zarray.Contains(oldColumns, CreatedAtKey) {
 			sql, values := table.AddColumn(CreatedAtKey, schema.Time, func(f *schema.Field) {
 				f.Comment = "更新时间"
@@ -325,7 +325,7 @@ func (m *Migration) execAddColumn(
 }
 
 func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
-	if m.Model.define.Options.SoftDeletes {
+	if *m.Model.define.Options.SoftDeletes {
 		if InsideOption.softDeleteIsTime {
 			fields = append(fields, schema.NewField(DeletedAtKey, schema.Time, func(f *schema.Field) {
 				f.Size = 9999999999
@@ -341,7 +341,7 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 		}
 	}
 
-	if m.Model.define.Options.Timestamps {
+	if *m.Model.define.Options.Timestamps {
 		fields = append(fields, schema.NewField(CreatedAtKey, schema.Time, func(f *schema.Field) {
 			f.Comment = "创建时间"
 		}))
@@ -446,7 +446,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 		}
 	}
 
-	if m.Model.define.Options.SoftDeletes {
+	if *m.Model.define.Options.SoftDeletes {
 		indexs[DeletedAtKey] = []string{DeletedAtKey}
 	}
 

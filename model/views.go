@@ -79,7 +79,7 @@ func parseViewLists(m *Schema) ztype.Map {
 			"ModelOptions": column.Options,
 			"layout":       layout,
 		}
-		if m.define.Options.CryptID && name == idKey {
+		if *m.define.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}
@@ -132,12 +132,12 @@ func parseViewInfo(m *Schema) ztype.Map {
 			"ModelOptions": column.Options,
 		}
 
-		if m.define.Options.CryptID && name == idKey {
+		if *m.define.Options.CryptID && name == idKey {
 			columns[name]["type"] = "string"
 		}
 	}
 
-	if m.define.Options.SoftDeletes {
+	if *m.define.Options.SoftDeletes {
 		delete(columns, DeletedAtKey)
 		fields = zarray.Filter(fields, func(_ int, v string) bool {
 			return v != DeletedAtKey
