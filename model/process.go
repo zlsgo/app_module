@@ -97,7 +97,7 @@ func dateMarshalProcess(format string) func(v interface{}) (string, error) {
 			if err == nil {
 				return ztime.FormatTimestamp(int64(timestamp), format), nil
 			}
-			return "", err
+			return "", errors.New("date parse error")
 		}
 		return ztime.FormatTime(t, format), nil
 	}
