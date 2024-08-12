@@ -20,6 +20,16 @@ func jsonMarshalProcess(isArray bool) func(s interface{}) (string, error) {
 				} else {
 					j = "{}"
 				}
+			} else {
+				if isArray {
+					if j[0] != '[' {
+						err = errors.New("json must be array")
+					}
+				} else {
+					if j[0] != '{' {
+						err = errors.New("json must be object")
+					}
+				}
 			}
 		}()
 
@@ -87,7 +97,7 @@ func dateMarshalProcess(format string) func(v interface{}) (string, error) {
 			if err == nil {
 				return ztime.FormatTimestamp(int64(timestamp), format), nil
 			}
-			return "", err
+			return "", errors.New("date parse error")
 		}
 		return ztime.FormatTime(t, format), nil
 	}
