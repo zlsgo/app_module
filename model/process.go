@@ -20,6 +20,16 @@ func jsonMarshalProcess(isArray bool) func(s interface{}) (string, error) {
 				} else {
 					j = "{}"
 				}
+			} else {
+				if isArray {
+					if j[0] != '[' {
+						err = errors.New("json must be array")
+					}
+				} else {
+					if j[0] != '{' {
+						err = errors.New("json must be object")
+					}
+				}
 			}
 		}()
 

@@ -55,9 +55,8 @@ func (m *Schema) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
 		for _, fn := range fns {
 			v, err = fn(v)
 			if err != nil {
-				return data, err
+				return data, errors.New(name + ": " + err.Error())
 			}
-
 		}
 		_ = data.Set(name, v)
 	}
