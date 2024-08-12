@@ -145,12 +145,12 @@ func (o *Model) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions)) (to
 }
 
 // Delete 删除数据
-func (o *Model) Delete(id any, filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
+func (o *Model) Delete(filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
 	return Delete(o.schema, filter, fn...)
 }
 
 // DeleteMany 删除多条数据
-func (o *Model) DeleteMany(id any, filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
+func (o *Model) DeleteMany(filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
 	return DeleteMany(o.schema, filter, fn...)
 }
 

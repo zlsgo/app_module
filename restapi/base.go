@@ -52,11 +52,11 @@ func (h *controller) Init(r *znet.Engine) error {
 		case "POST":
 			return HanderPost(c, mod, nil)
 		case "PUT":
-			return HanderPut(c, mod, args)
+			return HanderPut(c, mod, args, nil)
 		case "PATCH":
 			return HanderPATCH(c, mod, args, nil)
 		case "DELETE":
-			return HanderDelete(c, mod, args, nil)
+			return HanderDelete(c, mod, []string{args}, nil)
 		default:
 			r.HandleNotFound(c)
 			return nil, nil
@@ -173,31 +173,37 @@ func HanderPost(
 func HanderDelete(
 	c *znet.Context,
 	mod *model.Model,
-	id string,
+	ids []string,
 	handler func(old ztype.Map) error,
 ) (any, error) {
-	if id == "" {
+	if len(ids) == 0 {
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
-	if handler != nil {
-		info, err := mod.FindOneByID(id)
-		if err != nil {
-			return nil, err
-		}
-		if info.IsEmpty() {
-			return nil, zerror.InvalidInput.Text("id not found")
-		}
-		err = handler(info)
-		if err != nil {
-			return nil, err
+
+	// TODO: 考虑并发查询
+	for _, id := range ids {
+		if handler != nil {
+			info, err := mod.FindOneByID(id)
+			if err != nil {
+				return nil, err
+			}
+			if info.IsEmpty() {
+				return nil, zerror.InvalidInput.Text("id not found")
+			}
+			err = handler(info)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	total, err := mod.DeleteByID(id)
+	total, err := mod.DeleteMany(model.Filter{model.IDKey(): ids})
 	return ztype.Map{"total": total}, err
 }
 
-func HanderPut(c *znet.Context, mod *model.Model, id string) (any, error) {
+func HanderPut(c *znet.Context, mod *model.Model, id string,
+	handler func(old ztype.Map, data ztype.Map) (ztype.Map, error),
+) (any, error) {
 	if id == "" {
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
@@ -207,7 +213,25 @@ func HanderPut(c *znet.Context, mod *model.Model, id string) (any, error) {
 		return nil, err
 	}
 
-	total, err := mod.UpdateByID(id, j.Map())
+	data := j.Map()
+
+	if handler != nil {
+		info, err := mod.FindOneByID(id)
+		if err != nil {
+			return nil, err
+		}
+
+		if info.IsEmpty() {
+			return nil, zerror.InvalidInput.Text("id not found")
+		}
+
+		data, err = handler(info, data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	total, err := mod.UpdateByID(id, data)
 	return ztype.Map{"total": total}, err
 }
 
