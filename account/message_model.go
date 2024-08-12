@@ -28,11 +28,12 @@ func GetMessageModel() (*MessageModel, error) {
 
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
+	b := true
 	mod, err := m.mods.Reg(messageName, mSchema.Schema{
 		Name: messageName,
 		Options: mSchema.Options{
-			CryptID:    true,
-			Timestamps: true,
+			CryptID:    &b,
+			Timestamps: &b,
 		},
 		Fields: map[string]mSchema.Field{
 			"from": {

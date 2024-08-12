@@ -16,22 +16,24 @@ type Schemas struct {
 	storage       Storageer
 	getWrapModels func() []*Model
 	models        *Models
+	SchemaOption  SchemaOptions
 }
 
-func NewSchemas(di zdi.Injector, s Storageer) *Schemas {
+func NewSchemas(di zdi.Injector, s Storageer, o SchemaOptions) *Schemas {
 	return &Schemas{
-		storage: s,
-		di:      di,
-		data:    zarray.NewHashMap[string, *Schema](),
+		storage:      s,
+		di:           di,
+		data:         zarray.NewHashMap[string, *Schema](),
+		SchemaOption: o,
 	}
 }
 
-func (ms *Schemas) String() string {
-	return "[" + strings.Join(ms.data.Keys(), ", ") + "]"
+func (ss *Schemas) String() string {
+	return "[" + strings.Join(ss.data.Keys(), ", ") + "]"
 }
 
-func (ms *Schemas) StorageType() string {
-	switch ms.storage.(type) {
+func (ss *Schemas) StorageType() string {
+	switch ss.storage.(type) {
 	case *SQL:
 		return "sql"
 	default:
@@ -39,25 +41,25 @@ func (ms *Schemas) StorageType() string {
 	}
 }
 
-func (ms *Schemas) set(alias string, m *Schema, force ...bool) (err error) {
-	if m.define.Table.Name == "" {
+func (ss *Schemas) set(alias string, s *Schema, force ...bool) (err error) {
+	if s.define.Table.Name == "" {
 		tableName := strings.Replace(alias, "-", "_", -1)
 		tableName = strings.Replace(tableName, "::", "__", -1)
-		m.define.Table.Name = tableName
+		s.define.Table.Name = tableName
 	}
 
-	err = perfect(alias, m)
+	err = perfect(alias, s, &ss.SchemaOption)
 
-	ms.data.Set(alias, m)
+	ss.data.Set(alias, s)
 	return
 }
 
-func (ms *Schemas) Get(alias string) (*Schema, bool) {
-	s, ok := ms.data.Get(alias)
-	if !ok && ms.getWrapModels != nil {
-		for _, m := range ms.getWrapModels() {
+func (ss *Schemas) Get(alias string) (*Schema, bool) {
+	s, ok := ss.data.Get(alias)
+	if !ok && ss.getWrapModels != nil {
+		for _, m := range ss.getWrapModels() {
 			if alias == m.schema.GetAlias() {
-				ms.data.Set(alias, m.schema)
+				ss.data.Set(alias, m.schema)
 				return m.schema, true
 			}
 		}
@@ -66,62 +68,61 @@ func (ms *Schemas) Get(alias string) (*Schema, bool) {
 	return s, ok
 }
 
-func (ms *Schemas) MustGet(alias string) *Schema {
-	m, ok := ms.Get(alias)
+func (ss *Schemas) MustGet(alias string) *Schema {
+	m, ok := ss.Get(alias)
 	if !ok {
-		panic("model " + alias + " not found")
+		panic("models " + alias + " not found")
 	}
 	return m
 }
 
-func (ms *Schemas) Models() *Models {
-	if ms.models == nil {
-		ms.models = &Models{items: zarray.NewHashMap[string, *Model]()}
-		ms.ForEach(func(key string, m *Schema) bool {
-			ms.models.items.Set(key, m.Model())
+func (ss *Schemas) Models() *Models {
+	if ss.models == nil {
+		ss.models = &Models{items: zarray.NewHashMap[string, *Model]()}
+		ss.ForEach(func(key string, m *Schema) bool {
+			ss.models.items.Set(key, m.Model())
 			return true
 		})
 	}
 
-	return ms.models
+	return ss.models
 }
 
-func (ms *Schemas) Storage() Storageer {
-	return ms.storage
+func (ss *Schemas) Storage() Storageer {
+	return ss.storage
 }
 
-func (ms *Schemas) ForEach(fn func(key string, m *Schema) bool) {
-	ms.data.ForEach(fn)
+func (ss *Schemas) ForEach(fn func(key string, m *Schema) bool) {
+	ss.data.ForEach(fn)
 }
 
-func (ms *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, error) {
+func (ss *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, error) {
 	if name == "" {
-		return nil, errors.New("model name can not be empty")
+		return nil, errors.New("models name can not be empty")
 	}
 
-	if !force && ms.data.Has(name) {
-		return nil, errors.New("model " + name + " has been registered")
+	if !force && ss.data.Has(name) {
+		return nil, errors.New("models " + name + " has been registered")
 	}
 
 	var tablePrefix string
-	if s, ok := ms.storage.(*SQL); ok {
+	if s, ok := ss.storage.(*SQL); ok {
 		tablePrefix = s.Options.Prefix
 	}
 
 	m := &Schema{
-		Storage:     ms.storage,
+		Storage:     ss.storage,
 		define:      data,
-		di:          ms.di,
-		getSchema:   ms.Get,
+		di:          ss.di,
+		getSchema:   ss.Get,
 		tablePrefix: tablePrefix,
 	}
 
-	err := ms.set(name, m, force)
+	err := ss.set(name, m, force)
 	if err != nil {
-		err = zerror.With(err, "model "+name+" register error")
+		err = zerror.With(err, "models "+name+" register error")
 		return nil, err
 	}
-
 	if *m.GetDefine().Options.DisabledMigrator {
 		migration := m.Migration()
 		if migration.HasTable() {
@@ -138,21 +139,21 @@ func (ms *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 
 	err = m.Migration().Auto(InsideOption.oldColumn)
 	if err != nil {
-		err = zerror.With(err, "model "+name+" migration error")
+		err = zerror.With(err, "models "+name+" migration error")
 		return nil, err
 	}
 
 	return m, nil
 }
 
-func (ms *Schemas) BatchReg(models map[string]schema.Schema, force bool) error {
+func (ss *Schemas) BatchReg(models map[string]schema.Schema, force bool) error {
 	for name, data := range models {
 		err := zerror.TryCatch(func() error {
-			_, err := ms.Reg(name, data, force)
+			_, err := ss.Reg(name, data, force)
 			return err
 		})
 		if err != nil {
-			return zerror.With(err, "register "+name+" model error")
+			return zerror.With(err, "register "+name+" models error")
 		}
 	}
 	return nil

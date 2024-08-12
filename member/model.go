@@ -15,11 +15,7 @@ const modelName = "member"
 
 var modelDefine = zutil.Once(func() mSchema.Schema {
 	s := mSchema.New(modelName)
-	s.SetOptions(mSchema.Options{
-		CryptID:    true,
-		Timestamps: true,
-	})
-
+	s.SetOptions().SetCryptID(true).SetTimestamps(true).SetSoftDeletes(true)
 	s.AddField("avatar", mSchema.Field{
 		Label:    "头像",
 		Nullable: true,

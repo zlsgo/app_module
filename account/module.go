@@ -140,7 +140,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		if err := m.DI.Resolve(&restapiModule); err == nil {
 			o.Prefix = restapiModule.Options.Prefix
 		}
-	}))
+	}), model.SchemaOptions{})
 
 	if err = initModel(m); err != nil {
 		return zerror.With(err, "init accoutModel error")

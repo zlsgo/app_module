@@ -29,7 +29,7 @@ func TestDefine(t *testing.T) {
 		},
 		Options: mSchema.Options{DisabledMigrator: &b},
 	}
-	s := NewSchemas(nil, nil)
+	s := NewSchemas(nil, nil, SchemaOptions{})
 
 	var wg zsync.WaitGroup
 	for i := 0; i < 2; i++ {

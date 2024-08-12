@@ -44,11 +44,12 @@ func accountModelDefine(p *Module) error {
 		"role":     []string{"admin"},
 	}}, p.Options.InlayUser...)
 
+	b := true
 	mod, err := p.mods.Reg(accountName, mSchema.Schema{
 		Name: accountName,
 		Options: mSchema.Options{
-			CryptID:    true,
-			Timestamps: true,
+			CryptID:    &b,
+			Timestamps: &b,
 		},
 		Fields: map[string]mSchema.Field{
 			"avatar": {

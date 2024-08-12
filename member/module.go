@@ -107,7 +107,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db))
+	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db), model.SchemaOptions{})
 
 	schema, err := m.schemas.Reg(modelName, modelDefine(), false)
 	if err != nil {

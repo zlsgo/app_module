@@ -71,8 +71,9 @@ func (d *Schema) GetField(name string) (Field, bool) {
 	return f, true
 }
 
-func (d *Schema) SetOptions(fn func(opt *Options)) {
-	d.Options = zutil.Optional(d.Options, fn)
+func (d *Schema) SetOptions(fn ...func(opt *Options)) *Options {
+	d.Options = zutil.Optional(d.Options, fn...)
+	return &d.Options
 }
 
 func (d *Schema) GetOptions() Options {

@@ -11,8 +11,8 @@ type (
 		service.ModuleLifeCycle
 		Options Options
 
-		Schemas *Schemas
-		Models  *Models
+		schemas *Schemas
+		models  *Models
 	}
 )
 
@@ -21,14 +21,38 @@ var (
 	_ service.Module = &Module{}
 )
 
-func (p *Module) Name() string {
+func (m *Module) Name() string {
 	return "Model"
 }
 
-func (p *Module) String() string {
-	if p != nil && p.Schemas != nil {
-		return p.Schemas.String()
+func (m *Module) String() string {
+	if m != nil && m.schemas != nil {
+		return m.schemas.String()
 	}
 
 	return "[]"
+}
+
+func (m *Module) Models() *Models {
+	return m.models
+}
+
+func (m *Module) GetModel(name string) (*Model, bool) {
+	return m.models.Get(name)
+}
+
+func (m *Module) MustGetModel(name string) *Model {
+	return m.models.MustGet(name)
+}
+
+func (m *Module) Schemas() *Schemas {
+	return m.schemas
+}
+
+func (m *Module) GetSchema(name string) (*Schema, bool) {
+	return m.schemas.Get(name)
+}
+
+func (m *Module) MustGetSchema(name string) *Schema {
+	return m.schemas.MustGet(name)
 }

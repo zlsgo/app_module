@@ -25,11 +25,12 @@ func initModel(p *Module) error {
 const roleName = "role"
 
 func roleModel(ms *model.Schemas) error {
+	b := true
 	_, err := ms.Reg(roleName, mSchema.Schema{
 		Name: roleName,
 		Options: mSchema.Options{
-			CryptID:    true,
-			Timestamps: true,
+			CryptID:    &b,
+			Timestamps: &b,
 		},
 		Fields: map[string]mSchema.Field{
 			"label": {
@@ -122,10 +123,11 @@ func roleModel(ms *model.Schemas) error {
 const permName = "permission"
 
 func permModel(ms *model.Schemas) error {
+	b := true
 	_, err := ms.Reg(permName, mSchema.Schema{
 		Name: permName,
 		Options: mSchema.Options{
-			Timestamps: true,
+			Timestamps: &b,
 		},
 		Fields: map[string]mSchema.Field{
 			"label": {
@@ -218,10 +220,11 @@ func permModel(ms *model.Schemas) error {
 const logsName = "logs"
 
 func logModel(ms *model.Schemas) error {
+	b := true
 	_, err := ms.Reg(logsName, mSchema.Schema{
 		Name: logsName,
 		Options: mSchema.Options{
-			CryptID: true,
+			CryptID: &b,
 		},
 		Fields: map[string]mSchema.Field{
 			"account": {

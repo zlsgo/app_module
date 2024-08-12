@@ -11,51 +11,53 @@ import (
 )
 
 // perfect is perfect
-func perfect(alias string, m *Schema) (err error) {
-	m.alias = alias
+func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
+	s.alias = alias
 
 	salt := ""
-	salt = m.define.Options.Salt
-	cryptLen := m.define.Options.CryptLen
+	salt = s.define.Options.Salt
+	cryptLen := s.define.Options.CryptLen
 	if cryptLen <= 0 {
 		cryptLen = 12
 	}
-	m.Hashid = hashid.New(salt, cryptLen)
+	s.Hashid = hashid.New(salt, cryptLen)
 
-	m.readOnlyKeys = make([]string, 0)
-	m.relationsKeys = make([]string, 0)
-	m.cryptKeys = make(map[string]CryptProcess, 0)
-	m.afterProcess = make(map[string][]afterProcess, 0)
-	m.beforeProcess = make(map[string][]beforeProcess, 0)
+	s.readOnlyKeys = make([]string, 0)
+	s.relationsKeys = make([]string, 0)
+	s.cryptKeys = make(map[string]CryptProcess, 0)
+	s.afterProcess = make(map[string][]afterProcess, 0)
+	s.beforeProcess = make(map[string][]beforeProcess, 0)
 
-	isNotFields := len(m.define.Fields) == 0
-	m.fields, err = perfectField(m)
+	isNotFields := len(s.define.Fields) == 0
+	s.fields, err = perfectField(s)
 	if err != nil {
 		return
 	}
 
+	_ = perfectOptions(s, o)
+
 	if !isNotFields {
-		m.inlayFields = []string{idKey}
-		if *m.define.Options.Timestamps {
-			if zarray.Contains(m.fields, CreatedAtKey) {
+		s.inlayFields = []string{idKey}
+		if *s.define.Options.Timestamps {
+			if zarray.Contains(s.fields, CreatedAtKey) {
 				err = errors.New(CreatedAtKey + " is a reserved field")
 				return
 			}
-			if zarray.Contains(m.fields, UpdatedAtKey) {
+			if zarray.Contains(s.fields, UpdatedAtKey) {
 				err = errors.New(UpdatedAtKey + " is a reserved field")
 				return
 			}
 			var after []afterProcess
-			after, err = m.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
+			after, err = s.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
 			if err != nil {
 				return
 			}
-			m.afterProcess[CreatedAtKey] = after
-			m.afterProcess[UpdatedAtKey] = after
-			m.inlayFields = append(m.inlayFields, CreatedAtKey, UpdatedAtKey)
+			s.afterProcess[CreatedAtKey] = after
+			s.afterProcess[UpdatedAtKey] = after
+			s.inlayFields = append(s.inlayFields, CreatedAtKey, UpdatedAtKey)
 		}
 
-		// if m.model.Options.CreatedBy {
+		// if m.models.Options.CreatedBy {
 		// 	if zarray.Contains(m.Fields, CreatedByKey) {
 		// 		err = errors.New(CreatedByKey + " is a reserved field")
 		// 		return
@@ -63,55 +65,55 @@ func perfect(alias string, m *Schema) (err error) {
 		// 	m.inlayFields = append(m.inlayFields, CreatedByKey)
 		// }
 
-		if *m.define.Options.SoftDeletes {
-			if zarray.Contains(m.fields, DeletedAtKey) {
+		if *s.define.Options.SoftDeletes {
+			if zarray.Contains(s.fields, DeletedAtKey) {
 				err = errors.New(DeletedAtKey + " is a reserved field")
 				return
 			}
-			m.inlayFields = append(m.inlayFields, DeletedAtKey)
+			s.inlayFields = append(s.inlayFields, DeletedAtKey)
 		}
 
-		m.fullFields = append([]string{idKey}, m.fields...)
-		m.fullFields = zarray.Unique(append(m.fullFields, m.inlayFields...))
+		s.fullFields = append([]string{idKey}, s.fields...)
+		s.fullFields = zarray.Unique(append(s.fullFields, s.inlayFields...))
 
-		if *m.define.Options.SoftDeletes {
-			flen := len(m.fullFields)
+		if *s.define.Options.SoftDeletes {
+			flen := len(s.fullFields)
 			for i := 0; i < flen; i++ {
-				f := m.fullFields[i]
+				f := s.fullFields[i]
 				if f == DeletedAtKey {
-					m.fullFields = append(m.fullFields[0:i], m.fullFields[i+1:]...)
+					s.fullFields = append(s.fullFields[0:i], s.fullFields[i+1:]...)
 					break
 				}
 			}
 		}
 
-		m.lowFields = m.define.Options.LowFields
+		s.lowFields = s.define.Options.LowFields
 	} else {
 		b := true
-		m.define.Options.DisabledMigrator = &b
+		s.define.Options.DisabledMigrator = &b
 	}
 
-	if len(m.define.Relations) > 0 {
-		for k := range m.define.Relations {
-			v := m.define.Relations[k]
+	if len(s.define.Relations) > 0 {
+		for k := range s.define.Relations {
+			v := s.define.Relations[k]
 			if len(v.ForeignKey) != len(v.SchemaKey) {
 				return errors.New("ForeignKey and SchemaKey must be the same length")
 			}
 
 		}
 
-		newRelations := make(map[string]schema.Relation, len(m.define.Relations))
-		for k := range m.define.Relations {
-			v := m.define.Relations[k]
+		newRelations := make(map[string]schema.Relation, len(s.define.Relations))
+		for k := range s.define.Relations {
+			v := s.define.Relations[k]
 			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
 		}
-		m.define.Relations = newRelations
-		m.relationsKeys = zarray.Keys(m.define.Relations)
+		s.define.Relations = newRelations
+		s.relationsKeys = zarray.Keys(s.define.Relations)
 	} else {
-		m.define.Relations = make(map[string]schema.Relation)
+		s.define.Relations = make(map[string]schema.Relation)
 	}
 
-	// if m.model.Options.CreatedBy {
+	// if m.models.Options.CreatedBy {
 	// 	c := &ModelRelation{
 	// 		Key:     CreatedByKey,
 	// 		Model:   define.UserModel,
@@ -121,10 +123,10 @@ func perfect(alias string, m *Schema) (err error) {
 	// 			"nickname",
 	// 		},
 	// 	}
-	// 	m.model.Relations[zstring.SnakeCaseToCamelCase(CreatedByKey, true)] = c
+	// 	m.models.Relations[zstring.SnakeCaseToCamelCase(CreatedByKey, true)] = c
 	// }
 
-	m.views = parseViews(m)
+	s.views = parseViews(s)
 	return
 }
 
