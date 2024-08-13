@@ -28,20 +28,20 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 
 	if !ok {
 		idVal := f
-		// if m.models.Options.CryptID {
-		// 	if id, err := m.DeCryptID(ztype.ToString(filter)); err == nil {
-		// 		idVal = id
-		// 	}
-		// }
-
 		filterMap = ztype.Map{
 			idKey: idVal,
 		}
-		// } else {
-		// 	fullFields := make([]string, 0, len(m.fullFields))
-		// 	fullFields = append(fullFields, m.fullFields...)
 	} else if filterMap == nil {
 		filterMap = ztype.Map{}
+	}
+
+	for k := range filterMap {
+		if k == "" || k[0] == '$' {
+			continue
+		}
+		if !zarray.Contains(m.GetFields(), k) {
+			delete(filterMap, k)
+		}
 	}
 
 	if *m.define.Options.SoftDeletes {
@@ -85,7 +85,7 @@ func pages(
 	filter ztype.Map,
 	cryptId bool,
 	fn ...func(*CondOptions),
-) (*PageData, error) {
+) (pagedata *PageData, err error) {
 	if cryptId {
 		_ = m.DeCrypt(filter)
 	}
@@ -93,10 +93,12 @@ func pages(
 	var (
 		childRelationson map[string][]string
 		foreignKeys      []string
+		data             = &PageData{pagesize: uint(pagesize)}
 	)
 
 	rows, pages, err := m.Storage.Pages(
 		m.GetTableName(),
+		m.GetFields(),
 		page,
 		pagesize,
 		filter,
@@ -116,7 +118,9 @@ func pages(
 		},
 	)
 
-	data := &PageData{Items: rows, Page: pages, pagesize: uint(pagesize)}
+	data.Items = rows
+	data.Page = pages
+
 	if err != nil {
 		return data, err
 	}
@@ -401,7 +405,7 @@ func handlerRelationson(
 	return rows, nil
 }
 
-func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (rows ztype.Maps, err error) {
 	if cryptId {
 		_ = m.DeCrypt(filter)
 	}
@@ -411,7 +415,7 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 		foreignKeys      []string
 	)
 
-	rows, err := m.Storage.Find(m.GetTableName(), filter, func(so *CondOptions) {
+	rows, err = m.Storage.Find(m.GetTableName(), m.GetFields(), filter, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -588,20 +592,20 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	return data, nil
 }
 
-func Insert(m *Schema, data ztype.Map) (lastId interface{}, err error) {
+func Insert(m *Schema, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
 	data, err = insertData(m, data)
 	if err != nil {
 		return 0, err
 	}
 
-	id, err := m.Storage.Insert(m.GetTableName(), data)
+	id, err := m.Storage.Insert(m.GetTableName(), m.GetFields(), data, fn...)
 	if err == nil && *m.define.Options.CryptID {
 		id, err = m.EnCryptID(ztype.ToString(id))
 	}
 	return id, err
 }
 
-func InsertMany(m *Schema, datas ztype.Maps) (lastIds []interface{}, err error) {
+func InsertMany(m *Schema, datas ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error) {
 	for i := range datas {
 		datas[i], err = insertData(m, datas[i])
 		if err != nil {
@@ -609,7 +613,7 @@ func InsertMany(m *Schema, datas ztype.Maps) (lastIds []interface{}, err error) 
 		}
 	}
 
-	lastIds, err = m.Storage.InsertMany(m.GetTableName(), datas)
+	lastIds, err = m.Storage.InsertMany(m.GetTableName(), m.GetFields(), datas, fn...)
 	if err == nil && *m.define.Options.CryptID {
 		for i := range lastIds {
 			lastIds[i], err = m.EnCryptID(ztype.ToString(lastIds[i]))
@@ -640,10 +644,10 @@ func DeleteMany[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (int64,
 		} else {
 			data[DeletedAtKey] = now.Unix()
 		}
-		return m.Storage.Update(m.GetTableName(), data, f)
+		return m.Storage.Update(m.GetTableName(), m.GetFields(), data, f)
 	}
 
-	return m.Storage.Delete(m.GetTableName(), f, fn...)
+	return m.Storage.Delete(m.GetTableName(), m.GetFields(), f, fn...)
 }
 
 func Update[T filter](
@@ -689,7 +693,7 @@ func UpdateMany[T filter](
 		return 0, errors.New("data decryption failed")
 	}
 
-	return m.Storage.Update(m.GetTableName(), data, f, fn...)
+	return m.Storage.Update(m.GetTableName(), m.GetFields(), data, f, fn...)
 }
 
 //

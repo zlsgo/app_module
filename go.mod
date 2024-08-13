@@ -4,13 +4,13 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.15
+	github.com/sohaha/zlsgo v1.7.16
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zlsgo/app_core v0.0.0-20240415112303-d75465f8a990
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
 	github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f
 	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea
-	github.com/zlsgo/zdb v0.0.0-20240731105912-a1912bd30562
+	github.com/zlsgo/zdb v0.0.0-20240813074010-ccb4dd09a8b1
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 )
@@ -52,7 +52,7 @@ require (
 	modernc.org/libc v1.55.7 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
-	modernc.org/sqlite v1.31.1 // indirect
+	modernc.org/sqlite v1.32.0 // indirect
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 )

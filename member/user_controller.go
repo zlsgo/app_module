@@ -56,7 +56,7 @@ func (h *UserServer) GETMe(c *znet.Context, user *User, opers *model.Models) (an
 // PATCHMe 修改用户
 func (h *UserServer) PATCHMe(c *znet.Context, user *User, opers *model.Models) (any, error) {
 	oper := opers.MustGet(modelName)
-	return restapi.HanderPATCH(c, oper, user.Id, func(_, data ztype.Map) (ztype.Map, error) {
+	return restapi.UpdateById(c, oper, user.Id, func(_, data ztype.Map) (ztype.Map, error) {
 		// 敏感字段不允许修改
 		for _, k := range []string{"password", "salt", "account", "login_at", "provider", "provider_id", "provider_username", "status"} {
 			delete(data, k)

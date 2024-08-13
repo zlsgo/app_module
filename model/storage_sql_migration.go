@@ -24,7 +24,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 		return errors.New("表名不能为空")
 	}
 
-	if err = m.Model.hook("migrationStart"); err != nil {
+	if err = m.Model.hook("MigrationStart", m); err != nil {
 		return err
 	}
 
@@ -48,7 +48,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 	}
 
 	if err == nil {
-		err = m.Model.hook("migrationDone")
+		err = m.Model.hook("MigrationDone", m)
 	}
 	return
 }
@@ -475,6 +475,10 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 				return err
 			}
 		}
+	}
+
+	if err := m.Model.hook("MigrationIndexDone", m, db, table); err != nil {
+		return err
 	}
 
 	return nil

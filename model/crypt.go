@@ -36,13 +36,14 @@ func (m *Schema) GetCryptProcess(cryptName string) (fn CryptProcess, err error) 
 
 // DeCrypt 解密 ID
 func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
+	success = true
 	if *m.define.Options.CryptID {
 		if id, ok := row[idKey]; ok {
 			var (
 				err error
 				raw int64
 			)
-			success = true
+
 			switch i := id.(type) {
 			case string:
 				raw, err = hashid.DecryptID(m.Hashid, i)
@@ -85,7 +86,7 @@ func (m *Schema) DeCrypt(row ztype.Map) (success bool) {
 		}
 	}
 
-	return true
+	return
 }
 
 // EnCrypt  加密 ID

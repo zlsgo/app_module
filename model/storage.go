@@ -39,16 +39,20 @@ type CondOptions struct {
 	// Relations []string
 }
 
+type InsertOptions struct {
+	Options string
+}
+
 type Storageer interface {
 	GetStorageType() StorageType
-	Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
-	First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)
-	Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error)
+	Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
+	First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)
+	Pages(table string, fields []string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error)
 	Migration(model *Schema) Migrationer
-	Insert(table string, data ztype.Map) (lastId interface{}, err error)
-	InsertMany(table string, data ztype.Maps) (lastIds []interface{}, err error)
-	Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
-	Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
+	Insert(table string, fields []string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error)
+	InsertMany(table string, fields []string, data ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error)
+	Delete(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
+	Update(table string, fields []string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error)
 }
 
 type PageInfo struct {

@@ -25,6 +25,10 @@ func (f Filter) Set(field string, cond any) Filter {
 	return f
 }
 
+func (f Filter) Get(field string) ztype.Type {
+	return ztype.New(f[field])
+}
+
 func (m *Schema) Model() *Model {
 	if m.model == nil {
 		m.model = &Model{
@@ -81,13 +85,13 @@ func (o *Model) DeCryptID(nid string) (id string, err error) {
 }
 
 // Insert 插入数据
-func (o *Model) Insert(data ztype.Map) (lastId interface{}, err error) {
-	return Insert(o.schema, data)
+func (o *Model) Insert(data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+	return Insert(o.schema, data, fn...)
 }
 
 // InsertMany 批量插入数据
-func (o *Model) InsertMany(data ztype.Maps) (lastId interface{}, err error) {
-	return InsertMany(o.schema, data)
+func (o *Model) InsertMany(data ztype.Maps, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+	return InsertMany(o.schema, data, fn...)
 }
 
 // Count 统计数量

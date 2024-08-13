@@ -63,13 +63,12 @@ func (m *Schema) DI() zdi.Injector {
 	return m.di
 }
 
-func (m *Schema) hook(name string) error {
-	// TODO: 钩子
-	// if m.models.Hook == nil {
-	// 	return nil
-	// }
-	// return m.models.Hook(name, m)
-	return nil
+func (m *Schema) hook(name string, data ...any) error {
+	if m.define.Options.Hook == nil {
+		return nil
+	}
+
+	return m.define.Options.Hook(name, data...)
 }
 
 type schemaController struct {

@@ -5,7 +5,6 @@ import (
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model"
 )
@@ -48,15 +47,15 @@ func (h *controller) Init(r *znet.Engine) error {
 
 		switch method {
 		case "GET":
-			return handerGet(c, mod, args, model.Filter{}, nil)
+			return find(c, mod, args, model.Filter{}, nil)
 		case "POST":
-			return HanderPost(c, mod, nil)
+			return Insert(c, mod, nil)
 		case "PUT":
-			return HanderPut(c, mod, args, nil)
+			return UpdateById(c, mod, args, nil)
 		case "PATCH":
-			return HanderPATCH(c, mod, args, nil)
+			return UpdateById(c, mod, args, nil)
 		case "DELETE":
-			return HanderDelete(c, mod, []string{args}, nil)
+			return DeleteById(c, mod, args, nil)
 		default:
 			r.HandleNotFound(c)
 			return nil, nil
@@ -65,49 +64,7 @@ func (h *controller) Init(r *znet.Engine) error {
 	return nil
 }
 
-func HanderGet(
-	c *znet.Context,
-	mod *model.Model,
-	id string,
-	fn func(o *model.CondOptions),
-) (ztype.Map, error) {
-	res, err := handerGet(c, mod, id, model.Filter{}, fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(ztype.Map), nil
-}
-
-func HanderPage(
-	c *znet.Context,
-	mod *model.Model,
-	filter model.Filter,
-	fn func(o *model.CondOptions),
-) (*model.PageData, error) {
-	res, err := handerGet(c, mod, "", filter, fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*model.PageData), nil
-}
-
-func HanderGets(
-	c *znet.Context,
-	mod *model.Model,
-	filter model.Filter,
-	fn func(o *model.CondOptions),
-) (ztype.Maps, error) {
-	res, err := handerGet(c, mod, "*", filter, fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(ztype.Maps), nil
-}
-
-func handerGet(
+func find(
 	c *znet.Context,
 	mod *model.Model,
 	id string,
@@ -144,130 +101,4 @@ func handerGet(
 
 		return row, nil
 	}
-}
-
-func HanderPost(
-	c *znet.Context,
-	mod *model.Model,
-	fn func(data ztype.Map) (ztype.Map, error),
-) (any, error) {
-	j, _ := c.GetJSONs()
-	data := j.Map()
-
-	if fn != nil {
-		var err error
-		data, err = fn(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	id, err := mod.Insert(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return ztype.Map{"id": id}, nil
-}
-
-func HanderDelete(
-	c *znet.Context,
-	mod *model.Model,
-	ids []string,
-	handler func(old ztype.Map) error,
-) (any, error) {
-	if len(ids) == 0 {
-		return nil, zerror.InvalidInput.Text("id cannot empty")
-	}
-
-	// TODO: 考虑并发查询
-	for _, id := range ids {
-		if handler != nil {
-			info, err := mod.FindOneByID(id)
-			if err != nil {
-				return nil, err
-			}
-			if info.IsEmpty() {
-				return nil, zerror.InvalidInput.Text("id not found")
-			}
-			err = handler(info)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	total, err := mod.DeleteMany(model.Filter{model.IDKey(): ids})
-	return ztype.Map{"total": total}, err
-}
-
-func HanderPut(c *znet.Context, mod *model.Model, id string,
-	handler func(old ztype.Map, data ztype.Map) (ztype.Map, error),
-) (any, error) {
-	if id == "" {
-		return nil, zerror.InvalidInput.Text("id cannot empty")
-	}
-
-	j, err := c.GetJSONs()
-	if err != nil {
-		return nil, err
-	}
-
-	data := j.Map()
-
-	if handler != nil {
-		info, err := mod.FindOneByID(id)
-		if err != nil {
-			return nil, err
-		}
-
-		if info.IsEmpty() {
-			return nil, zerror.InvalidInput.Text("id not found")
-		}
-
-		data, err = handler(info, data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	total, err := mod.UpdateByID(id, data)
-	return ztype.Map{"total": total}, err
-}
-
-func HanderPATCH(
-	c *znet.Context,
-	mod *model.Model,
-	id string,
-	handler func(old ztype.Map, data ztype.Map) (ztype.Map, error),
-) (any, error) {
-	if id == "" {
-		return nil, zerror.InvalidInput.Text("id cannot empty")
-	}
-
-	j, err := c.GetJSONs()
-	if err != nil {
-		return nil, err
-	}
-
-	data := j.Map()
-
-	if handler != nil {
-		info, err := mod.FindOneByID(id)
-		if err != nil {
-			return nil, err
-		}
-
-		if info.IsEmpty() {
-			return nil, zerror.InvalidInput.Text("id not found")
-		}
-
-		data, err = handler(info, data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	total, err := mod.UpdateByID(id, data)
-	return ztype.Map{"total": total}, err
 }

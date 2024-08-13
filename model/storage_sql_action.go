@@ -42,8 +42,7 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 				}
 			}
 
-			upperKey := strings.ToUpper(k)
-			v := ztype.New(value)
+			upperKey, v := strings.ToUpper(k), ztype.New(value)
 			if upperKey == "$OR" || upperKey == "$AND" {
 				m := v.Map()
 				cexprs, err := s.parseExprs(d, m)
@@ -127,12 +126,14 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 	return
 }
 
-func (s *SQL) Insert(table string, data ztype.Map) (lastId interface{}, err error) {
-	return s.db.Insert(table, data)
+func (s *SQL) Insert(table string, fields []string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+	o := zutil.Optional(InsertOptions{}, fn...)
+	return s.db.Insert(table, data, o.Options)
 }
 
-func (s *SQL) InsertMany(table string, data ztype.Maps) (lastIds []interface{}, err error) {
-	ids, err := s.db.BatchInsert(table, data)
+func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error) {
+	o := zutil.Optional(InsertOptions{}, fn...)
+	ids, err := s.db.BatchInsert(table, data, o.Options)
 	if err != nil {
 		return []interface{}{}, err
 	}
@@ -142,7 +143,7 @@ func (s *SQL) InsertMany(table string, data ztype.Maps) (lastIds []interface{}, 
 	return
 }
 
-func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
+func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := CondOptions{}
 	for _, f := range fn {
 		f(&o)
@@ -169,8 +170,8 @@ func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (
 	})
 }
 
-func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
-	rows, err := s.Find(table, filter, func(so *CondOptions) {
+func (s *SQL) First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
+	rows, err := s.Find(table, fields, filter, func(so *CondOptions) {
 		so.Limit = 1
 		if len(fn) > 0 {
 			fn[0](so)
@@ -184,7 +185,7 @@ func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions)) (z
 	return ztype.Map{}, err
 }
 
-func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	o := zutil.Optional(CondOptions{}, fn...)
 	items, err := s.db.Find(table, func(b *builder.SelectBuilder) error {
 		var fieldPrefix string
@@ -201,6 +202,7 @@ func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (zt
 		if err != nil {
 			return err
 		}
+
 		if len(exprs) > 0 {
 			b.Where(exprs...)
 		}
@@ -231,7 +233,7 @@ func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (zt
 	return items, nil
 }
 
-func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
+func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
 	o := CondOptions{}
 	for _, f := range fn {
 		f(&o)
@@ -285,7 +287,7 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 	}, nil
 }
 
-func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
+func (s *SQL) Update(table string, fields []string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := CondOptions{}
 	for _, f := range fn {
 		f(&o)

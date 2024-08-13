@@ -12,7 +12,7 @@ type Relation struct {
 }
 
 func HanderPageRelation(c *znet.Context, oper *model.Model, filter model.Filter, relations map[string]Relation) (*model.PageData, error) {
-	data, err := HanderPage(c, oper, filter, nil)
+	data, err := Page(c, oper, filter, nil)
 	return data, err
 }
 

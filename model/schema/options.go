@@ -10,6 +10,7 @@ type Options struct {
 	SoftDeletes *bool `json:"soft_deletes,omitempty"`
 	Timestamps  *bool `json:"timestamps,omitempty"`
 	CryptID     *bool `json:"crypt_id,omitempty"`
+	Hook        func(event string, data ...any) error
 }
 
 func (o *Options) SetDisabledMigrator(b bool) *Options {
@@ -34,5 +35,15 @@ func (o *Options) SetTimestamps(b bool) *Options {
 
 func (o *Options) SetCryptID(b bool) *Options {
 	o.CryptID = &b
+	return o
+}
+
+func (o *Options) SetCryptLen(i int) *Options {
+	o.CryptLen = i
+	return o
+}
+
+func (o *Options) SetHook(h func(event string, data ...any) error) *Options {
+	o.Hook = h
 	return o
 }
