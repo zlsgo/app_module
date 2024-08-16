@@ -606,14 +606,17 @@ func Insert(m *Schema, data ztype.Map, fn ...func(*InsertOptions)) (lastId inter
 }
 
 func InsertMany(m *Schema, datas ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error) {
+	d := make(ztype.Maps, 0, len(datas))
 	for i := range datas {
-		datas[i], err = insertData(m, datas[i])
+		data, err := insertData(m, datas[i])
 		if err != nil {
 			return []interface{}{}, err
 		}
+		if !data.IsEmpty() {
+			d = append(d, data)
+		}
 	}
-
-	lastIds, err = m.Storage.InsertMany(m.GetTableName(), m.GetFields(), datas, fn...)
+	lastIds, err = m.Storage.InsertMany(m.GetTableName(), m.GetFields(), d, fn...)
 	if err == nil && *m.define.Options.CryptID {
 		for i := range lastIds {
 			lastIds[i], err = m.EnCryptID(ztype.ToString(lastIds[i]))

@@ -95,11 +95,11 @@ func dateMarshalProcess(format string) func(v interface{}) (string, error) {
 		if err != nil {
 			timestamp, err := strconv.Atoi(s)
 			if err == nil {
-				return ztime.FormatTimestamp(int64(timestamp), format), nil
+				return ztime.FormatTimestamp(int64(timestamp)), nil
 			}
 			return "", errors.New("date parse error")
 		}
-		return ztime.FormatTime(t, format), nil
+		return ztime.FormatTime(t), nil
 	}
 }
 

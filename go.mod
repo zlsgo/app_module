@@ -10,7 +10,7 @@ require (
 	github.com/zlsgo/conf v0.0.0-20240413083322-de9f5834b572
 	github.com/zlsgo/jet v0.0.0-20240427072140-66488488600f
 	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea
-	github.com/zlsgo/zdb v0.0.0-20240813074010-ccb4dd09a8b1
+	github.com/zlsgo/zdb v0.0.0-20240814132510-94bb7b935341
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 )

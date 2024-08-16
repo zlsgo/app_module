@@ -137,6 +137,7 @@ func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...f
 	if err != nil {
 		return []interface{}{}, err
 	}
+
 	for _, id := range ids {
 		lastIds = append(lastIds, id)
 	}

@@ -102,11 +102,11 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 						r   time.Time
 						err error
 					)
-					if column.Options.FormatTime == "" {
-						r, err = ztime.Parse(t)
-					} else {
-						r, err = ztime.Parse(t, column.Options.FormatTime)
-					}
+					// if column.Options.FormatTime == "" {
+					r, err = ztime.Parse(t)
+					// } else {
+					// 	r, err = ztime.Parse(t, column.Options.FormatTime)
+					// }
 					if err != nil {
 						return d, errors.New(label + ": 时间格式错误")
 					}

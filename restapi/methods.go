@@ -52,44 +52,75 @@ func Find(
 	return res.(ztype.Maps), nil
 }
 
-// Insert 数据，如果 json 数据是数组则批量添加
+// Insert 添加数据
 func Insert(
 	c *znet.Context,
 	mod *model.Model,
 	fn func(data ztype.Map) (ztype.Map, error),
 	o ...func(io *model.InsertOptions),
-) (any, error) {
+) (ztype.Map, error) {
 	j, err := c.GetJSONs()
 	if err != nil {
 		return nil, err
 	}
-	var id any
-	if j.IsArray() {
-		data := j.Maps()
-		if fn != nil {
-			for i := range data {
-				ndata, err := fn(data.Index(i))
-				if err != nil {
-					return nil, err
-				}
-				data[i] = ndata
-			}
-		}
 
-		id, err = mod.InsertMany(data, o...)
+	var data ztype.Map
+	if j.IsArray() {
+		data = j.Get("0").Map()
 	} else {
-		data := j.Map()
-		if fn != nil {
-			var err error
-			data, err = fn(data)
+		data = j.Map()
+	}
+
+	if fn != nil {
+		var err error
+		data, err = fn(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	id, err := mod.Insert(data, o...)
+	if err != nil {
+		return nil, err
+	}
+
+	return ztype.Map{"id": id}, nil
+}
+
+// InsertMany 添加多条数据
+func InsertMany(
+	c *znet.Context,
+	mod *model.Model,
+	fn func(i int, data ztype.Map) (ztype.Map, error),
+	o ...func(io *model.InsertOptions),
+) (ztype.Map, error) {
+	j, err := c.GetJSONs()
+	if err != nil {
+		return nil, err
+	}
+
+	var data ztype.Maps
+	if j.IsArray() {
+		data = j.Maps()
+	} else {
+		data = ztype.Maps{j.Map()}
+	}
+
+	if fn != nil {
+		d := make(ztype.Maps, 0, len(data))
+		for i := range data {
+			data, err := fn(i, data.Index(i))
 			if err != nil {
 				return nil, err
 			}
+			if data.IsEmpty() {
+				continue
+			}
+			d = append(d, data)
 		}
-
-		id, err = mod.Insert(data, o...)
+		data = d
 	}
-
+	id, err := mod.InsertMany(data, o...)
 	if err != nil {
 		return nil, err
 	}
