@@ -41,7 +41,7 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 		return
 	})
 	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := GetAccountModel().DeCryptID(item.Get(model.IDKey()).String())
+		id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())
 		_ = item.Set("id", id)
 		return true
 	})

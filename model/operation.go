@@ -74,16 +74,6 @@ func (o *Model) Schema() *Schema {
 	return o.schema
 }
 
-// EnCryptID 加密 ID
-func (o *Model) EnCryptID(id string) (nid string, err error) {
-	return o.schema.EnCryptID(id)
-}
-
-// DeCryptID 解密 ID
-func (o *Model) DeCryptID(nid string) (id string, err error) {
-	return o.schema.DeCryptID(nid)
-}
-
 // Insert 插入数据
 func (o *Model) Insert(data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
 	return Insert(o.schema, data, fn...)

@@ -32,15 +32,6 @@ func (ss *Schemas) String() string {
 	return "[" + strings.Join(ss.data.Keys(), ", ") + "]"
 }
 
-func (ss *Schemas) StorageType() string {
-	switch ss.storage.(type) {
-	case *SQL:
-		return "sql"
-	default:
-		return "unknown"
-	}
-}
-
 func (ss *Schemas) set(alias string, s *Schema, force ...bool) (err error) {
 	if s.define.Table.Name == "" {
 		tableName := strings.Replace(alias, "-", "_", -1)
@@ -123,6 +114,7 @@ func (ss *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 		err = zerror.With(err, "models "+name+" register error")
 		return nil, err
 	}
+
 	if *m.GetDefine().Options.DisabledMigrator {
 		migration := m.Migration()
 		if migration.HasTable() {

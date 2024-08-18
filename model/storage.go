@@ -6,20 +6,30 @@ import (
 	"github.com/zlsgo/zdb/builder"
 )
 
+type StorageType uint8
+
 const (
 	SQLStorage StorageType = iota + 1
 	NoSQLStorage
 )
 
-type (
-	StorageType uint8
-	StorageJoin struct {
-		Table        string
-		As           string
-		Expr         string
-		ModelOptions builder.JoinOption
+func (s StorageType) String() string {
+	switch s {
+	case SQLStorage:
+		return "sql"
+	case NoSQLStorage:
+		return "nosql"
+	default:
+		return "unknown"
 	}
-)
+}
+
+type StorageJoin struct {
+	Table        string
+	As           string
+	Expr         string
+	ModelOptions builder.JoinOption
+}
 
 // type StorageWhere struct {
 // 	Expr string

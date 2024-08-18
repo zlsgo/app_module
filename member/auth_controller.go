@@ -13,15 +13,15 @@ import (
 
 type Auth struct {
 	service.App
-	module   *Module
-	userOper *Model
-	Path     string
+	module  *Module
+	userMod *Model
+	Path    string
 }
 
 var _ = reflect.TypeOf(&Auth{})
 
 func (h *Auth) Init(r *znet.Engine) (err error) {
-	if err = h.DI.Resolve(&h.userOper); err != nil {
+	if err = h.DI.Resolve(&h.userMod); err != nil {
 		return err
 	}
 	_ = h.DI.Resolve(&h.module)
@@ -38,10 +38,14 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				"provider_id": p.ProviderID,
 			}
 
-			user, _ := h.userOper.FindOne(model.Filter(data))
+			user, err := h.userMod.FindOne(model.Filter(data))
+			if err != nil {
+				return "", err
+			}
+
 			if !user.IsEmpty() {
 				id := user.Get(model.IDKey()).String()
-				h.userOper.UpdateByID(id, ztype.Map{
+				h.userMod.UpdateByID(id, ztype.Map{
 					"login_at": time.Now(),
 				})
 				return id, nil
@@ -50,7 +54,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 			data["account"] = p.Provider + "_" + p.ProviderID
 			data["provider_username"] = p.ProviderUsername
 
-			id, err := h.userOper.Insert(data)
+			id, err := h.userMod.Insert(data)
 			return ztype.ToString(id), err
 		},
 	)

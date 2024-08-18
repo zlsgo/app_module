@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/zlsgo/app_module/database/hashid"
+	"github.com/zlsgo/zdb"
 
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
@@ -128,4 +129,8 @@ func (m *Schema) DeCryptID(nid string) (id string, err error) {
 	}
 
 	return
+}
+
+func GetEngine[T *zdb.DB](m *Model) T {
+	return m.schema.Storage.(*SQL).GetDB()
 }

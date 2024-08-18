@@ -5,8 +5,7 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 )
 
-type requestWith struct {
-}
+type requestWith struct{}
 
 const (
 	ctxWithUID  = "m::account::uid"
@@ -40,7 +39,7 @@ func (requestWith) User(c *znet.Context) ztype.Map {
 
 func (r requestWith) RealUID(c *znet.Context) string {
 	uid := r.UID(c)
-	nid, _ := GetAccountModel().DeCryptID(uid)
+	nid, _ := GetAccountModel().Schema().DeCryptID(uid)
 	return nid
 }
 

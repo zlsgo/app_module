@@ -32,7 +32,7 @@ func (m *Module) UserById(id any) (u *User, err error) {
 		}
 
 		uid := ztype.ToString(id)
-		rawId, _ := mod.DeCryptID(uid)
+		rawId, _ := mod.Schema().DeCryptID(uid)
 		return &User{Id: uid, Info: info, RawId: rawId}, true
 	})
 

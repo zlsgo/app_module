@@ -80,7 +80,7 @@ func messageModelDefine(m *Module) error {
 }
 
 func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
-	id, err := GetAccountModel().DeCryptID(uid)
+	id, err := GetAccountModel().Schema().DeCryptID(uid)
 	if err != nil {
 		return nil, errors.New("用户 ID 错误")
 	}
@@ -119,12 +119,12 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = GetAccountModel().DeCryptID(to)
+	to, err = GetAccountModel().Schema().DeCryptID(to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = GetAccountModel().DeCryptID(from)
+	from, err = GetAccountModel().Schema().DeCryptID(from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}
