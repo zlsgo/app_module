@@ -8,6 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/app_module/model/hook"
 	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/builder"
@@ -24,7 +25,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 		return errors.New("表名不能为空")
 	}
 
-	if err = m.Model.hook("MigrationStart", m); err != nil {
+	if err = m.Model.hook(hook.EventMigrationStart, m); err != nil {
 		return err
 	}
 
@@ -48,7 +49,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 	}
 
 	if err == nil {
-		err = m.Model.hook("MigrationDone", m)
+		err = m.Model.hook(hook.EventMigrationDone, m)
 	}
 	return
 }
@@ -477,7 +478,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 		}
 	}
 
-	if err := m.Model.hook("MigrationIndexDone", m, db, table); err != nil {
+	if err := m.Model.hook(hook.EventMigrationIndexDone, m, db, table); err != nil {
 		return err
 	}
 

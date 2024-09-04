@@ -6,6 +6,7 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/model/hook"
 	"github.com/zlsgo/app_module/model/schema"
 )
 
@@ -63,7 +64,7 @@ func (m *Schema) DI() zdi.Injector {
 	return m.di
 }
 
-func (m *Schema) hook(name string, data ...any) error {
+func (m *Schema) hook(name hook.Event, data ...any) error {
 	if m.define.Options.Hook == nil {
 		return nil
 	}

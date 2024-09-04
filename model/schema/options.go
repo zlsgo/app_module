@@ -1,5 +1,9 @@
 package schema
 
+import (
+	"github.com/zlsgo/app_module/model/hook"
+)
+
 type Options struct {
 	Salt             string   `json:"crypt_salt,omitempty"`
 	LowFields        []string `json:"low_fields,omitempty"`
@@ -10,7 +14,7 @@ type Options struct {
 	SoftDeletes *bool `json:"soft_deletes,omitempty"`
 	Timestamps  *bool `json:"timestamps,omitempty"`
 	CryptID     *bool `json:"crypt_id,omitempty"`
-	Hook        func(event string, data ...any) error
+	Hook        func(event hook.Event, data ...any) error
 }
 
 func (o *Options) SetDisabledMigrator(b bool) *Options {
@@ -43,7 +47,7 @@ func (o *Options) SetCryptLen(i int) *Options {
 	return o
 }
 
-func (o *Options) SetHook(h func(event string, data ...any) error) *Options {
+func (o *Options) SetHook(h func(event hook.Event, data ...any) error) *Options {
 	o.Hook = h
 	return o
 }
