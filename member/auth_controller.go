@@ -27,7 +27,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 	_ = h.DI.Resolve(&h.module)
 
 	regController := auth.NewRouter(
-		h.module.Options.Key,
+		h.module.Options.key,
 		h.module.Options.Expire,
 		func(ctx *znet.Context, _ any) error {
 			return nil

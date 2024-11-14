@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
+	"github.com/zlsgo/app_module/account/limiter"
 	"github.com/zlsgo/app_module/model"
 
 	"github.com/sohaha/zlsgo/zarray"
@@ -39,7 +40,7 @@ func (h *Index) Init(r *znet.Engine) error {
 	{
 		// 无需权限校验
 		noPerm := r.Group("/", func(e *znet.Engine) {
-			e.Use(h.module.limiter)
+			e.Use(limiter.IPMiddleware())
 		})
 		// 登录
 		noPerm.POST("/login", h.login)

@@ -1,0 +1,4 @@
+### 用户登录
+GET {{host}}/member/me
+Content-Type: application/json
+Authorization: Basic {{token}}

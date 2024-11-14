@@ -6,6 +6,7 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/jet"
 )
@@ -21,9 +22,7 @@ var (
 )
 
 func New(opt ...func(*Options)) (m *Module) {
-	for _, f := range opt {
-		f(&options)
-	}
+	options = zutil.Optional(Options{}, opt...)
 
 	service.DefaultConf = append(service.DefaultConf, &options)
 

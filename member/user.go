@@ -5,6 +5,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/model"
 )
 
 type User struct {
@@ -15,8 +16,16 @@ type User struct {
 
 var userCache = zcache.NewFast()
 
-func (m *Module) UserById(id any) (u *User, err error) {
+func (m *Module) UserModel() (*model.Model, bool) {
 	mod, ok := m.models.Get(modelName)
+	if !ok {
+		return nil, false
+	}
+	return mod, true
+}
+
+func (m *Module) UserById(id any) (u *User, err error) {
+	mod, ok := m.UserModel()
 	if !ok {
 		return nil, errors.New("not found model")
 	}

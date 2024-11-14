@@ -2,7 +2,6 @@ package account
 
 import (
 	"errors"
-	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -10,10 +9,10 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/znet/limiter"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/rbac"
 	"github.com/zlsgo/app_module/model"
@@ -29,7 +28,6 @@ type Module struct {
 	accountModel *AccountModel
 	index        *Index
 	Request      *requestWith
-	limiter      func(c *znet.Context) error
 	Inside       *inside
 	Controllers  []service.Controller
 	Options      Options
@@ -71,32 +69,12 @@ func (o Options) DisableWrite() bool {
 }
 
 func New(key string, opt ...func(o *Options)) *Module {
-	m := &Module{
-		Options: Options{key: key, ApiPrefix: "/manage"},
+	return &Module{
+		Options: zutil.Optional(Options{key: key, ApiPrefix: "/manage"}, opt...),
 		index:   &Index{},
 		Request: &requestWith{},
 		Inside:  &inside{},
 	}
-
-	for _, f := range opt {
-		f(&m.Options)
-	}
-
-	m.Options.ApiPrefix = strings.TrimSuffix(m.Options.ApiPrefix, "/")
-
-	// 限制接口频率
-	limit := limiter.NewRule()
-	limit.AddRule(time.Second*10, 2)
-	tooManyRequestsTag := zerror.WrapTag(zerror.TagKind(ztype.ToString(http.StatusTooManyRequests)))(errors.New("请求过于频繁"))
-	m.limiter = func(c *znet.Context) error {
-		if !limit.AllowVisitByIP(c.GetClientIP()) {
-			return tooManyRequestsTag
-		}
-		c.Next()
-		return nil
-	}
-
-	return m
 }
 
 func (m *Module) Tasks() []service.Task {
@@ -128,6 +106,7 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 			return errors.New("not account key")
 		}
 		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
+		m.Options.ApiPrefix = strings.TrimSuffix(m.Options.ApiPrefix, "/")
 
 		m.index.Path = m.Options.ApiPrefix + "/base"
 

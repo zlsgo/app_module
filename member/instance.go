@@ -61,7 +61,7 @@ func initInstance(m *Module) error {
 					return nil
 				}
 
-				info, err := jwt.Parse(token, m.Options.Key)
+				info, err := jwt.Parse(token, m.Options.key)
 				if err != nil {
 					return zerror.Unauthorized.Text(err.Error())
 				}

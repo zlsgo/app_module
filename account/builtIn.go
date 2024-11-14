@@ -20,7 +20,11 @@ func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 	_ = roles
 
 	account := data.Get("account").String()
-	if !data.Get("nickname").Exists() {
+	if account == "" {
+		return nil, zerror.InvalidInput.Text("账号不能为空")
+	}
+
+	if data.Get("nickname").String() == "" {
 		data.Set("nickname", account)
 	}
 

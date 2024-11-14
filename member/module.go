@@ -3,11 +3,13 @@ package member
 import (
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/auth"
 	"github.com/zlsgo/app_module/model"
@@ -37,10 +39,12 @@ func (m *Module) Name() string {
 type Options struct {
 	InitDB           func() (*zdb.DB, error) `z:"-"`
 	ApiPrefix        string                  `z:"prefix"`
-	Key              string                  `z:"key"`
+	key              string                  `z:"-"`
 	Providers        []auth.AuthProvider     `z:"-"`
 	EnabledProviders []string                `z:"enabled_providers"`
 	Expire           int                     `z:"expire"`
+	ModelPrefix      string                  `z:"model_prefix"`
+	EnableRegister   bool                    `z:"enable_register"`
 }
 
 func (o Options) ConfKey() string {
@@ -53,11 +57,7 @@ func (o Options) DisableWrite() bool {
 
 func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
-		Options: Options{Key: key, ApiPrefix: "/member"},
-	}
-
-	for _, f := range opt {
-		f(&m.Options)
+		Options: zutil.Optional(Options{key: key, ApiPrefix: "/member"}, opt...),
 	}
 
 	service.DefaultConf = append(service.DefaultConf, &m.Options)
@@ -71,11 +71,12 @@ func (m *Module) Tasks() []service.Task {
 
 func (m *Module) Load(di zdi.Invoker) (any, error) {
 	return nil, di.InvokeWithErrorOnly(func(c *service.Conf) error {
-		if m.Options.Key == "" {
+		if m.Options.key == "" {
 			return errors.New("not set key")
 		}
+		m.Options.ApiPrefix = strings.TrimSuffix(m.Options.ApiPrefix, "/")
 
-		m.Options.Key = zstring.Pad(m.Options.Key, 32, "0", zstring.PadRight)
+		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
 
 		injector := di.(zdi.Injector)
 
@@ -107,7 +108,11 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db), model.SchemaOptions{})
+	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, func(s *model.SQLOptions) {
+		if m.Options.ModelPrefix != "" {
+			s.Prefix = m.Options.ModelPrefix
+		}
+	}), model.SchemaOptions{})
 
 	schema, err := m.schemas.Reg(modelName, modelDefine(), false)
 	if err != nil {
