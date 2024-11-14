@@ -1,6 +1,8 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -13,9 +15,16 @@ var noLogIP = false
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 	m, _ := h.module.mods.Get(logsName)
+	user := h.module.Request.User(c)
+	account := user.Get("account").String()
+	if account == "" {
+		return nil, errors.New("用户不存在")
+	}
 
 	page, pagesize, _ := common.VarPages(c)
-	return model.Pages(m, page, pagesize, ztype.Map{}, func(co *model.CondOptions) {
+	return model.Pages(m, page, pagesize, ztype.Map{
+		"account": account,
+	}, func(co *model.CondOptions) {
 		co.OrderBy = map[string]string{model.IDKey(): "desc"}
 	})
 }
