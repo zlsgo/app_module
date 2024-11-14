@@ -117,15 +117,13 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 
 		c.WithValue(ctxWithUID, uid)
 
-		// rawUID, _ := m.accountModel.DeCryptID(uid)
-		// c.WithValue(ctxWithRawUID, rawUID)
-
 		u, err := getUserForCache(userModel, uid)
 		if err != nil {
 			return err
 		}
 
 		c.WithValue(ctxWithUser, u)
+
 		if u.Get("status").Int() != 1 {
 			return permissionDenied(errors.New("用户已被禁用"))
 		}

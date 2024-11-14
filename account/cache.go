@@ -14,9 +14,9 @@ import (
 var userCache = zcache.NewFast()
 
 func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
-	user, ok := userCache.ProvideGet(uid, func() (interface{}, bool) {
+	user, _ := userCache.ProvideGet(uid, func() (interface{}, bool) {
 		f, err := model.FindOne(m, uid)
-		if err != nil {
+		if err != nil || f.IsEmpty() {
 			return ztype.Map{}, false
 		}
 		if *m.GetDefine().Options.CryptID {
@@ -25,10 +25,12 @@ func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 		}
 		return f, true
 	})
-	if !ok {
+
+	info, ok := user.(ztype.Map)
+	if !ok || info.IsEmpty() {
 		return nil, zerror.WrapTag(zerror.NotFound)(errors.New("用户不存在"))
 	}
-	return user.(ztype.Map), nil
+	return info, nil
 }
 
 func deleteUserForCache(uid string) {
@@ -38,7 +40,7 @@ func deleteUserForCache(uid string) {
 var jwtCache = zcache.NewFast()
 
 func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
-	uid, ok := jwtCache.ProvideGet(token, func() (interface{}, bool) {
+	uid, _ := jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {
 			return "", false
@@ -54,11 +56,12 @@ func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 		return uid, true
 	})
 
-	if !ok {
+	id, ok := uid.(string)
+	if !ok || id == "" {
 		return "", zerror.WrapTag(zerror.Unauthorized)(errors.New("登录状态过期，请重新登录"))
 	}
 
-	return uid.(string), nil
+	return id, nil
 }
 
 func deleteJWTForCache(token string) {
