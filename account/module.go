@@ -26,6 +26,7 @@ type Module struct {
 	accountModel *AccountModel
 	Controllers  []service.Controller
 	Options      Options
+	index        *Index
 }
 
 var (
@@ -41,16 +42,17 @@ type Options struct {
 	InitDB               func() (*zdb.DB, error)  `z:"-"`
 	SSEReconnect         func(uid, lastID string) `z:"-"`
 	InlayRBAC            *rbac.RBAC               `z:"-"`
-	AdminDefaultPassword string                   `z:"admin_default_password"`
-	ApiPrefix            string                   `z:"prefix"`
-	RBACFile             string                   `z:"rbac_file"`
-	key                  string
-	InlayUser            ztype.Maps      `z:"inlay_user"`
-	Models               []schema.Schema `z:"-"`
-	SSE                  znet.SSEOption  `z:"-"`
-	Expire               int             `z:"expire"`
-	Only                 bool            `z:"only"`
-	DisabledLogIP        bool            `z:"disabled_ip"`
+	AdminDefaultPassword string                   `z:"admin_default_password"` // 管理员默认密码
+	ApiPrefix            string                   `z:"prefix"`                 // 接口前缀
+	RBACFile             string                   `z:"rbac_file"`              // rbac 文件
+	key                  string                   `z:"key"`                    // 密钥
+	InlayUser            ztype.Maps               `z:"inlay_user"`             // 默认用户
+	Models               []schema.Schema          `z:"-"`
+	ModelPrefix          string                   `z:"model_prefix"` // 模型前缀
+	SSE                  znet.SSEOption           `z:"-"`
+	Expire               int                      `z:"expire"`      // access token 过期时间
+	Only                 bool                     `z:"only"`        // 是否只允许一处登录
+	DisabledLogIP        bool                     `z:"disabled_ip"` // 是否禁用日志 IP 记录
 }
 
 func (o Options) ConfKey() string {
@@ -70,6 +72,8 @@ func New(key string, opt ...func(o *Options)) *Module {
 		f(&m.Options)
 	}
 
+	m.index = &Index{}
+
 	return m
 }
 
@@ -81,7 +85,7 @@ func (m *Module) Tasks() []service.Task {
 				if !ok {
 					return
 				}
-
+				// 删除一个月前的日志
 				t := time.Now().AddDate(0, -1, 0)
 				_, err := model.DeleteMany(lm, ztype.Map{
 					"record_at <": ztime.FormatTime(t),
@@ -96,10 +100,6 @@ func (m *Module) Tasks() []service.Task {
 	}
 }
 
-var index = &Index{
-	// Path: "/manage/base",
-}
-
 func (m *Module) Load(zdi.Invoker) (any, error) {
 	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
 		if m.Options.key == "" {
@@ -107,11 +107,11 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 		}
 		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
 
-		index.Path = m.Options.ApiPrefix + "/base"
+		m.index.Path = m.Options.ApiPrefix + "/base"
 
-		index.module = m
+		m.index.module = m
 		m.Controllers = []service.Controller{
-			index,
+			m.index,
 			&Message{
 				module: m,
 				Path:   m.Options.ApiPrefix + "/message",
@@ -136,9 +136,8 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	}
 
 	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
-		var restapiModule *model.Module
-		if err := m.DI.Resolve(&restapiModule); err == nil {
-			o.Prefix = restapiModule.Options.Prefix
+		if m.Options.ModelPrefix != "" {
+			o.Prefix = m.Options.ModelPrefix
 		}
 	}), model.SchemaOptions{})
 
@@ -151,9 +150,9 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return errors.New("account accoutModel not found")
 	}
 
-	index.accoutModel = mod
-	index.permModel, _ = m.mods.Get(permName)
-	index.roleModel, _ = m.mods.Get(roleName)
+	m.index.accoutModel = mod
+	m.index.permModel, _ = m.mods.Get(permName)
+	m.index.roleModel, _ = m.mods.Get(roleName)
 
 	permission := m.Options.InlayRBAC
 	if permission == nil {
