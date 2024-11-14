@@ -10,6 +10,7 @@ import (
 type (
 	Schemas []Schema
 	Schema  struct {
+		Options    Options    `json:"options,omitempty"`
 		Fields     Fields     `json:"fields"`
 		Extend     ztype.Map  `json:"extend,omitempty"`
 		Relations  Relations  `json:"relations,omitempty"`
@@ -17,7 +18,6 @@ type (
 		Name       string     `json:"name"`
 		SchemaPath string     `json:"-"`
 		Values     ztype.Maps `json:"values,omitempty"`
-		Options    Options    `json:"options,omitempty"`
 	}
 
 	Table struct {

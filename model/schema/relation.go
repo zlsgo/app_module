@@ -19,6 +19,7 @@ const (
 type (
 	Relations map[string]Relation
 	Relation  struct {
+		Filter     ztype.Map          `json:"filter,omitempty"`
 		Comment    string             `json:"comment,omitempty"`
 		Label      string             `json:"label"`
 		Type       RelationType       `json:"type"`
@@ -27,9 +28,6 @@ type (
 		ForeignKey []string           `json:"foreign_key"`
 		SchemaKey  []string           `json:"schema_key"`
 		Fields     []string           `json:"fields,omitempty"`
-		Filter     ztype.Map          `json:"filter,omitempty"`
 		Nullable   bool               `json:"nullable,omitempty"`
-		// Relations  []string           `json:"relations,omitempty"`
-		// Limit   int                `json:"limit,omitempty"`
 	}
 )

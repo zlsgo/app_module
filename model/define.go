@@ -17,6 +17,7 @@ import (
 
 type (
 	Schema struct {
+		define        schema.Schema
 		Storage       Storageer
 		di            zdi.Injector
 		model         *Model
@@ -25,10 +26,10 @@ type (
 		afterProcess  map[string][]afterProcess
 		beforeProcess map[string][]beforeProcess
 		views         ztype.Map
-		define        schema.Schema
-		tablePrefix   string
+		getSchema     func(alias string) (*Schema, bool)
 		JSONPath      string
 		alias         string
+		tablePrefix   string
 		fullFields    []string
 		lowFields     []string
 		readOnlyKeys  []string
@@ -37,7 +38,6 @@ type (
 		JSON          []byte
 		fields        []string `json:"-"`
 		StorageType   StorageType
-		getSchema     func(alias string) (*Schema, bool)
 	}
 
 	ColumnEnum struct {

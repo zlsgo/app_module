@@ -9,10 +9,9 @@ import (
 type (
 	Module struct {
 		service.ModuleLifeCycle
-		Options Options
-
 		schemas *Schemas
 		models  *Models
+		Options Options
 	}
 )
 

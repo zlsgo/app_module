@@ -27,12 +27,12 @@ type Module struct {
 	db           *zdb.DB
 	mods         *model.Schemas
 	accountModel *AccountModel
-	Controllers  []service.Controller
-	Options      Options
 	index        *Index
 	Request      *requestWith
 	limiter      func(c *znet.Context) error
 	Inside       *inside
+	Controllers  []service.Controller
+	Options      Options
 }
 
 var (
@@ -48,18 +48,18 @@ type Options struct {
 	InitDB               func() (*zdb.DB, error)  `z:"-"`
 	SSEReconnect         func(uid, lastID string) `z:"-"`
 	InlayRBAC            *rbac.RBAC               `z:"-"`
-	AdminDefaultPassword string                   `z:"admin_default_password"` // 管理员默认密码
-	ApiPrefix            string                   `z:"prefix"`                 // 接口前缀
-	RBACFile             string                   `z:"rbac_file"`              // rbac 文件
-	key                  string                   `z:"key"`                    // 密钥
-	InlayUser            ztype.Maps               `z:"inlay_user"`             // 默认用户
+	key                  string                   `z:"key"`
+	ApiPrefix            string                   `z:"prefix"`
+	RBACFile             string                   `z:"rbac_file"`
+	AdminDefaultPassword string                   `z:"admin_default_password"`
+	ModelPrefix          string                   `z:"model_prefix"`
+	InlayUser            ztype.Maps               `z:"inlay_user"`
 	Models               []schema.Schema          `z:"-"`
-	ModelPrefix          string                   `z:"model_prefix"` // 模型前缀
 	SSE                  znet.SSEOption           `z:"-"`
-	Expire               int                      `z:"expire"`      // access token 过期时间
-	Only                 bool                     `z:"only"`        // 是否只允许一处登录
-	DisabledLogIP        bool                     `z:"disabled_ip"` // 是否禁用日志 IP 记录
-	EnableRegister       bool                     `z:"register"`    // 是否开启注册
+	Expire               int                      `z:"expire"`
+	Only                 bool                     `z:"only"`
+	DisabledLogIP        bool                     `z:"disabled_ip"`
+	EnableRegister       bool                     `z:"register"`
 }
 
 func (o Options) ConfKey() string {

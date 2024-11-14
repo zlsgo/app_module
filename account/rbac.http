@@ -1,4 +1,3 @@
-
 ### 用户登录
 POST {{host}}/manage/base/login
 Content-Type: application/json
@@ -37,7 +36,6 @@ Authorization: Basic {{token}}
 POST {{host}}/manage/base/logout
 Content-Type: application/json
 Authorization: Basic {{token}}
-
 
 ### 用户注册
 POST {{host}}/manage/base/register
