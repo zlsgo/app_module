@@ -15,9 +15,7 @@ type Message struct {
 	Path   string
 }
 
-var (
-	_ = reflect.TypeOf(&Message{})
-)
+var _ = reflect.TypeOf(&Message{})
 
 func (h *Message) Init(r *znet.Engine) error {
 	return PermisMiddleware(r)
@@ -25,7 +23,7 @@ func (h *Message) Init(r *znet.Engine) error {
 
 // Get 站内通知列表
 func (h *Message) Get(c *znet.Context) (data ztype.Map, err error) {
-	uid := Request.UID(c)
+	uid := h.module.Request.UID(c)
 	m, _ := GetMessageModel()
 	unread, _ := m.Unread(uid)
 

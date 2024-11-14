@@ -30,6 +30,7 @@ func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 	if !ok || info.IsEmpty() {
 		return nil, zerror.WrapTag(zerror.NotFound)(errors.New("用户不存在"))
 	}
+
 	return info, nil
 }
 

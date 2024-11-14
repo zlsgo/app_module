@@ -19,8 +19,6 @@ const (
 	ctxWithIgnorePerm = "m::account::IgnorePerm"
 )
 
-var Request = &requestWith{}
-
 func (requestWith) UID(c *znet.Context) string {
 	uid, ok := c.Value(ctxWithUID)
 	if !ok {
@@ -72,5 +70,6 @@ func (requestWith) WithLog(c *znet.Context, message string, remark ...string) *z
 	if len(remark) > 0 {
 		c.WithValue(ctxWithLogRemark, remark[0])
 	}
+
 	return c
 }

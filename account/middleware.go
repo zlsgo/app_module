@@ -13,7 +13,7 @@ import (
 	"github.com/zlsgo/app_module/model"
 )
 
-var verifyPermissions func(c *znet.Context) error
+var verifyPermissions []func(c *znet.Context) error
 
 func PermisMiddleware(r *znet.Engine, ignore ...string) error {
 	if verifyPermissions == nil {
@@ -21,19 +21,22 @@ func PermisMiddleware(r *znet.Engine, ignore ...string) error {
 	}
 
 	if len(ignore) > 0 {
-		r.Use(func(c *znet.Context) error {
+		permissions := verifyPermissions[0]
+		verifyPermissions[0] = func(c *znet.Context) error {
 			for _, v := range ignore {
 				if zstring.Match(c.Request.URL.Path, v) {
 					c.Next()
 					return nil
 				}
 			}
-			return verifyPermissions(c)
-		})
-		return nil
+			return permissions(c)
+		}
 	}
 
-	r.Use(verifyPermissions)
+	for i := range verifyPermissions {
+		r.Use(verifyPermissions[i])
+	}
+
 	return nil
 }
 
@@ -100,59 +103,69 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		return true
 	})
 
-	verifyPermissions = func(c *znet.Context) error {
-		token := jwt.GetToken(c)
-		if token == "" {
-			return zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
-		}
+	verifyPermissions = []func(c *znet.Context) error{
+		func(c *znet.Context) error {
+			token := jwt.GetToken(c)
+			if token == "" {
+				return zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
+			}
 
-		if userModel == nil {
-			return errors.New(accountName + " accoutModel not found")
-		}
+			if userModel == nil {
+				return errors.New(accountName + " accoutModel not found")
+			}
 
-		uid, err := getJWTForCache(userModel, token, m.Options.key)
-		if err != nil {
-			return err
-		}
+			uid, err := getJWTForCache(userModel, token, m.Options.key)
+			if err != nil {
+				return err
+			}
 
-		c.WithValue(ctxWithUID, uid)
+			c.WithValue(ctxWithUID, uid)
 
-		u, err := getUserForCache(userModel, uid)
-		if err != nil {
-			return err
-		}
+			u, err := getUserForCache(userModel, uid)
+			if err != nil {
+				return err
+			}
 
-		c.WithValue(ctxWithUser, u)
+			c.WithValue(ctxWithUser, u)
 
-		if u.Get("status").Int() != 1 {
-			return permissionDenied(errors.New("用户已被禁用"))
-		}
+			if u.Get("status").Int() != 1 {
+				return permissionDenied(errors.New("用户已被禁用"))
+			}
 
-		defer logRequest(c, logModel, u)
+			isInlayAdmin := u.Get("administrator").Bool()
+			c.WithValue(ctxWithIsInlayAdmin, isInlayAdmin)
 
-		isInlayAdmin := u.Get("administrator").Bool()
-		c.WithValue(ctxWithIsInlayAdmin, isInlayAdmin)
+			roles := u.Get("role").SliceString()
+			c.WithValue(ctxWithRole, roles)
 
-		roles := u.Get("role").SliceString()
-		c.WithValue(ctxWithRole, roles)
-
-		if isInlayAdmin {
-			return nil
-		}
-
-		for _, r := range roles {
-			isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
-			if isAllow {
+			if isInlayAdmin {
 				return nil
 			}
-		}
 
-		// 是否忽略权限限制
-		if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
+			for _, r := range roles {
+				isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
+				if isAllow {
+					return nil
+				}
+			}
+
+			// 是否忽略权限限制
+			if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
+				return nil
+			}
+
+			return permissionDenied(errors.New("没有访问权限"))
+		},
+		func(c *znet.Context) error {
+			c.Next()
+
+			u, ok := c.Value(ctxWithUser)
+			if !ok {
+				return nil
+			}
+			logRequest(c, logModel, u.(ztype.Map))
 			return nil
-		}
-
-		return permissionDenied(errors.New("没有访问权限"))
+		},
 	}
 	return nil
 }

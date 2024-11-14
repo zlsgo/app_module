@@ -27,6 +27,7 @@ type Module struct {
 	Controllers  []service.Controller
 	Options      Options
 	index        *Index
+	Request      *requestWith
 }
 
 var (
@@ -73,6 +74,7 @@ func New(key string, opt ...func(o *Options)) *Module {
 	}
 
 	m.index = &Index{}
+	m.Request = &requestWith{}
 
 	return m
 }

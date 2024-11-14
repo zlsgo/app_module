@@ -8,9 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 )
 
-var (
-	sessionHub = zarray.NewHashMap[string, *session]()
-)
+var sessionHub = zarray.NewHashMap[string, *session]()
 
 type session struct {
 	sessions *zarray.Maper[int64, *znet.SSE]
@@ -27,7 +25,7 @@ func (m *session) removeSession(id int64) {
 }
 
 func (m *Module) newSession(c *znet.Context) (sse *znet.SSE, remove func(), err error) {
-	uid := Request.UID(c)
+	uid := m.Request.UID(c)
 	if uid == "" {
 		return nil, nil, zerror.InvalidInput.Text("用户未登录")
 	}

@@ -105,7 +105,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// TODO: 考虑做缓存处理
-	info, err := model.FindOne(h.accoutModel, Request.UID(c), func(so *model.CondOptions) {
+	info, err := model.FindOne(h.accoutModel, h.module.Request.UID(c), func(so *model.CondOptions) {
 		so.Fields = h.accoutModel.GetFields("password", "salt")
 	})
 	if err != nil {
@@ -251,7 +251,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 
 // AnyLogout 用户退出
 func (h *Index) AnyLogout(c *znet.Context) (any, error) {
-	uid := Request.UID(c)
+	uid := h.module.Request.UID(c)
 	if uid == "" {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
@@ -270,9 +270,9 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	defer func() {
 		if err != nil {
-			Request.WithLog(c, "修改密码", err.Error())
+			h.module.Request.WithLog(c, "修改密码", err.Error())
 		} else {
-			Request.WithLog(c, "修改密码", "修改成功")
+			h.module.Request.WithLog(c, "修改密码", "修改成功")
 		}
 	}()
 
@@ -291,7 +291,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		return nil, invalidInput(err)
 	}
 
-	uid := Request.UID(c)
+	uid := h.module.Request.UID(c)
 	user, _ := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) {
 		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
@@ -326,7 +326,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 
 // PatchMe 修改当前用户信息
 func (h *Index) PatchMe(c *znet.Context) (any, error) {
-	uid := Request.UID(c)
+	uid := h.module.Request.UID(c)
 	data, _ := c.GetJSONs()
 	keys := []string{"avatar", "nickname"}
 	update := make(ztype.Map, 0)
@@ -342,7 +342,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 
 // POSTAvatar 上传用户头像
 func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
-	uid := Request.UID(c)
+	uid := h.module.Request.UID(c)
 	res, err := common.Upload(c, "account", func(o *common.UploadOption) {
 		o.Dir = "/avatar"
 		o.MimeType = []string{"image/*"}

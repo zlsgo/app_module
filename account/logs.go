@@ -15,7 +15,9 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 	m, _ := h.module.mods.Get(logsName)
 
 	page, pagesize, _ := common.VarPages(c)
-	return model.Pages(m, page, pagesize, ztype.Map{})
+	return model.Pages(m, page, pagesize, ztype.Map{}, func(co *model.CondOptions) {
+		co.OrderBy = map[string]string{model.IDKey(): "desc"}
+	})
 }
 
 // 记录日志
