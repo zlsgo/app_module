@@ -36,14 +36,23 @@ var _ = reflect.TypeOf(&Index{})
 const saltLen = 4
 
 func (h *Index) Init(r *znet.Engine) error {
-	// 登录无需验证
-	r.POST("/login", h.login)
+	{
+		// 无需权限校验
+		noPerm := r.Group("/", func(e *znet.Engine) {
+			e.Use(h.module.limiter)
+		})
+		// 登录
+		noPerm.POST("/login", h.login)
 
-	// 获取系统信息无需验证
-	r.GET("/site", h.getSite)
+		// 获取系统信息
+		noPerm.GET("/site", h.getSite)
 
-	// 获取系统信息无需验证
-	r.Any("/refresh-token", h.refreshToken)
+		// 刷新 token
+		noPerm.Any("/refresh-token", h.refreshToken)
+
+		// 用户注册
+		noPerm.POST("/register", h.register)
+	}
 
 	err := PermisMiddleware(r)
 	if err != nil {
@@ -360,4 +369,19 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 func updateUser(m *model.Schema, id string, data ztype.Map) error {
 	_, err := model.Update(m, id, data)
 	return err
+}
+
+// register 用户注册
+func (h *Index) register(c *znet.Context) (any, error) {
+	if !h.module.Options.EnableRegister {
+		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("系统未开启注册"))
+	}
+
+	j, _ := c.GetJSONs()
+	data := ztype.Map{
+		"nickname": j.Get("nickname").String(),
+		"account":  j.Get("account").String(),
+		"password": j.Get("password").String(),
+	}
+	return h.module.Inside.CreateUser(data)
 }

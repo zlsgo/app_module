@@ -6,6 +6,7 @@ import (
 	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/account/rbac"
 
+	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
@@ -93,15 +94,17 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		}
 	}
 
-	// 通用权限
+	// 全部角色通用权限
 	permission.ForEachRole(func(key string, value *rbac.Role) bool {
-		value.AddGlobPermission(1, "*", "/manage/base/password")
-		value.AddGlobPermission(1, "*", "/manage/base/info")
-		value.AddGlobPermission(1, "*", "/manage/base/message")
-		value.AddGlobPermission(1, "*", "/manage/message/realtime")
-		value.AddGlobPermission(1, "*", "/manage/base/logout")
+		value.AddGlobPermission(1, "*", m.Options.ApiPrefix+"/message/realtime")
 		return true
 	})
+
+	// 无需角色权限校验的接口
+	publicRoutes := []string{
+		m.Options.ApiPrefix + "/base/info",
+		m.Options.ApiPrefix + "/base/logs",
+	}
 
 	verifyPermissions = []func(c *znet.Context) error{
 		func(c *znet.Context) error {
@@ -151,6 +154,10 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 
 			// 是否忽略权限限制
 			if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
+				return nil
+			}
+
+			if zarray.Contains(publicRoutes, c.Request.URL.Path) {
 				return nil
 			}
 

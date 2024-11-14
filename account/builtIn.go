@@ -10,8 +10,6 @@ import (
 
 type inside struct{}
 
-var Inside = &inside{}
-
 func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 	if err := fixUserData(&data); err != nil {
 		return nil, zerror.WrapTag(zerror.InvalidInput)(err)

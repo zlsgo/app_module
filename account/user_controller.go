@@ -52,14 +52,14 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 func (h *User) Post(c *znet.Context) (id interface{}, err error) {
 	j, _ := c.GetJSONs()
 	data := j.Map()
-	return Inside.CreateUser(data)
+	return h.module.Inside.CreateUser(data)
 }
 
 // UIDPut 修改用户
 func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
 	id := c.GetParam("uid")
 	j, _ := c.GetJSONs()
-	return Inside.UpdateUser(id, j.Map())
+	return h.module.Inside.UpdateUser(id, j.Map())
 }
 
 // UIDDELETE 删除用户

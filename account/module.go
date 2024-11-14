@@ -2,12 +2,15 @@ package account
 
 import (
 	"errors"
+	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/znet/limiter"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -28,6 +31,8 @@ type Module struct {
 	Options      Options
 	index        *Index
 	Request      *requestWith
+	limiter      func(c *znet.Context) error
+	Inside       *inside
 }
 
 var (
@@ -54,6 +59,7 @@ type Options struct {
 	Expire               int                      `z:"expire"`      // access token 过期时间
 	Only                 bool                     `z:"only"`        // 是否只允许一处登录
 	DisabledLogIP        bool                     `z:"disabled_ip"` // 是否禁用日志 IP 记录
+	EnableRegister       bool                     `z:"register"`    // 是否开启注册
 }
 
 func (o Options) ConfKey() string {
@@ -67,14 +73,28 @@ func (o Options) DisableWrite() bool {
 func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
 		Options: Options{key: key, ApiPrefix: "/manage"},
+		index:   &Index{},
+		Request: &requestWith{},
+		Inside:  &inside{},
 	}
 
 	for _, f := range opt {
 		f(&m.Options)
 	}
 
-	m.index = &Index{}
-	m.Request = &requestWith{}
+	m.Options.ApiPrefix = strings.TrimSuffix(m.Options.ApiPrefix, "/")
+
+	// 限制接口频率
+	limit := limiter.NewRule()
+	limit.AddRule(time.Second*10, 2)
+	tooManyRequestsTag := zerror.WrapTag(zerror.TagKind(ztype.ToString(http.StatusTooManyRequests)))(errors.New("请求过于频繁"))
+	m.limiter = func(c *znet.Context) error {
+		if !limit.AllowVisitByIP(c.GetClientIP()) {
+			return tooManyRequestsTag
+		}
+		c.Next()
+		return nil
+	}
 
 	return m
 }
