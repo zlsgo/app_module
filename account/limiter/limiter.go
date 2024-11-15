@@ -20,7 +20,7 @@ var IPMiddleware = zutil.Once(func() func(c *znet.Context) error {
 		MaxIPRequestPerSecond = 10
 	}
 	limit.AddRule(time.Second, MaxIPRequestPerSecond)
-	tooManyRequestsTag := zerror.WrapTag(zerror.TagKind(ztype.ToString(http.StatusTooManyRequests)))(errors.New("请求过于频繁"))
+	tooManyRequestsTag := zerror.WrapTag(zerror.TagKind(ztype.ToString(http.StatusTooManyRequests)))(errors.New("Too many requests"))
 	return func(c *znet.Context) error {
 		if !limit.AllowVisitByIP(c.GetClientIP()) {
 			return tooManyRequestsTag

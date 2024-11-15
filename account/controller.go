@@ -77,18 +77,15 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 	}
 
 	info, err := jwt.Parse(refreshToken, h.module.Options.key)
-	if err != nil {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 无效"))
-	}
-	if !info.IsRefresh {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("非合法 refresh_token"))
+	if err != nil || !info.IsRefresh {
+		return nil, zerror.InvalidInput.Text("refresh_token 无效")
 	}
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
 	f, err := model.FindCols(h.accoutModel, "salt", uid)
 	if err != nil || f.Index(0).String() != salt {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("refresh_token 已失效"))
+		return nil, zerror.InvalidInput.Text("refresh_token 已失效")
 	}
 
 	salt = zstring.Rand(saltLen)
@@ -123,7 +120,7 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	}
 
 	if info.IsEmpty() {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("用户不存在"))
+		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
 
 	perms, _ := model.FindCols(h.roleModel, "permission", ztype.Map{
@@ -182,14 +179,13 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	account := json.Get("account").String()
 	password := json.Get("password").String()
 
-	invalidInput := zerror.WrapTag(zerror.InvalidInput)
 	if account == "" {
-		err = invalidInput(errors.New("请输入账号"))
+		err = zerror.InvalidInput.Text("请输入账号")
 		return
 	}
 
 	if password == "" {
-		err = invalidInput(errors.New("请输入密码"))
+		err = zerror.InvalidInput.Text("请输入密码")
 		return
 	}
 
@@ -197,7 +193,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		"account": account,
 	})
 	if err != nil {
-		return nil, invalidInput(err)
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	defer func() {
@@ -207,13 +203,13 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}()
 
 	if user.IsEmpty() {
-		err = invalidInput(errors.New("账号或密码错误"))
+		err = zerror.InvalidInput.Text("账号或密码错误")
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword(user.Get("password").Bytes(), zstring.String2Bytes(password))
 	if err != nil {
-		err = invalidInput(errors.New("账号或密码错误"))
+		err = zerror.InvalidInput.Text("账号或密码错误")
 		return
 	}
 
@@ -221,9 +217,9 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	if status != 1 {
 		switch status {
 		case 0:
-			return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("账号待激活"))
+			return nil, zerror.Unauthorized.Text("账号待激活")
 		default:
-			return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("账号已停用"))
+			return nil, zerror.Unauthorized.Text("账号已停用")
 		}
 	}
 
@@ -295,10 +291,8 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		zvalid.BatchVar(&old, c.Valid(rule, "old_password", "旧密码")),
 		zvalid.BatchVar(&password, c.Valid(rule, "password", "新密码")),
 	)
-
-	invalidInput := zerror.WrapTag(zerror.InvalidInput)
 	if err != nil {
-		return nil, invalidInput(err)
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	uid := h.module.Request.UID(c)
@@ -306,12 +300,12 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
 	if user.IsEmpty() {
-		return nil, invalidInput(errors.New("用户不存在"))
+		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
 
 	err = bcrypt.CompareHashAndPassword(user.Get("password").Bytes(), zstring.String2Bytes(old))
 	if err != nil {
-		return nil, invalidInput(errors.New("旧密码错误"))
+		return nil, zerror.InvalidInput.Text("旧密码错误")
 	}
 
 	salt := zstring.Rand(saltLen)
@@ -375,7 +369,7 @@ func updateUser(m *model.Schema, id string, data ztype.Map) error {
 // register 用户注册
 func (h *Index) register(c *znet.Context) (any, error) {
 	if !h.module.Options.EnableRegister {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("系统未开启注册"))
+		return nil, zerror.InvalidInput.Text("系统未开启注册")
 	}
 
 	j, _ := c.GetJSONs()

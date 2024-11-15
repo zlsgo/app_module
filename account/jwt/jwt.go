@@ -2,11 +2,11 @@ package jwt
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 )
@@ -31,14 +31,14 @@ func GenToken(info string, key string, expire int) (accessToken, refreshToken st
 	}
 
 	if accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(zstring.String2Bytes(key)); err != nil {
-		return "", "", fmt.Errorf("生成签名失败: %v", err)
+		return "", "", zerror.With(err, "failed to generate signature")
 	}
 
 	// 设置 refresh token 的过期时间为 7 天后
 	claims.StandardClaims.ExpiresAt = 604800 + expiresAt
 	claims.IsRefresh = true
 	if refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(zstring.String2Bytes(key)); err != nil {
-		return "", "", fmt.Errorf("生成续期签名失败: %v", err)
+		return "", "", zerror.With(err, "failed to generate refresh token signature")
 	}
 
 	return
@@ -49,7 +49,7 @@ func Parse(token string, tokenKey string) (*Info, error) {
 		return zstring.String2Bytes(tokenKey), nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid token")
 	}
 
 	if claims, ok := t.Claims.(*Info); ok && t.Valid {

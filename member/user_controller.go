@@ -86,7 +86,7 @@ func (h *UserServer) PATCHMe(c *znet.Context, user *User) (any, error) {
 // register 注册
 func (h *UserServer) register(c *znet.Context) (any, error) {
 	if !h.module.Options.EnableRegister {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(errors.New("registration is currently disabled"))
+		return nil, zerror.InvalidInput.Text("registration is currently disabled")
 	}
 
 	j, err := c.GetJSONs()
@@ -136,14 +136,13 @@ func (h *UserServer) login(c *znet.Context) (data any, err error) {
 	account := json.Get("account").String()
 	password := json.Get("password").String()
 
-	invalidInput := zerror.WrapTag(zerror.InvalidInput)
 	if account == "" {
-		err = invalidInput(errors.New("请输入账号"))
+		err = zerror.InvalidInput.Text("请输入账号")
 		return
 	}
 
 	if password == "" {
-		err = invalidInput(errors.New("请输入密码"))
+		err = zerror.InvalidInput.Text("请输入密码")
 		return
 	}
 
@@ -152,17 +151,16 @@ func (h *UserServer) login(c *znet.Context) (data any, err error) {
 		"account": account,
 	})
 	if err != nil {
-		return nil, invalidInput(err)
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	if user.IsEmpty() {
-		return nil, invalidInput(errors.New("用户不存在"))
+		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
 
 	err = bcrypt.CompareHashAndPassword(user.Get("password").Bytes(), zstring.String2Bytes(password))
 	if err != nil {
-		err = invalidInput(errors.New("账号或密码错误"))
-		return
+		return nil, zerror.InvalidInput.Text("账号或密码错误")
 	}
 
 	status := user.Get("status").Int()
@@ -188,7 +186,7 @@ func (h *UserServer) login(c *znet.Context) (data any, err error) {
 		"salt":     salt,
 	})
 	if err != nil {
-		return nil, invalidInput(err)
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire)

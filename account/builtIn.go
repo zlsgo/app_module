@@ -12,7 +12,7 @@ type inside struct{}
 
 func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 	if err := fixUserData(&data); err != nil {
-		return nil, zerror.WrapTag(zerror.InvalidInput)(err)
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	// DEV: 需要校验角色是否存在
