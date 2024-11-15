@@ -10,6 +10,7 @@ type SQL struct {
 	db      *zdb.DB
 	Options SQLOptions
 }
+
 type SQLOptions struct {
 	Prefix string
 }
@@ -40,6 +41,15 @@ func (s *SQL) Migration(model *Schema) Migrationer {
 		Model: model,
 		DB:    s.db,
 	}
+}
+
+func (s *SQL) Transaction(run func(s *SQL) error) (err error) {
+	return s.db.Transaction(func(db *zdb.DB) (err error) {
+		return run(&SQL{
+			db:      db,
+			Options: s.Options,
+		})
+	})
 }
 
 func sqlOrderBy(orderBy map[string]string, fieldPrefix string) (o []string) {

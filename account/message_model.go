@@ -12,7 +12,7 @@ import (
 )
 
 type MessageModel struct {
-	*model.Model
+	*model.Store
 	model  *model.Schema
 	module *Module
 }
@@ -74,7 +74,7 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		messageModel = &MessageModel{model: mod, module: m, Model: mod.Model()}
+		messageModel = &MessageModel{model: mod, module: m, Store: mod.Model()}
 	}
 	return err
 }

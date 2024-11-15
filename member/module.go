@@ -13,6 +13,7 @@ import (
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/account/auth"
 	"github.com/zlsgo/app_module/model"
+	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
 )
 
@@ -45,6 +46,7 @@ type Options struct {
 	Expire           int                     `z:"expire"`
 	ModelPrefix      string                  `z:"model_prefix"`
 	EnableRegister   bool                    `z:"enable_register"`
+	Only             bool                    `z:"only"`
 }
 
 func (o Options) ConfKey() string {
@@ -114,15 +116,21 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		}
 	}), model.SchemaOptions{})
 
-	schema, err := m.schemas.Reg(modelName, modelDefine(), false)
-	if err != nil {
-		return err
+	for modelName, modelDefine := range map[string]func() mSchema.Schema{
+		modelName:         modelDefine,
+		modelProviderName: modelProviderDefine,
+	} {
+		_, err := m.schemas.Reg(modelName, modelDefine(), false)
+		if err != nil {
+			return err
+		}
+
+		// di.(zdi.Injector).Map(&Model{
+		// 	Model: *schema.Model(),
+		// })
 	}
 
 	m.models = m.schemas.Models()
-	di.(zdi.Injector).Map(&Model{
-		Model: *schema.Model(),
-	})
 	return
 }
 

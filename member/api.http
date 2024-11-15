@@ -1,4 +1,25 @@
 ### 用户登录
-GET {{host}}/member/me
+POST {{host}}/member/login
+Content-Type: application/json
+
+{
+    "account": "seekwe",
+    "password": "123456"
+}
+
+> {% if (response.status == 200) client.global.set("token", response.body.data.token); %}
+
+### 用户注册
+POST {{host}}/member/register
+Content-Type: application/json
+
+{
+    "account": "seekwe",
+    "password": "123456"
+}
+
+
+### 用户信息
+GET {{host}}/member/info
 Content-Type: application/json
 Authorization: Basic {{token}}

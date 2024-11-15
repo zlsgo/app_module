@@ -20,7 +20,7 @@ type (
 		define        schema.Schema
 		Storage       Storageer
 		di            zdi.Injector
-		model         *Model
+		model         *Store
 		cryptKeys     map[string]CryptProcess
 		Hashid        *hashid.HashID `json:"-"`
 		afterProcess  map[string][]afterProcess
@@ -45,7 +45,7 @@ type (
 		Label string `json:"label"`
 	}
 
-	Model struct {
+	Store struct {
 		schema *Schema
 	}
 )

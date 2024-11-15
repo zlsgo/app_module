@@ -149,6 +149,7 @@ func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func
 	for _, f := range fn {
 		f(&o)
 	}
+
 	return s.db.Delete(table, func(b *builder.DeleteBuilder) error {
 		var fieldPrefix string
 		hasJoin := len(o.Join) > 0

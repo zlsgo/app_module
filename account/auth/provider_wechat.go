@@ -17,7 +17,7 @@ func (w *Weapp) Name() string {
 	return "weapp"
 }
 
-func (w *Weapp) Init() error {
+func (w *Weapp) Init(r *znet.Engine) error {
 	w.wx = wechat.New(&wechat.Weapp{
 		AppID:     w.AppId,
 		AppSecret: w.AppSecret,
@@ -25,8 +25,8 @@ func (w *Weapp) Init() error {
 	return nil
 }
 
-func (w *Weapp) Login(c *znet.Context) (any, error) {
-	return nil, nil
+func (w *Weapp) Login(c *znet.Context) error {
+	return nil
 }
 
 func (w *Weapp) Callback(c *znet.Context) (Provider, error) {
@@ -40,7 +40,7 @@ func (w *Weapp) Callback(c *znet.Context) (Provider, error) {
 	openid := info.Get("openid").String()
 
 	return Provider{
-		Provider:         "weapp",
+		Provider:         w.Name(),
 		ProviderID:       openid,
 		ProviderUsername: info.Get("nickname").String(),
 	}, nil

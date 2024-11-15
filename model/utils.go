@@ -94,7 +94,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 	}), opt.SchemaOptions)
 
 	mapper := di.(zdi.TypeMapper)
-	m.models = &Models{items: zarray.NewHashMap[string, *Model]()}
+	m.models = &Models{items: zarray.NewHashMap[string, *Store]()}
 
 	if opt.SchemaDir != "" {
 		schemaModelsDefine, err := parseSchema(opt.SchemaDir)
@@ -121,7 +121,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 	}
 
 	if opt.SetAlternateModels != nil {
-		m.schemas.getWrapModels = zutil.Once(func() []*Model {
+		m.schemas.getWrapModels = zutil.Once(func() []*Store {
 			lists, err := opt.SetAlternateModels()
 			if err != nil {
 				panic(err)

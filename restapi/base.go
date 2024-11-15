@@ -66,7 +66,7 @@ func (h *controller) Init(r *znet.Engine) error {
 
 func find(
 	c *znet.Context,
-	mod *model.Model,
+	mod *model.Store,
 	id string,
 	filter model.Filter,
 	fn func(o *model.CondOptions),

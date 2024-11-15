@@ -10,11 +10,11 @@ import (
 // FindById 获取一条数据
 func FindById(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	id string,
 	fn func(o *model.CondOptions),
 ) (ztype.Map, error) {
-	res, err := find(c, mod, id, model.Filter{}, fn)
+	res, err := find(c, store, id, model.Filter{}, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -25,11 +25,11 @@ func FindById(
 // Page 获取分页数据
 func Page(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	filter model.Filter,
 	fn func(o *model.CondOptions),
 ) (*model.PageData, error) {
-	res, err := find(c, mod, "", filter, fn)
+	res, err := find(c, store, "", filter, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +40,11 @@ func Page(
 // Find 获取多条数据
 func Find(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	filter model.Filter,
 	fn func(o *model.CondOptions),
 ) (ztype.Maps, error) {
-	res, err := find(c, mod, "*", filter, fn)
+	res, err := find(c, store, "*", filter, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func Find(
 // Insert 添加数据
 func Insert(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	fn func(data ztype.Map) (ztype.Map, error),
 	o ...func(io *model.InsertOptions),
 ) (ztype.Map, error) {
@@ -79,7 +79,7 @@ func Insert(
 		}
 	}
 
-	id, err := mod.Insert(data, o...)
+	id, err := store.Insert(data, o...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func Insert(
 // InsertMany 添加多条数据
 func InsertMany(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	fn func(i int, data ztype.Map) (ztype.Map, error),
 	o ...func(io *model.InsertOptions),
 ) (ztype.Map, error) {
@@ -120,7 +120,7 @@ func InsertMany(
 		}
 		data = d
 	}
-	id, err := mod.InsertMany(data, o...)
+	id, err := store.InsertMany(data, o...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func InsertMany(
 // DeleteById 删除一条数据
 func DeleteById(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	id string,
 	handler func(old ztype.Map) error,
 ) (any, error) {
@@ -139,18 +139,18 @@ func DeleteById(
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
 
-	return Delete(c, mod, model.Filter{model.IDKey(): id}, handler)
+	return Delete(c, store, model.Filter{model.IDKey(): id}, handler)
 }
 
 // Delete 删除多条数据
 func Delete(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	filter model.Filter,
 	handler func(old ztype.Map) error,
 ) (any, error) {
 	if handler != nil {
-		rows, err := Find(c, mod, filter, nil)
+		rows, err := Find(c, store, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -162,14 +162,14 @@ func Delete(
 		}
 	}
 
-	total, err := mod.DeleteMany(filter)
+	total, err := store.DeleteMany(filter)
 	return ztype.Map{"total": total}, err
 }
 
 // UpdateById 更新一条数据
 func UpdateById(
 	c *znet.Context,
-	mod *model.Model,
+	store *model.Store,
 	id string,
 	handler func(old ztype.Map, data ztype.Map) (ztype.Map, error),
 ) (any, error) {
@@ -185,7 +185,7 @@ func UpdateById(
 	data := j.Map()
 
 	if handler != nil {
-		info, err := mod.FindOneByID(id)
+		info, err := store.FindOneByID(id)
 		if err != nil {
 			return nil, err
 		}
@@ -200,6 +200,6 @@ func UpdateById(
 		}
 	}
 
-	total, err := mod.UpdateByID(id, data)
+	total, err := store.UpdateByID(id, data)
 	return ztype.Map{"total": total}, err
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type AccountModel struct {
-	*model.Model
+	*model.Store
 	mod *Module
 	m   *model.Schema
 }
@@ -174,7 +174,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		accountModel = &AccountModel{Model: mod.Model(), mod: p, m: mod}
+		accountModel = &AccountModel{Store: mod.Model(), mod: p, m: mod}
 	}
 	return err
 }

@@ -2,17 +2,20 @@ package auth
 
 import (
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/ztype"
 )
 
 type Provider struct {
-	Provider         string `json:"provider,omitempty"`
-	ProviderID       string `json:"provider_id,omitempty"`
-	ProviderUsername string `json:"provider_username,omitempty"`
+	Provider          string    `json:"provider,omitempty"`
+	ProviderID        string    `json:"provider_id,omitempty"`
+	ProviderUsername  string    `json:"provider_username,omitempty"`
+	ProviderAvatar    string    `json:"provider_avatar,omitempty"`
+	ProviderExtension ztype.Map `json:"provider_extension,omitempty"`
 }
 
 type AuthProvider interface {
 	Name() string
-	Init() error
-	Login(*znet.Context) (any, error)
-	Callback(*znet.Context) (Provider, error)
+	Init(r *znet.Engine) error
+	Login(c *znet.Context) error
+	Callback(c *znet.Context) (Provider, error)
 }

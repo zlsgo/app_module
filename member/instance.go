@@ -17,11 +17,11 @@ func (ins *Instance) GetMiddleware(optionalRoute ...string) (middleware func(c *
 	return ins.middleware(optionalRoute...)
 }
 
-func (ins *Instance) GetMemberModel() *model.Model {
+func (ins *Instance) GetMemberModel() *model.Store {
 	return ins.module.schemas.MustGet(modelName).Model()
 }
 
-func (ins *Instance) GetModel(name string) (*model.Model, bool) {
+func (ins *Instance) GetModel(name string) (*model.Store, bool) {
 	s, ok := ins.module.schemas.Get(name)
 	if !ok {
 		return nil, false
@@ -54,7 +54,7 @@ func initInstance(m *Module) error {
 
 				token := jwt.GetToken(c)
 				if token == "" && !isOptionalRoute {
-					return zerror.Unauthorized.Text("token not found")
+					return zerror.Unauthorized.Text("please login first")
 				}
 
 				if token == "" {
@@ -66,7 +66,10 @@ func initInstance(m *Module) error {
 					return zerror.Unauthorized.Text(err.Error())
 				}
 
-				user, err := m.UserById(info.Info)
+				// salt := info.Info[:saltLen]
+				uid := info.Info[saltLen:]
+
+				user, err := m.UserById(uid)
 				if err != nil {
 					return zerror.Unauthorized.Text(err.Error())
 				}

@@ -2,14 +2,13 @@ package member
 
 import (
 	"github.com/sohaha/zlsgo/zutil"
-	"github.com/zlsgo/app_module/model"
 	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb/schema"
 )
 
-type Model struct {
-	model.Model
-}
+// type Model struct {
+// 	model.Model
+// }
 
 const modelName = "member"
 
@@ -80,31 +79,11 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		Label:    "扩展信息",
 	})
 
-	s.AddField("provider", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Label:    "第三方登录",
-	})
-
-	s.AddField("provider_id", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Label:    "第三方ID",
-	})
-
-	s.AddField("provider_username", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Label:    "第三方用户名",
-	})
-
 	s.AddField("account", mSchema.Field{
-		Label:  "账号",
-		Type:   schema.String,
-		Unique: true,
+		Label:   "账号",
+		Type:    schema.String,
+		Unique:  true,
+		Comment: "登录账号，必须唯一。约定__开头为自动创建的",
 		Validations: []mSchema.Validations{
 			{
 				Method: "minLength",
@@ -137,6 +116,68 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 				Args:   250,
 			},
 		},
+	})
+
+	return s
+})
+
+const modelProviderName = "member_provider"
+
+var modelProviderDefine = zutil.Once(func() mSchema.Schema {
+	s := mSchema.New(modelProviderName)
+	s.SetOptions().SetTimestamps(true)
+
+	s.AddField("status", mSchema.Field{
+		Type:    schema.Int8,
+		Size:    9,
+		Label:   "状态",
+		Default: 1,
+		Options: mSchema.FieldOption{
+			Enum: []mSchema.FieldEnum{
+				{Value: "1", Label: "正常"},
+				{Value: "0", Label: "禁用"},
+			},
+		},
+	})
+
+	s.AddField("member_id", mSchema.Field{
+		Type: schema.Int,
+	})
+
+	s.AddField("provider_extension", mSchema.Field{
+		Type:     schema.JSON,
+		Default:  "{}",
+		Nullable: true,
+		Label:    "第三方扩展信息",
+	})
+
+	s.AddField("provider", mSchema.Field{
+		Type:     schema.String,
+		Default:  "",
+		Nullable: true,
+		Index:    true,
+		Label:    "第三方登录",
+	})
+
+	s.AddField("provider_id", mSchema.Field{
+		Type:    schema.String,
+		Default: "",
+		Index:   true,
+		Label:   "第三方ID",
+	})
+
+	s.AddField("provider_avatar", mSchema.Field{
+		Type:     schema.String,
+		Default:  "",
+		Nullable: true,
+		Label:    "第三方头像",
+	})
+
+	s.AddField("provider_username", mSchema.Field{
+		Type:     schema.String,
+		Default:  "",
+		Nullable: true,
+		Label:    "第三方用户名",
 	})
 
 	return s

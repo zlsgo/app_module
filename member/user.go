@@ -14,9 +14,11 @@ type User struct {
 	RawId string    `json:"-"`
 }
 
+const saltLen = 4
+
 var userCache = zcache.NewFast()
 
-func (m *Module) UserModel() (*model.Model, bool) {
+func (m *Module) UserModel() (*model.Store, bool) {
 	mod, ok := m.models.Get(modelName)
 	if !ok {
 		return nil, false

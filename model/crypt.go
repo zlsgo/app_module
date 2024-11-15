@@ -131,6 +131,6 @@ func (m *Schema) DeCryptID(nid string) (id string, err error) {
 	return
 }
 
-func GetEngine[T *zdb.DB](m *Model) T {
+func GetEngine[T *zdb.DB](m *Store) T {
 	return m.schema.Storage.(*SQL).GetDB()
 }

@@ -18,7 +18,7 @@ type (
 	}
 	Options struct {
 		SetDB              func() (*zdb.DB, error)
-		SetAlternateModels func() ([]*Model, error)
+		SetAlternateModels func() ([]*Store, error)
 		SchemaMiddleware   func() []znet.Handler
 		Prefix             string
 		SchemaDir          string
