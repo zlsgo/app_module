@@ -42,7 +42,7 @@ func regController(r *znet.Engine, providers []AuthProvider, enabledProviders []
 			return
 		}
 
-		e.GET("/callback", func(c *znet.Context) (ztype.Map, error) {
+		e.Any("/callback", func(c *znet.Context) (ztype.Map, error) {
 			info, err := provider.Callback(c)
 			if err != nil {
 				return nil, err
@@ -67,7 +67,7 @@ func regController(r *znet.Engine, providers []AuthProvider, enabledProviders []
 			}, nil
 		})
 
-		e.GET("/login", provider.Login)
+		e.Any("/login", provider.Login)
 	}
 
 	return
