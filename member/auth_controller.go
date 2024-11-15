@@ -104,14 +104,17 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 						return zerror.With(err, "decrypt id error")
 					}
 
-					_, err = model.Insert(h.providerModel.Schema(s), ztype.Map{
-						"provider":           p.Provider,
-						"member_id":          account,
-						"provider_id":        p.ProviderID,
-						"provider_username":  p.ProviderUsername,
-						"provider_avatar":    p.ProviderAvatar,
-						"provider_extension": p.ProviderExtension,
-					})
+					data := ztype.Map{
+						"provider":          p.Provider,
+						"member_id":         account,
+						"provider_id":       p.ProviderID,
+						"provider_username": p.ProviderUsername,
+						"provider_avatar":   p.ProviderAvatar,
+					}
+					if p.ProviderExtension != nil {
+						data["provider_extension"] = p.ProviderExtension
+					}
+					_, err = model.Insert(h.providerModel.Schema(s), data)
 					if err != nil {
 						return zerror.With(err, "insert provider error")
 					}

@@ -77,21 +77,24 @@ func parseSchema(dir string) ([]schema.Schema, error) {
 }
 
 func initModels(m *Module, di zdi.Invoker) (err error) {
-	var (
-		db  *zdb.DB
-		opt = &m.Options
-	)
-	if opt.SetDB != nil {
-		if db, err = opt.SetDB(); err != nil {
-			return zerror.With(err, "init db error")
+	opt := &m.Options
+
+	var storageer Storageer
+	if opt.SetStorageer != nil {
+		if storageer, err = opt.SetStorageer(); err != nil {
+			return zerror.With(err, "init storageer error")
 		}
-	} else if err = di.Resolve(&db); err != nil {
-		return zerror.With(err, "please set db")
+	} else {
+		var db *zdb.DB
+		if err = di.Resolve(&db); err != nil {
+			return zerror.With(err, "please set db")
+		}
+		storageer = NewSQL(db, func(o *SQLOptions) {
+			o.Prefix = m.Options.Prefix
+		})
 	}
 
-	m.schemas = NewSchemas(di.(zdi.Injector), NewSQL(db, func(o *SQLOptions) {
-		o.Prefix = m.Options.Prefix
-	}), opt.SchemaOptions)
+	m.schemas = NewSchemas(di.(zdi.Injector), storageer, opt.SchemaOptions)
 
 	mapper := di.(zdi.TypeMapper)
 	m.models = &Models{items: zarray.NewHashMap[string, *Store]()}

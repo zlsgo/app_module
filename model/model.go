@@ -6,24 +6,35 @@ import (
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model/schema"
-	"github.com/zlsgo/zdb"
 )
 
 type (
 	SchemaOptions struct {
-		DisabledMigrator bool `json:"disabled_migrator,omitempty"`
-		SoftDeletes      bool `json:"soft_deletes,omitempty"`
-		Timestamps       bool `json:"timestamps,omitempty"`
-		CryptID          bool `json:"crypt_id,omitempty"`
+		// DisabledMigrator 禁用自动迁移
+		DisabledMigrator bool `z:"disabled_migrator,omitempty"`
+		// SoftDeletes 开启软删除
+		SoftDeletes bool `z:"soft_deletes,omitempty"`
+		// Timestamps 注入创建/更新时间
+		Timestamps bool `z:"timestamps,omitempty"`
+		// CryptID 加密 ID
+		CryptID bool `z:"crypt_id,omitempty"`
 	}
 	Options struct {
-		SetDB              func() (*zdb.DB, error)
+		// SetStorageer 手动设置数据库
+		SetStorageer func() (Storageer, error)
+		// SetAlternateModels 动态设置关联表
 		SetAlternateModels func() ([]*Store, error)
-		SchemaMiddleware   func() []znet.Handler
-		Prefix             string
-		SchemaDir          string
-		SchemaApi          string
-		Schemas            schema.Schemas
+		// SchemaMiddleware 自定义 schema 中间件
+		SchemaMiddleware func() []znet.Handler
+		// Prefix 模型前缀
+		Prefix string
+		// SchemaDir 模型定义目录
+		SchemaDir string
+		// SchemaApi schema api 路径
+		SchemaApi string
+		// Schemas 定义模型
+		Schemas schema.Schemas
+		// SchemaOptions 模型选项
 		SchemaOptions
 	}
 )
