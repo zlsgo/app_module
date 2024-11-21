@@ -15,7 +15,7 @@ type Schemas struct {
 	di            zdi.Injector
 	storage       Storageer
 	getWrapModels func() []*Store
-	models        *Models
+	models        *Stores
 	SchemaOption  SchemaOptions
 }
 
@@ -67,9 +67,9 @@ func (ss *Schemas) MustGet(alias string) *Schema {
 	return m
 }
 
-func (ss *Schemas) Models() *Models {
+func (ss *Schemas) Models() *Stores {
 	if ss.models == nil {
-		ss.models = &Models{items: zarray.NewHashMap[string, *Store]()}
+		ss.models = &Stores{items: zarray.NewHashMap[string, *Store]()}
 		ss.ForEach(func(key string, m *Schema) bool {
 			ss.models.items.Set(key, m.Model())
 			return true

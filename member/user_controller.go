@@ -30,13 +30,13 @@ type UserServer struct {
 var _ = reflect.TypeOf(&UserServer{})
 
 type (
-	invoker func(c *znet.Context, member *User, o *model.Models) (any, error)
+	invoker func(c *znet.Context, member *User, o *model.Stores) (any, error)
 )
 
 var invokerValue zdi.PreInvoker = (invoker)(nil)
 
 func (h invoker) Invoke(v []interface{}) ([]reflect.Value, error) {
-	c, member, o := v[0].(*znet.Context), v[1].(*User), v[2].(*model.Models)
+	c, member, o := v[0].(*znet.Context), v[1].(*User), v[2].(*model.Stores)
 	resp, err := h(c, member, o)
 	if err != nil {
 		return []reflect.Value{zreflect.ValueOf(err)}, nil

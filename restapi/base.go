@@ -16,7 +16,7 @@ type controller struct {
 }
 
 func (h *controller) Init(r *znet.Engine) error {
-	var models *model.Models
+	var models *model.Stores
 	err := h.DI.Resolve(&models)
 	if err != nil {
 		return err

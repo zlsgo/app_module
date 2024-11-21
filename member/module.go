@@ -21,7 +21,7 @@ type Module struct {
 	service.ModuleLifeCycle
 	db          *zdb.DB
 	schemas     *model.Schemas
-	models      *model.Models
+	models      *model.Stores
 	jwtParse    func(c *znet.Context) (string, error)
 	instance    *Instance
 	controllers []service.Controller

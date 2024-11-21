@@ -97,7 +97,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 	m.schemas = NewSchemas(di.(zdi.Injector), storageer, opt.SchemaOptions)
 
 	mapper := di.(zdi.TypeMapper)
-	m.models = &Models{items: zarray.NewHashMap[string, *Store]()}
+	m.stores = &Stores{items: zarray.NewHashMap[string, *Store]()}
 
 	if opt.SchemaDir != "" {
 		schemaModelsDefine, err := parseSchema(opt.SchemaDir)
@@ -120,7 +120,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 			return err
 		}
 
-		m.models.items.Set(d.Name, s.Model())
+		m.stores.items.Set(d.Name, s.Model())
 	}
 
 	if opt.SetAlternateModels != nil {
@@ -133,7 +133,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		})
 	}
 
-	_ = mapper.Maps(m.schemas, m.models)
+	_ = mapper.Maps(m.schemas, m.stores)
 
 	zlog.Debugf("models %s\n", m.schemas)
 

@@ -10,7 +10,7 @@ type (
 	Module struct {
 		service.ModuleLifeCycle
 		schemas *Schemas
-		models  *Models
+		stores  *Stores
 		Options Options
 	}
 )
@@ -32,16 +32,16 @@ func (m *Module) String() string {
 	return "[]"
 }
 
-func (m *Module) Models() *Models {
-	return m.models
+func (m *Module) Stores() *Stores {
+	return m.stores
 }
 
 func (m *Module) GetModel(name string) (*Store, bool) {
-	return m.models.Get(name)
+	return m.stores.Get(name)
 }
 
 func (m *Module) MustGetModel(name string) *Store {
-	return m.models.MustGet(name)
+	return m.stores.MustGet(name)
 }
 
 func (m *Module) Schemas() *Schemas {

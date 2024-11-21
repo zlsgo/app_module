@@ -38,18 +38,18 @@ func (m *Schema) Model() *Store {
 	return m.model
 }
 
-// Models 快捷操作
-type Models struct {
+// Stores 快捷操作
+type Stores struct {
 	items *zarray.Maper[string, *Store]
 }
 
 // Get 获取操作对象
-func (m *Models) Get(name string) (*Store, bool) {
+func (m *Stores) Get(name string) (*Store, bool) {
 	return m.items.Get(name)
 }
 
 // MustGet 获取操作对象
-func (m *Models) MustGet(name string) *Store {
+func (m *Stores) MustGet(name string) *Store {
 	o, _ := m.items.Get(name)
 	if o == nil {
 		panic("operation " + name + " not found")
@@ -58,7 +58,7 @@ func (m *Models) MustGet(name string) *Store {
 }
 
 // All 全部模型
-func (m *Models) All() (models []*Store) {
+func (m *Stores) All() (models []*Store) {
 	models = make([]*Store, 0, m.items.Len())
 
 	m.items.ForEach(func(key string, value *Store) bool {
