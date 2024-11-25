@@ -55,6 +55,7 @@ type InsertOptions struct {
 
 type Storageer interface {
 	GetStorageType() StorageType
+	GetOptions() ztype.Map
 	Transaction(run func(s *SQL) error) (err error)
 	Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
 	First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)

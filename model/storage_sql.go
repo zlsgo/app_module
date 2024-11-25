@@ -3,6 +3,7 @@ package model
 import (
 	"strings"
 
+	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/zdb"
 )
 
@@ -12,12 +13,12 @@ type SQL struct {
 }
 
 type SQLOptions struct {
-	Prefix string
+	prefix string
 }
 
-func NewSQL(db *zdb.DB, o ...func(*SQLOptions)) Storageer {
+func NewSQL(db *zdb.DB, tablePrefix string, o ...func(*SQLOptions)) Storageer {
 	opt := SQLOptions{
-		Prefix: "model_",
+		prefix: tablePrefix,
 	}
 	for _, f := range o {
 		f(&opt)
@@ -25,6 +26,12 @@ func NewSQL(db *zdb.DB, o ...func(*SQLOptions)) Storageer {
 	return &SQL{
 		db:      db,
 		Options: opt,
+	}
+}
+
+func (s *SQL) GetOptions() ztype.Map {
+	return ztype.Map{
+		"prefix": s.Options.prefix,
 	}
 }
 

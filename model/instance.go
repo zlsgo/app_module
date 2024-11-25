@@ -96,17 +96,12 @@ func (ss *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 		return nil, errors.New("models " + name + " has been registered")
 	}
 
-	var tablePrefix string
-	if s, ok := ss.storage.(*SQL); ok {
-		tablePrefix = s.Options.Prefix
-	}
-
 	m := &Schema{
 		Storage:     ss.storage,
 		define:      data,
 		di:          ss.di,
 		getSchema:   ss.Get,
-		tablePrefix: tablePrefix,
+		tablePrefix: ss.storage.GetOptions().Get("prefix").String(),
 	}
 
 	err := ss.set(name, m, force)

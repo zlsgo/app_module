@@ -89,9 +89,7 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		if err = di.Resolve(&db); err != nil {
 			return zerror.With(err, "please set db")
 		}
-		storageer = NewSQL(db, func(o *SQLOptions) {
-			o.Prefix = m.Options.Prefix
-		})
+		storageer = NewSQL(db, opt.Prefix)
 	}
 
 	m.schemas = NewSchemas(di.(zdi.Injector), storageer, opt.SchemaOptions)
