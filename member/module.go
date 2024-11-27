@@ -110,10 +110,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, func(s *model.SQLOptions) {
-		if m.Options.ModelPrefix != "" {
-			s.Prefix = m.Options.ModelPrefix
-		}
+	m.schemas = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, m.Options.ModelPrefix, func(s *model.SQLOptions) {
 	}), model.SchemaOptions{})
 
 	for modelName, modelDefine := range map[string]func() mSchema.Schema{

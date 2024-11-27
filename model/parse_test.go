@@ -70,7 +70,7 @@ func TestSet(t *testing.T) {
 		Memory:     true,
 		Parameters: "_pragma=busy_timeout(3000)",
 	})
-	model := NewSchemas(nil, NewSQL(db), SchemaOptions{})
+	model := NewSchemas(nil, NewSQL(db, "model_"), SchemaOptions{})
 
 	m, err := model.Reg("test_model", data, false)
 	tt.NoError(err)

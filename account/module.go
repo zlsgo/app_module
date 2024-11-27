@@ -136,11 +136,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		return zerror.With(err, "init db error")
 	}
 
-	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, func(o *model.SQLOptions) {
-		if m.Options.ModelPrefix != "" {
-			o.Prefix = m.Options.ModelPrefix
-		}
-	}), model.SchemaOptions{})
+	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, m.Options.ModelPrefix), model.SchemaOptions{})
 
 	if err = initModel(m); err != nil {
 		return zerror.With(err, "init accoutModel error")
