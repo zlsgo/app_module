@@ -16,6 +16,7 @@ import (
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
+	"github.com/zlsgo/zdb/builder"
 )
 
 func fillFilterTablePrefix(f ztype.Map, table string) ztype.Map {
@@ -42,9 +43,11 @@ func fillFieldsTablePrefix(f []string, table string) []string {
 	}
 
 	for i := range f {
-		if !strings.ContainsRune(f[i], '.') {
-			f[i] = table + f[i]
+		if strings.ContainsRune(f[i], '.') || strings.ContainsRune(f[i], ' ') {
+			continue
 		}
+
+		f[i] = table + f[i]
 	}
 
 	return f
@@ -74,6 +77,23 @@ func parseSchema(dir string) ([]schema.Schema, error) {
 	}, 10)
 
 	return schemaModelsDefine, nil
+}
+
+func parseExprsBuildCond(d *builder.BuildCond, value interface{}, exprs []string) ([]string, error) {
+	var expr string
+	switch val := value.(type) {
+	case func(*builder.BuildCond) string:
+		expr = val(d)
+	case func() string:
+		expr = val()
+	default:
+		return nil, errors.New("unknown type")
+	}
+
+	if expr != "" {
+		exprs = append(exprs, expr)
+	}
+	return exprs, nil
 }
 
 func initModels(m *Module, di zdi.Invoker) (err error) {

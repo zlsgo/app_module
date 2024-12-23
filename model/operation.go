@@ -15,8 +15,8 @@ func NewFilter() Filter {
 	return Filter{}
 }
 
-func (f Filter) Cond(fn func(*builder.BuildCond) string) Filter {
-	f["$"+strconv.FormatInt(int64(uintptr(unsafe.Pointer(&fn))), 10)] = fn
+func (f Filter) Cond(fn func(*builder.BuildCond) (exprs string)) Filter {
+	f[placeHolder+strconv.FormatInt(int64(uintptr(unsafe.Pointer(&fn))), 10)] = fn
 	return f
 }
 

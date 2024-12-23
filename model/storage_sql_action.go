@@ -11,6 +11,12 @@ import (
 	"github.com/zlsgo/zdb/builder"
 )
 
+const (
+	placeHolder    = "$"
+	placeHolderOR  = "$OR"
+	placeHolderAND = "$AND"
+)
+
 func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string, err error) {
 	if len(filter) > 0 {
 		for k := range filter {
@@ -21,29 +27,21 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 			}
 
 			if k == "" {
-				switch val := value.(type) {
-				case func(*builder.BuildCond) string:
-					exprs = append(exprs, val(d))
-				case func() string:
-					exprs = append(exprs, val())
-				default:
-					err = errors.New("unknown type")
+				if exprs, err = parseExprsBuildCond(d, value, exprs); err != nil {
 					return
 				}
 
 				continue
 			}
 
-			if k[0] == '$' {
-				val, ok := value.(func(*builder.BuildCond) string)
-				if ok {
-					exprs = append(exprs, val(d))
+			if strings.Contains(k, placeHolder) {
+				if exprs, err = parseExprsBuildCond(d, value, exprs); err == nil {
 					continue
 				}
 			}
 
 			upperKey, v := strings.ToUpper(k), ztype.New(value)
-			if upperKey == "$OR" || upperKey == "$AND" {
+			if upperKey == placeHolderOR || upperKey == placeHolderAND {
 				m := v.Map()
 				cexprs, err := s.parseExprs(d, m)
 				if err != nil {
@@ -51,7 +49,7 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 				}
 
 				switch upperKey {
-				case "$OR":
+				case placeHolderOR:
 					exprs = append(exprs, d.Or(cexprs...))
 				default:
 					exprs = append(exprs, d.And(cexprs...))

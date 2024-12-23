@@ -36,11 +36,11 @@ func (m *Module) Stores() *Stores {
 	return m.stores
 }
 
-func (m *Module) GetModel(name string) (*Store, bool) {
+func (m *Module) GetStore(name string) (*Store, bool) {
 	return m.stores.Get(name)
 }
 
-func (m *Module) MustGetModel(name string) *Store {
+func (m *Module) MustGetStore(name string) *Store {
 	return m.stores.MustGet(name)
 }
 

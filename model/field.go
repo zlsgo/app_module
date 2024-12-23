@@ -120,7 +120,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 	return nil, false
 }
 
-func (m *Schema) GetModelFields() mSchema.Fields {
+func (m *Schema) GetDefineFields() mSchema.Fields {
 	return m.define.Fields
 }
 

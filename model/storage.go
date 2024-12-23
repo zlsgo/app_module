@@ -41,6 +41,7 @@ type StorageJoin struct {
 type StorageModelOptions struct{}
 
 type CondOptions struct {
+	// 查询字段 默认查询所有字段，如果字段包含空格那么会跳过追加表名前缀
 	Fields  []string
 	GroupBy []string
 	OrderBy map[string]string

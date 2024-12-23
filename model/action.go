@@ -6,6 +6,8 @@ import (
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zjson"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model/schema"
@@ -36,7 +38,7 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 	}
 
 	for k := range filterMap {
-		if k == "" || k[0] == '$' {
+		if k == "" || strings.Contains(k, placeHolder) || strings.Contains(k, ".") {
 			continue
 		}
 		if !zarray.Contains(m.GetFields(), k) {
@@ -59,6 +61,14 @@ type PageData struct {
 	Items    ztype.Maps `json:"items"`
 	Page     PageInfo   `json:"page"`
 	pagesize uint       `json:"-"`
+}
+
+func (p *PageData) String() string {
+	json, err := zjson.Marshal(p)
+	if err != nil {
+		return ""
+	}
+	return zstring.Bytes2String(zjson.Format(json))
 }
 
 func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ...uint) *PageData {
@@ -162,11 +172,18 @@ func relationson(
 ) (childRelationson map[string][]string, foreignKeys []string) {
 	childRelationson = make(map[string][]string)
 	includeAllFields := zarray.Contains(so.Fields, allFields[0])
+	joinAs := zarray.Map(so.Join, func(_ int, v StorageJoin) string {
+		return v.As
+	})
 	so.Fields = zarray.Filter(so.Fields, func(_ int, f string) bool {
 		if f == allFields[0] {
 			return true
 		}
 		field := strings.SplitN(f, ".", 2)
+		// 如果字段是join的as，则直接返回true
+		if zarray.Contains(joinAs, field[0]) {
+			return true
+		}
 		isRelation := zarray.Contains(m.relationsKeys, field[0])
 		if isRelation {
 			if len(field) == 1 {
@@ -186,6 +203,7 @@ func relationson(
 				}
 			}
 		}
+
 		return !isRelation
 	})
 
@@ -568,9 +586,11 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 		return nil, err
 	}
 
-	data, err = VerifiData(data, m.GetModelFields(), activeCreate)
-	if err != nil {
-		return nil, err
+	if len(m.GetDefineFields()) > 0 {
+		data, err = VerifiData(data, m.GetDefineFields(), activeCreate)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if *m.define.Options.Timestamps {
@@ -681,11 +701,12 @@ func UpdateMany[T filter](
 		return 0, err
 	}
 
-	data, err = VerifiData(data, m.GetModelFields(), activeUpdate)
-	if err != nil {
-		return 0, zerror.InvalidInput.Text(err.Error())
+	if len(m.GetDefineFields()) > 0 {
+		data, err = VerifiData(data, m.GetDefineFields(), activeUpdate)
+		if err != nil {
+			return 0, zerror.InvalidInput.Text(err.Error())
+		}
 	}
-
 	if *m.define.Options.Timestamps {
 		data[UpdatedAtKey] = ztime.Time()
 	}

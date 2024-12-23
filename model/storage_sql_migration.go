@@ -104,7 +104,7 @@ func (m *Migration) GetFields() (ztype.Map, error) {
 }
 
 func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
-	modelFields := m.Model.GetModelFields()
+	modelFields := m.Model.GetDefineFields()
 	newColumns := zarray.Keys(modelFields)
 	newColumns = append(newColumns, idKey)
 
@@ -365,7 +365,7 @@ func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 func (m *Migration) CreateTable(db *zdb.DB) error {
 	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(db.GetDriver())
-	modelFields := m.Model.GetModelFields()
+	modelFields := m.Model.GetDefineFields()
 	fields := make([]*schema.Field, 0, len(modelFields))
 	fields = append(fields, m.getPrimaryKey())
 	for name := range modelFields {
@@ -425,7 +425,7 @@ func (m *Migration) Indexs(db *zdb.DB) error {
 	table := builder.NewTable(m.Model.GetTableName()).Create()
 	table.SetDriver(db.GetDriver())
 
-	modelFields := m.Model.GetModelFields()
+	modelFields := m.Model.GetDefineFields()
 	uniques := make(map[string][]string, 0)
 	indexs := make(map[string][]string, 0)
 	for name := range modelFields {
