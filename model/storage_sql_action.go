@@ -173,6 +173,7 @@ func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func
 func (s *SQL) First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
 	rows, err := s.Find(table, fields, filter, func(so *CondOptions) {
 		so.Limit = 1
+		so.Offset = 0
 		if len(fn) > 0 {
 			fn[0](so)
 		}
@@ -217,6 +218,10 @@ func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+		}
+
+		if o.Offset > 0 {
+			b.Offset(o.Offset)
 		}
 
 		if len(o.GroupBy) > 0 {
@@ -269,6 +274,10 @@ func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter zt
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+		}
+
+		if o.Offset > 0 {
+			b.Offset(o.Offset)
 		}
 
 		if len(o.GroupBy) > 0 {

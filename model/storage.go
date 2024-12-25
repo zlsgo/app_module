@@ -47,6 +47,7 @@ type CondOptions struct {
 	OrderBy map[string]string
 	Join    []StorageJoin
 	Limit   int
+	Offset  int
 	// Relations []string
 }
 
