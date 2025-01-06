@@ -132,8 +132,11 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 					}
 				case schema.String, schema.Text:
 					val, err = column.GetValidations().VerifiAny(v).String()
-					if val == "" && !column.Nullable {
-						return d, errors.New(label + "不能为空")
+					if val == "" {
+						if !column.Nullable {
+							return d, errors.New(label + "不能为空")
+						}
+						val = ""
 					}
 				default:
 					rule := column.GetValidations().VerifiAny(v).IsNumber()
