@@ -139,17 +139,18 @@ func VerifiData(data ztype.Map, columns mSchema.Fields, active activeType) (ztyp
 						val = ""
 					}
 				default:
-					rule := column.GetValidations().VerifiAny(v).IsNumber()
+					rule := column.GetValidations().VerifiAny(v)
 					switch typ {
 					case "int", "int8", "int16", "int32", "int64":
-						val, err = rule.Int()
+						val, err = rule.IsNumber().Int()
 					case "uint", "uint8", "uint16", "uint32", "uint64":
-						val, err = rule.Int()
+						val, err = rule.IsNumber().Int()
 						if err == nil {
 							val = ztype.ToUint(val)
 						}
+					case "float", "float32", "float64":
+						val, err = rule.IsNumber().Float64()
 					default:
-						val, err = rule.Float64()
 					}
 				}
 
