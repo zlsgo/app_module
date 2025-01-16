@@ -54,7 +54,8 @@ type Options struct {
 	InlayUser            ztype.Maps               `z:"inlay_user"`
 	Models               []schema.Schema          `z:"-"`
 	SSE                  znet.SSEOption           `z:"-"`
-	Expire               int                      `z:"expire"`
+	Expire               int64                    `z:"expire"`
+	RefreshExpire        int64                    `z:"refresh_expire"`
 	Only                 bool                     `z:"only"`
 	DisabledLogIP        bool                     `z:"disabled_ip"`
 	EnableRegister       bool                     `z:"register"`

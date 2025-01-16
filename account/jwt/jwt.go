@@ -17,7 +17,7 @@ type Info struct {
 	IsRefresh bool
 }
 
-func GenToken(info string, key string, expire int) (accessToken, refreshToken string, err error) {
+func GenToken(info string, key string, expire, refreshExpire int64) (accessToken, refreshToken string, err error) {
 	if expire == 0 {
 		// 默认过期时间为 24 小时
 		expire = 86400
@@ -34,8 +34,12 @@ func GenToken(info string, key string, expire int) (accessToken, refreshToken st
 		return "", "", zerror.With(err, "failed to generate signature")
 	}
 
-	// 设置 refresh token 的过期时间为 7 天后
-	claims.StandardClaims.ExpiresAt = 604800 + expiresAt
+	if refreshExpire == 0 || refreshExpire < expiresAt {
+		// 设置 refresh token 的过期时间为 7 天后
+		refreshExpire = 604800 + expiresAt
+	}
+
+	claims.StandardClaims.ExpiresAt = refreshExpire
 	claims.IsRefresh = true
 	if refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(zstring.String2Bytes(key)); err != nil {
 		return "", "", zerror.With(err, "failed to generate refresh token signature")

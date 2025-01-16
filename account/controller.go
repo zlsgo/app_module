@@ -98,7 +98,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	clearCache(token, uid)
 
-	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	info := salt + uid
-	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	clearCache(jwt.GetToken(c), uid)
 
 	info := salt + uid
-	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
 
 	return ztype.Map{
 		"token":         accessToken,
