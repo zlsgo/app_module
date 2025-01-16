@@ -8,6 +8,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
@@ -38,10 +39,13 @@ func deleteUserForCache(uid string) {
 	userCache.Delete(uid)
 }
 
-var jwtCache = zcache.NewFast()
+var (
+	jwtCache        = zcache.NewFast()
+	errUnauthorized = zerror.WrapTag(zerror.Unauthorized)(errors.New("登录状态过期，请重新登录"))
+)
 
 func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
-	uid, _ := jwtCache.ProvideGet(token, func() (interface{}, bool) {
+	resp, _ := jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {
 			return "", false
@@ -51,18 +55,29 @@ func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 		uid := info.Info[saltLen:]
 		f, err := model.FindCols(m, "salt", uid)
 		if err != nil || f.Index(0).String() != salt {
-			return "", false
+			return [2]interface{}{}, false
 		}
 
-		return uid, true
+		return [2]interface{}{uid, info.ExpiresAt}, true
 	})
 
-	id, ok := uid.(string)
-	if !ok || id == "" {
-		return "", zerror.WrapTag(zerror.Unauthorized)(errors.New("登录状态过期，请重新登录"))
+	v, ok := resp.([2]interface{})
+	if !ok {
+		return "", errUnauthorized
 	}
 
-	return id, nil
+	uid, uidOK := v[0].(string)
+	expiresAt, expiresAtOK := v[1].(int64)
+	if !uidOK || uid == "" || !expiresAtOK || expiresAt == 0 {
+		return "", errUnauthorized
+	}
+
+	if ztime.Clock()/1000000 > expiresAt {
+		deleteJWTForCache(token)
+		return "", errUnauthorized
+	}
+
+	return uid, nil
 }
 
 func deleteJWTForCache(token string) {

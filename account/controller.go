@@ -70,11 +70,11 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 		refreshToken = c.GetJSON("refresh_token").String()
 	}
 
-	_, err := jwt.Parse(token, h.module.Options.key)
-	err = jwt.ParseError(err)
-	if err != nil {
-		return nil, err
-	}
+	// _, err := jwt.Parse(token, h.module.Options.key)
+	// err = jwt.ParseError(err)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	info, err := jwt.Parse(refreshToken, h.module.Options.key)
 	if err != nil || !info.IsRefresh {
