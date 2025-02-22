@@ -43,7 +43,8 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 			upperKey, v := strings.ToUpper(k), ztype.New(value)
 			if upperKey == placeHolderOR || upperKey == placeHolderAND {
 				m := v.Map()
-				cexprs, err := s.parseExprs(d, m)
+				var cexprs []string
+				cexprs, err = s.parseExprs(d, m)
 				if err != nil {
 					return nil, err
 				}
