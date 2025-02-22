@@ -38,7 +38,8 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 	}
 
 	for k := range filterMap {
-		if k == "" || strings.Contains(k, placeHolder) || strings.Contains(k, ".") {
+		k = zstring.TrimSpace(k)
+		if k == "" || strings.Contains(k, placeHolder) || strings.Contains(k, ".") || strings.Contains(k, " ") {
 			continue
 		}
 		if !zarray.Contains(m.GetFields(), k) {
