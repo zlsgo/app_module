@@ -57,7 +57,7 @@ func regController(r *znet.Engine, providers []AuthProvider, enabledProviders []
 				return nil, errors.New("user id not found")
 			}
 
-			accessToken, refreshToken, err := jwt.GenToken(id, key, expire)
+			accessToken, refreshToken, err := jwt.GenToken(id, key, int64(expire), int64(0))
 			if err != nil {
 				return nil, err
 			}

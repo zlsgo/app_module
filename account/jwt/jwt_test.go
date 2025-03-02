@@ -12,7 +12,7 @@ func TestToken(t *testing.T) {
 	value := "AO632VolejRejNmG"
 	key := "wV94b4wBV8jGOJTVcM4ZUsCx9kJF30aj"
 
-	token, refreshToken, err := GenToken(value, key, 0)
+	token, refreshToken, err := GenToken(value, key, 0, 0)
 	tt.NoError(err)
 	tt.Log(token)
 

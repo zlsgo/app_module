@@ -189,7 +189,7 @@ func (h *UserServer) login(c *znet.Context) (data any, err error) {
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
-	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire)
+	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, int64(h.module.Options.Expire), int64(0))
 	if err != nil {
 		return nil, err
 	}
