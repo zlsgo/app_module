@@ -303,7 +303,7 @@ func (m *Migration) execAddColumn(
 	}
 
 	sql, values := table.AddColumn(v, field.Type, func(f *schema.Field) {
-		f.Comment = zutil.IfVal(field.Comment != "", field.Comment, field.Label).(string)
+		f.Comment = ztype.ToString(zutil.IfVal(field.Comment != "", field.Comment, field.Label))
 		f.NotNull = !field.Nullable
 		f.Size = field.Size
 	})
@@ -375,7 +375,7 @@ func (m *Migration) CreateTable(db *zdb.DB) error {
 
 		field := modelFields[name]
 		f := schema.NewField(name, field.Type, func(f *schema.Field) {
-			f.Comment = zutil.IfVal(field.Comment != "", field.Comment, field.Label).(string)
+			f.Comment = ztype.ToString(zutil.IfVal(field.Comment != "", field.Comment, field.Label))
 			f.NotNull = !field.Nullable
 			f.Size = field.Size
 		})

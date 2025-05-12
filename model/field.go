@@ -185,7 +185,7 @@ func parseField(m *Schema, name string, f *mSchema.Field) error {
 		f.Before = append(f.Before, "bool")
 		f.After = append(f.After, "bool")
 	case schema.JSON:
-		jsonProcess := zutil.IfVal(f.Options.IsArray, "jsons", "json").(string)
+		jsonProcess := ztype.ToString(zutil.IfVal(f.Options.IsArray, "jsons", "json"))
 		f.Before = append(f.Before, jsonProcess)
 		f.After = append(f.After, jsonProcess)
 	case schema.Time:
