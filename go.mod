@@ -4,15 +4,14 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.19-0.20250511094219-133ab5e6ebe8
+	github.com/sohaha/zlsgo v1.7.19-0.20250513073914-64e6749be19a
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20250512093305-29db159dd15e
+	github.com/zlsgo/app_core v0.0.0-20250513074027-d93ae4bce7fc
 	github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea
 	github.com/zlsgo/zdb v0.0.0-20250512100350-c305e7bebeda
 	golang.org/x/crypto v0.36.0
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 )
 
 require (
@@ -42,6 +41,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
