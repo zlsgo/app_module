@@ -166,7 +166,7 @@ func loginFailed(c *znet.Context) {
 	ip := c.GetClientIP()
 	total, _ := loginLimit.Get(ip)
 	data := ztype.ToInt(total) + 1
-	loginLimit.Set(ip, data, zutil.BackOffDelay(ztype.ToInt(total), time.Hour/2))
+	loginLimit.Set(ip, data, zutil.BackOffDelay(ztype.ToInt(total), time.Hour/2, time.Hour))
 }
 
 // login 登录

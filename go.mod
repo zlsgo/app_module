@@ -10,8 +10,8 @@ require (
 	github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea
-	github.com/zlsgo/zdb v0.0.0-20250512100350-c305e7bebeda
-	golang.org/x/crypto v0.36.0
+	github.com/zlsgo/zdb v0.0.0-20250603090840-07adea1bb03c
+	golang.org/x/crypto v0.38.0
 )
 
 require (
@@ -43,9 +43,9 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.55.3 // indirect
