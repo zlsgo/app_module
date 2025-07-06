@@ -99,13 +99,18 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 					exprs = append(exprs, d.LT(f[0], v.Value()))
 				case "<=":
 					exprs = append(exprs, d.LE(f[0], v.Value()))
-				case "!=":
-					exprs = append(exprs, d.NE(f[0], v.Value()))
+				case "!=", "<>":
+					values := ztype.ToSlice(v.Value()).Value()
+					if len(values) == 1 {
+						exprs = append(exprs, d.NE(f[0], values[0]))
+					} else {
+						exprs = append(exprs, d.NotIn(f[0], values...))
+					}
 				case "LIKE":
 					exprs = append(exprs, d.Like(f[0], v.Value()))
 				case "IN":
 					exprs = append(exprs, d.In(f[0], v.SliceValue()...))
-				case "NOTIN":
+				case "NOTIN", "NOT IN":
 					exprs = append(exprs, d.NotIn(f[0], v.SliceValue()...))
 				case "IS NULL":
 					exprs = append(exprs, d.IsNull(f[0]))
