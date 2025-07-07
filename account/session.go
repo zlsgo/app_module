@@ -11,16 +11,16 @@ import (
 var sessionHub = zarray.NewHashMap[string, *session]()
 
 type session struct {
-	sessions *zarray.Maper[int64, *znet.SSE]
+	sessions *zarray.Maper[string, *znet.SSE]
 }
 
-func (m *session) addSession(sse *znet.SSE) int64 {
+func (m *session) addSession(sse *znet.SSE) string {
 	id := zstring.UUID()
 	m.sessions.Set(id, sse)
 	return id
 }
 
-func (m *session) removeSession(id int64) {
+func (m *session) removeSession(id string) {
 	m.sessions.Delete(id)
 }
 
@@ -32,7 +32,7 @@ func (m *Module) newSession(c *znet.Context) (sse *znet.SSE, remove func(), err 
 
 	session, _, _ := sessionHub.ProvideGet(uid, func() (*session, bool) {
 		return &session{
-			sessions: zarray.NewHashMap[int64, *znet.SSE](),
+			sessions: zarray.NewHashMap[string, *znet.SSE](),
 		}, true
 	})
 
@@ -65,7 +65,7 @@ func SendRealtime(uid string, data string, event ...string) bool {
 			return false
 		}
 		id := ztime.Now()
-		session.sessions.ForEach(func(k int64, v *znet.SSE) bool {
+		session.sessions.ForEach(func(k string, v *znet.SSE) bool {
 			_ = v.Send(id, data, event...)
 			return true
 		})

@@ -58,7 +58,7 @@ func (h *UserServer) Init(r *znet.Engine) error {
 		noPerm.POST("/login", h.login)
 	}
 
-	znet.RegisterPreInvoker(invokerValue)
+	znet.RegisterRender(invokerValue)
 
 	r.Use(h.module.instance.GetMiddleware())
 
