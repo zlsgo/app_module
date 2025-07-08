@@ -2,7 +2,9 @@ package account
 
 import (
 	"errors"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
@@ -12,6 +14,7 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
+	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
@@ -355,14 +358,34 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 		return nil, err
 	}
 
+	avatarPath := res[0].Path
+	basePath := filepath.Base(avatarPath)
+	ext := filepath.Ext(basePath)
+	baseName := strings.TrimSuffix(basePath, ext)
+	newAvatarPath := strings.Replace(avatarPath, baseName, uid, -1)
+
+	info, _ := getUserForCache(h.accoutModel, uid)
+	oldAvatarPath := info.Get("avatar").String()
+	if oldAvatarPath != "" {
+		_ = zfile.Remove("." + oldAvatarPath)
+	}
+	err = zfile.MoveFile("."+avatarPath, "."+newAvatarPath)
+	if err != nil {
+		return nil, errors.New("头像保存失败")
+	}
+
 	err = updateUser(h.accoutModel, uid, ztype.Map{
-		"avatar": res[0].Path,
+		"avatar": newAvatarPath,
 	})
-	return res[0].Path, err
+
+	return newAvatarPath, err
 }
 
 func updateUser(m *model.Schema, id string, data ztype.Map) error {
 	_, err := model.Update(m, id, data)
+
+	clearCache("", id)
+
 	return err
 }
 
