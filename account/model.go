@@ -117,6 +117,7 @@ func roleModel(ms *model.Schemas) error {
 			},
 		},
 	}, false)
+
 	return err
 }
 

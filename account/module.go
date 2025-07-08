@@ -23,14 +23,13 @@ import (
 type Module struct {
 	service.ModuleLifeCycle
 	service.App
-	db           *zdb.DB
-	mods         *model.Schemas
-	accountModel *AccountModel
-	index        *Index
-	Request      *requestWith
-	Inside       *inside
-	Controllers  []service.Controller
-	Options      Options
+	db          *zdb.DB
+	mods        *model.Schemas
+	index       *Index
+	Request     *requestWith
+	Inside      *inside
+	Controllers []service.Controller
+	Options     Options
 }
 
 var (
@@ -121,6 +120,10 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 			&User{
 				module: m,
 				Path:   m.Options.ApiPrefix + "/user",
+			},
+			&Role{
+				module: m,
+				Path:   m.Options.ApiPrefix + "/role",
 			},
 		}
 		return nil

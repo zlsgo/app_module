@@ -27,7 +27,7 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	filter := model.Filter{
 		"inlay": false,
 	}
-	account, _ := c.GetQuery("account")
+	account, _ := c.GetQuery("key")
 	if account != "" {
 		filter["account"] = account + "%"
 	}
@@ -38,7 +38,6 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 			model.IDKey(): "desc",
 		}
 		co.Fields = GetAccountModel().m.GetFields("password", "salt")
-		return
 	})
 	data.Items.ForEach(func(i int, item ztype.Map) bool {
 		id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())

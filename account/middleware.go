@@ -75,8 +75,12 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	// 添加权限规则
 	for _, r := range roles {
 		role := rbac.NewRole(rbac.MatchPriorityDeny)
+		permissionIds := r.Get("permission").SliceInt()
+		if len(permissionIds) == 0 {
+			continue
+		}
 		perms, err := model.Find(permModel, ztype.Map{
-			model.IDKey(): r.Get("permission").SliceInt(),
+			model.IDKey(): permissionIds,
 			"status":      1,
 		}, func(o *model.CondOptions) {
 			o.Fields = []string{"action", "alias", "target", "priority"}
