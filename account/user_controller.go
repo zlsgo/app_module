@@ -3,9 +3,7 @@ package account
 import (
 	"reflect"
 
-	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	"github.com/zlsgo/app_module/model"
 )
@@ -39,11 +37,11 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 		}
 		co.Fields = GetAccountModel().m.GetFields("password", "salt")
 	})
-	data.Items.ForEach(func(i int, item ztype.Map) bool {
-		id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())
-		_ = item.Set("id", id)
-		return true
-	})
+	// data.Items.ForEach(func(i int, item ztype.Map) bool {
+	// 	id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())
+	// 	_ = item.Set("uid", id)
+	// 	return true
+	// })
 	return
 }
 
@@ -54,29 +52,15 @@ func (h *User) Post(c *znet.Context) (id interface{}, err error) {
 	return h.module.Inside.CreateUser(data)
 }
 
-// UIDPut 修改用户
-func (h *User) UIDPut(c *znet.Context) (res interface{}, err error) {
+// UIDPATCH 修改用户
+func (h *User) UIDPATCH(c *znet.Context) (resp interface{}, err error) {
 	id := c.GetParam("uid")
 	j, _ := c.GetJSONs()
+
 	return h.module.Inside.UpdateUser(id, j.Map())
 }
 
 // UIDDELETE 删除用户
-func (h *User) UIDDELETE(c *znet.Context) (res interface{}, err error) {
-	id := c.GetParam("uid")
-	user, err := GetAccountModel().FindOneByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if user.IsEmpty() {
-		return nil, zerror.InvalidInput.Text("用户不存在")
-	}
-
-	if user.Get("inlay").Bool() {
-		return nil, zerror.InvalidInput.Text("不能删除内置用户")
-	}
-
-	_, err = GetAccountModel().DeleteByID(id)
-	return nil, err
+func (h *User) UIDDELETE(c *znet.Context) (resp interface{}, err error) {
+	return h.module.Inside.DeleteUser(c.GetParam("uid"))
 }

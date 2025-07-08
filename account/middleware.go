@@ -59,11 +59,6 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		return errors.New(roleName + " roleName not found")
 	}
 
-	permModel, ok := m.mods.Get(permName)
-	if !ok {
-		return errors.New(permName + " permName not found")
-	}
-
 	// TODO: 可能需要独立出来方便做缓存
 	roles, err := model.Find(roleModel, ztype.Map{
 		"status": 1,
@@ -74,26 +69,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 
 	// 添加权限规则
 	for _, r := range roles {
-		role := rbac.NewRole(rbac.MatchPriorityDeny)
-		permissionIds := r.Get("permission").SliceInt()
-		if len(permissionIds) == 0 {
-			continue
-		}
-		perms, err := model.Find(permModel, ztype.Map{
-			model.IDKey(): permissionIds,
-			"status":      1,
-		}, func(o *model.CondOptions) {
-			o.Fields = []string{"action", "alias", "target", "priority"}
-		})
-		if err != nil {
-			return err
-		}
-
-		for _, perm := range perms {
-			role.AddGlobPermission(perm.Get("priority").Int(), perm.Get("action").String(), perm.Get("target").String())
-		}
-		err = permission.MergerRole(r.Get("name").String(), role)
-		if err != nil {
+		if err := m.setPermission(permission, r); err != nil {
 			return err
 		}
 	}

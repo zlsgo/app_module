@@ -201,5 +201,6 @@ func UpdateById(
 	}
 
 	total, err := store.UpdateByID(id, data)
+
 	return ztype.Map{"total": total}, err
 }

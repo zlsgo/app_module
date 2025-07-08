@@ -16,7 +16,8 @@ func Test_fixUserData(t *testing.T) {
 		"role":          "admin",
 		"password":      123,
 	}
-	err := fixUserData(&data)
+	g := &inside{}
+	err := g.fixUserData(&data)
 	tt.NoError(err)
 	tt.Equal(false, data.Get("administrator").Exists())
 	tt.Equal("123", data.Get("password").String())
@@ -29,7 +30,7 @@ func Test_fixUserData(t *testing.T) {
 		"role":          []string{"admin"},
 		"password":      123,
 	}
-	err = fixUserData(&data)
+	err = g.fixUserData(&data)
 	tt.NoError(err)
 	tt.Equal(false, data.Get("administrator").Exists())
 	tt.Equal("123", data.Get("password").String())
