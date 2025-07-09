@@ -20,61 +20,74 @@ import (
 )
 
 func fillFilterTablePrefix(f ztype.Map, table string) ztype.Map {
-	if table == "" {
+	if table == "" || len(f) == 0 {
 		return f
 	}
 
-	for k := range f {
+	result := make(ztype.Map, len(f))
+	for k, v := range f {
 		if k == "" {
+			result[k] = v
 			continue
 		}
+
 		if !strings.ContainsRune(k, '.') {
-			f[table+k] = f[k]
-			delete(f, k)
+			result[table+k] = v
+		} else {
+			result[k] = v
 		}
 	}
 
-	return f
+	return result
 }
 
 func fillFieldsTablePrefix(f []string, table string) []string {
-	if table == "" {
+	if table == "" || len(f) == 0 {
 		return f
 	}
 
-	for i := range f {
-		if strings.ContainsRune(f[i], '.') || strings.ContainsRune(f[i], ' ') {
-			continue
+	result := make([]string, len(f))
+	for i, field := range f {
+		if strings.ContainsRune(field, '.') || strings.ContainsRune(field, ' ') {
+			result[i] = field
+		} else {
+			result[i] = table + field
 		}
-
-		f[i] = table + f[i]
 	}
 
-	return f
+	return result
 }
 
 func parseSchema(dir string) ([]schema.Schema, error) {
-	files := make([]string, 0)
-	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	var files []string
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
-			return nil
+		if !d.IsDir() {
+			files = append(files, path)
 		}
-		files = append(files, path)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	schemaModelsDefine := zarray.Map(files, func(_ int, v string) (d schema.Schema) {
-		text, err := zfile.ReadFile(v)
+	schemaModelsDefine := make([]schema.Schema, 0, len(files))
+	for _, filePath := range files {
+		text, err := zfile.ReadFile(filePath)
 		if err != nil {
-			return
+			continue
 		}
-		zjson.Unmarshal(text, &d)
-		d.SchemaPath = v
-		return
-	}, 10)
+
+		var d schema.Schema
+		if err := zjson.Unmarshal(text, &d); err != nil {
+			continue
+		}
+
+		d.SchemaPath = filePath
+		schemaModelsDefine = append(schemaModelsDefine, d)
+	}
 
 	return schemaModelsDefine, nil
 }
