@@ -23,14 +23,14 @@ import (
 type Module struct {
 	service.ModuleLifeCycle
 	service.App
-	db           *zdb.DB
-	mods         *model.Schemas
-	accountModel *AccountModel
-	index        *Index
-	Request      *requestWith
-	Inside       *inside
-	Controllers  []service.Controller
-	Options      Options
+	db          *zdb.DB
+	mods        *model.Schemas
+	index       *Index
+	Request     *requestWith
+	Inside      *inside
+	Controllers []service.Controller
+	Options     Options
+	permission  *rbac.RBAC
 }
 
 var (
@@ -70,12 +70,13 @@ func (o Options) DisableWrite() bool {
 }
 
 func New(key string, opt ...func(o *Options)) *Module {
-	return &Module{
+	m := &Module{
 		Options: zutil.Optional(Options{key: key, ApiPrefix: "/manage"}, opt...),
 		index:   &Index{},
 		Request: &requestWith{},
-		Inside:  &inside{},
 	}
+	m.Inside = &inside{m: m}
+	return m
 }
 
 func (m *Module) Tasks() []service.Task {
@@ -121,6 +122,14 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 			&User{
 				module: m,
 				Path:   m.Options.ApiPrefix + "/user",
+			},
+			&Role{
+				module: m,
+				Path:   m.Options.ApiPrefix + "/role",
+			},
+			&Permission{
+				module: m,
+				Path:   m.Options.ApiPrefix + "/permission",
 			},
 		}
 		return nil
@@ -172,6 +181,8 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	if err = m.initMiddleware(permission); err != nil {
 		return err
 	}
+
+	m.permission = permission
 
 	noLogIP = m.Options.DisabledLogIP
 	return
