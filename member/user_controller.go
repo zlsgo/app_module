@@ -86,21 +86,20 @@ func (h *UserServer) PATCHMe(c *znet.Context, user *User) (any, error) {
 // register 注册
 func (h *UserServer) register(c *znet.Context) (any, error) {
 	if !h.module.Options.EnableRegister {
-		return nil, zerror.InvalidInput.Text("registration is currently disabled")
+		return nil, zerror.InvalidInput.Text("注册功能已关闭")
 	}
 
 	j, err := c.GetJSONs()
 	if err != nil {
-		return nil, zerror.InvalidInput.Text("Invalid data format")
+		return nil, zerror.InvalidInput.Text("数据格式错误")
 	}
 
 	account := j.Get("account").String()
-	// 账号必须以字母开头
 	if !zvalid.Text(account).Regex("^[a-zA-Z]").Ok() {
-		return nil, zerror.InvalidInput.Text("Account must start with a letter")
+		return nil, zerror.InvalidInput.Text("账号必须以字母开头")
 	}
 	if account == "" {
-		return nil, zerror.InvalidInput.Text("Account cannot be empty")
+		return nil, zerror.InvalidInput.Text("账号不能为空")
 	}
 
 	nickname := j.Get("nickname").String()
@@ -110,7 +109,7 @@ func (h *UserServer) register(c *znet.Context) (any, error) {
 
 	password := j.Get("password").String()
 	if password == "" {
-		return nil, zerror.InvalidInput.Text("Password cannot be empty")
+		return nil, zerror.InvalidInput.Text("密码不能为空")
 	}
 
 	data := ztype.Map{
@@ -124,7 +123,7 @@ func (h *UserServer) register(c *znet.Context) (any, error) {
 	if exist, _ := userModel.Exists(model.Filter{
 		"account": account,
 	}); exist {
-		return nil, zerror.InvalidInput.Text("Account already exists")
+		return nil, zerror.InvalidInput.Text("账号已存在")
 	}
 
 	return userModel.Insert(data)

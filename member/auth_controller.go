@@ -58,7 +58,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 		h.module.Options.Expire,
 		func(ctx *znet.Context, p auth.Provider) (mid string, err error) {
 			if p.Provider == "" || p.ProviderID == "" {
-				return "", errors.New("provider or provider_id is empty")
+				return "", zerror.InvalidInput.Text("提供商不能为空")
 			}
 
 			provider, err := h.providerModel.FindOne(model.Filter{
@@ -79,7 +79,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 					memberSchema := h.memberModel.Schema(s)
 					_, exists, _ := model.FindCol(memberSchema, "account", ztype.Map{"account": account})
 					if exists {
-						return errors.New("account already exists")
+						return errors.New("账号已存在，无法自动注册")
 					}
 
 					nickname := p.ProviderUsername
@@ -95,13 +95,13 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 						"login_at": ztime.Now(),
 					})
 					if err != nil {
-						return zerror.With(err, "insert member error")
+						return zerror.With(err, "用户注册失败")
 					}
 
 					mid = ztype.ToString(id)
 					account, err := memberSchema.DeCryptID(mid)
 					if err != nil {
-						return zerror.With(err, "decrypt id error")
+						return zerror.With(err, "用户信息解析失败")
 					}
 
 					data := ztype.Map{
@@ -116,7 +116,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 					}
 					_, err = model.Insert(h.providerModel.Schema(s), data)
 					if err != nil {
-						return zerror.With(err, "insert provider error")
+						return zerror.With(err, "用户信息保存失败")
 					}
 					return nil
 				})
