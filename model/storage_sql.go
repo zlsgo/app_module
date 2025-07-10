@@ -66,18 +66,18 @@ func sqlOrderBy(orderBy map[string]string, fieldPrefix string) (o []string) {
 	}
 
 	o = make([]string, 0, l)
-	for n := range orderBy {
-		v := orderBy[n]
-		if fieldPrefix != "" && !strings.ContainsRune(n, '.') {
-			n = fieldPrefix + n
+	hasPrefix := fieldPrefix != ""
+	for field := range orderBy {
+		if hasPrefix && !strings.ContainsRune(field, '.') {
+			field = fieldPrefix + field
 		}
-		switch orderBy[n] {
+		switch orderBy[field] {
 		case "-1":
-			o = append(o, n+" DESC")
+			o = append(o, field+" DESC")
 		case "1", "0":
-			o = append(o, n+" ASC")
+			o = append(o, field+" ASC")
 		default:
-			o = append(o, n+" "+v)
+			o = append(o, field+" "+orderBy[field])
 		}
 	}
 	return

@@ -121,24 +121,37 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			roles := u.Get("role").SliceString()
 			c.WithValue(ctxWithRole, roles)
 
+			// 管理员直接通过，避免权限检查
 			if isInlayAdmin {
+				c.Next()
 				return nil
 			}
 
+			// 管理员直接通过
+			if isInlayAdmin {
+				c.Next()
+				return nil
+			}
+
+			// 检查公共路由
+			if zarray.Contains(publicRoutes, c.Request.URL.Path) {
+				c.Next()
+				return nil
+			}
+
+			// 检查是否忽略权限限制
+			if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
+				c.Next()
+				return nil
+			}
+
+			// 检查权限
 			for _, r := range roles {
 				isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
 				if isAllow {
+					c.Next()
 					return nil
 				}
-			}
-
-			// 是否忽略权限限制
-			if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
-				return nil
-			}
-
-			if zarray.Contains(publicRoutes, c.Request.URL.Path) {
-				return nil
 			}
 
 			return permissionDenied(errors.New("没有访问权限"))
@@ -150,6 +163,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			if !ok {
 				return nil
 			}
+
 			logRequest(c, logModel, u.(ztype.Map))
 			return nil
 		},

@@ -40,7 +40,7 @@ type (
 )
 
 func New(o ...func(*Options)) (m *Module) {
-	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "data/schemas", Schemas: make([]schema.Schema, 0)}, o...)
+	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "", Schemas: make([]schema.Schema, 0)}, o...)
 
 	m = &Module{
 		Options: opt,

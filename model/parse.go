@@ -14,19 +14,17 @@ import (
 func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 	s.alias = alias
 
-	salt := ""
-	salt = s.define.Options.Salt
 	cryptLen := s.define.Options.CryptLen
 	if cryptLen <= 0 {
 		cryptLen = 12
 	}
-	s.Hashid = hashid.New(salt, cryptLen)
+	s.Hashid = hashid.New(s.define.Options.Salt, cryptLen)
 
-	s.readOnlyKeys = make([]string, 0)
-	s.relationsKeys = make([]string, 0)
-	s.cryptKeys = make(map[string]CryptProcess, 0)
-	s.afterProcess = make(map[string][]afterProcess, 0)
-	s.beforeProcess = make(map[string][]beforeProcess, 0)
+	s.readOnlyKeys = make([]string, 0, 4)
+	s.relationsKeys = make([]string, 0, len(s.define.Relations))
+	s.cryptKeys = make(map[string]CryptProcess, 2)
+	s.afterProcess = make(map[string][]afterProcess, 4)
+	s.beforeProcess = make(map[string][]beforeProcess, 4)
 
 	isNotFields := len(s.define.Fields) == 0
 	s.fields, err = perfectField(s)
@@ -38,19 +36,18 @@ func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 
 	if !isNotFields {
 		s.inlayFields = []string{idKey}
+
 		if *s.define.Options.Timestamps {
 			if zarray.Contains(s.fields, CreatedAtKey) {
-				err = errors.New(CreatedAtKey + " is a reserved field")
-				return
+				return errors.New(CreatedAtKey + " is a reserved field")
 			}
 			if zarray.Contains(s.fields, UpdatedAtKey) {
-				err = errors.New(UpdatedAtKey + " is a reserved field")
-				return
+				return errors.New(UpdatedAtKey + " is a reserved field")
 			}
-			var after []afterProcess
-			after, err = s.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
+
+			after, err := s.GetAfterProcess([]string{"date|Y-m-d H:i:s"})
 			if err != nil {
-				return
+				return err
 			}
 			s.afterProcess[CreatedAtKey] = after
 			s.afterProcess[UpdatedAtKey] = after
@@ -67,20 +64,20 @@ func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 
 		if *s.define.Options.SoftDeletes {
 			if zarray.Contains(s.fields, DeletedAtKey) {
-				err = errors.New(DeletedAtKey + " is a reserved field")
-				return
+				return errors.New(DeletedAtKey + " is a reserved field")
 			}
 			s.inlayFields = append(s.inlayFields, DeletedAtKey)
 		}
 
-		s.fullFields = append([]string{idKey}, s.fields...)
+		capacity := 1 + len(s.fields) + len(s.inlayFields)
+		s.fullFields = make([]string, 0, capacity)
+		s.fullFields = append(s.fullFields, idKey)
+		s.fullFields = append(s.fullFields, s.fields...)
 		s.fullFields = zarray.Unique(append(s.fullFields, s.inlayFields...))
 
 		if *s.define.Options.SoftDeletes {
-			flen := len(s.fullFields)
-			for i := 0; i < flen; i++ {
-				f := s.fullFields[i]
-				if f == DeletedAtKey {
+			for i := range s.fullFields {
+				if s.fullFields[i] == DeletedAtKey {
 					s.fullFields = append(s.fullFields[0:i], s.fullFields[i+1:]...)
 					break
 				}

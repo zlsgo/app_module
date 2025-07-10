@@ -17,6 +17,7 @@ type Schemas struct {
 	getWrapModels func() []*Store
 	models        *Stores
 	SchemaOption  SchemaOptions
+	cacheGet      map[string]*Schema
 }
 
 func NewSchemas(di zdi.Injector, s Storageer, o SchemaOptions) *Schemas {
@@ -25,6 +26,7 @@ func NewSchemas(di zdi.Injector, s Storageer, o SchemaOptions) *Schemas {
 		di:           di,
 		data:         zarray.NewHashMap[string, *Schema](),
 		SchemaOption: o,
+		cacheGet:     make(map[string]*Schema),
 	}
 }
 
@@ -46,14 +48,23 @@ func (ss *Schemas) set(alias string, s *Schema, force ...bool) (err error) {
 }
 
 func (ss *Schemas) Get(alias string) (*Schema, bool) {
+	if cached, exists := ss.cacheGet[alias]; exists {
+		return cached, true
+	}
+
 	s, ok := ss.data.Get(alias)
 	if !ok && ss.getWrapModels != nil {
 		for _, m := range ss.getWrapModels() {
 			if alias == m.schema.GetAlias() {
 				ss.data.Set(alias, m.schema)
+				ss.cacheGet[alias] = m.schema
 				return m.schema, true
 			}
 		}
+	}
+
+	if ok {
+		ss.cacheGet[alias] = s
 	}
 
 	return s, ok
@@ -96,12 +107,22 @@ func (ss *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 		return nil, errors.New("models " + name + " has been registered")
 	}
 
+	var tablePrefix string
+	if ss.storage != nil {
+		if opts := ss.storage.GetOptions(); opts != nil {
+			prefixVal := opts.Get("prefix")
+			if prefixVal.Exists() {
+				tablePrefix = prefixVal.String()
+			}
+		}
+	}
+
 	m := &Schema{
 		Storage:     ss.storage,
 		define:      data,
 		di:          ss.di,
 		getSchema:   ss.Get,
-		tablePrefix: ss.storage.GetOptions().Get("prefix").String(),
+		tablePrefix: tablePrefix,
 	}
 
 	err := ss.set(name, m, force)
@@ -111,21 +132,25 @@ func (ss *Schemas) Reg(name string, data schema.Schema, force bool) (*Schema, er
 	}
 
 	if *m.GetDefine().Options.DisabledMigrator {
-		migration := m.Migration()
-		if migration.HasTable() {
-			if mFields, err := migration.GetFields(); err == nil {
-				inlayFields := zarray.Keys(mFields)
-				m.inlayFields = zarray.Unique(append(m.inlayFields, inlayFields...))
-				m.fullFields = zarray.Unique(append(m.fullFields, inlayFields...))
+		if ss.storage != nil {
+			migration := m.Migration()
+			if migration.HasTable() {
+				if mFields, err := migration.GetFields(); err == nil {
+					inlayFields := zarray.Keys(mFields)
+					m.inlayFields = zarray.Unique(append(m.inlayFields, inlayFields...))
+					m.fullFields = zarray.Unique(append(m.fullFields, inlayFields...))
+				}
 			}
 		}
 		return m, nil
 	}
 
-	err = m.Migration().Auto(InsideOption.oldColumn)
-	if err != nil {
-		err = zerror.With(err, "models "+name+" migration error")
-		return nil, err
+	if ss.storage != nil {
+		err = m.Migration().Auto(InsideOption.oldColumn)
+		if err != nil {
+			err = zerror.With(err, "models "+name+" migration error")
+			return nil, err
+		}
 	}
 
 	return m, nil

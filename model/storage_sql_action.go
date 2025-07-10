@@ -18,116 +18,124 @@ const (
 )
 
 func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string, err error) {
-	if len(filter) > 0 {
-		for k := range filter {
-			value := filter[k]
-			if value == nil {
-				exprs = append(exprs, d.IsNull(k))
-				continue
+	if len(filter) == 0 {
+		return nil, nil
+	}
+
+	exprs = make([]string, 0, len(filter))
+	for k := range filter {
+		value := filter[k]
+		if value == nil {
+			exprs = append(exprs, d.IsNull(k))
+			continue
+		}
+
+		if k == "" {
+			if exprs, err = parseExprsBuildCond(d, value, exprs); err != nil {
+				return
 			}
 
-			if k == "" {
-				if exprs, err = parseExprsBuildCond(d, value, exprs); err != nil {
-					return
+			continue
+		}
+
+		if strings.Contains(k, placeHolder) {
+			if exprs, err = parseExprsBuildCond(d, value, exprs); err == nil {
+				continue
+			}
+		}
+
+		v := ztype.New(value)
+		upperKey := strings.ToUpper(k)
+		if upperKey == placeHolderOR || upperKey == placeHolderAND {
+			m := v.Map()
+			var cexprs []string
+			cexprs, err = s.parseExprs(d, m)
+			if err != nil {
+				return nil, err
+			}
+
+			switch upperKey {
+			case placeHolderOR:
+				exprs = append(exprs, d.Or(cexprs...))
+			default:
+				exprs = append(exprs, d.And(cexprs...))
+			}
+
+			continue
+		}
+
+		trimmedKey := zstring.TrimSpace(k)
+		f := strings.SplitN(trimmedKey, " ", 2)
+		if len(f) != 2 {
+			switch val := v.Value().(type) {
+			case ztype.Maps, []ztype.Map:
+				m := ztype.ToSlice(val).Maps()
+				e := make([]string, 0, len(m))
+				for _, v := range m {
+					cexprs, err := s.parseExprs(d, v)
+					if err != nil {
+						return nil, err
+					}
+					e = append(e, cexprs...)
 				}
 
-				continue
-			}
-
-			if strings.Contains(k, placeHolder) {
-				if exprs, err = parseExprsBuildCond(d, value, exprs); err == nil {
+				exprs = append(exprs, d.Or(e...))
+			case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
+				values := ztype.ToSlice(v.Value()).Value()
+				valuesLen := len(values)
+				if valuesLen == 0 {
 					continue
+				} else if valuesLen == 1 {
+					exprs = append(exprs, d.EQ(f[0], values[0]))
+				} else {
+					exprs = append(exprs, d.In(f[0], values...))
 				}
+			default:
+				exprs = append(exprs, d.EQ(f[0], val))
 			}
-
-			upperKey, v := strings.ToUpper(k), ztype.New(value)
-			if upperKey == placeHolderOR || upperKey == placeHolderAND {
-				m := v.Map()
-				var cexprs []string
-				cexprs, err = s.parseExprs(d, m)
-				if err != nil {
-					return nil, err
+		} else {
+			switch strings.ToUpper(f[1]) {
+			default:
+				err = errors.New("Unknown operator: " + f[1])
+				return
+			case "=":
+				exprs = append(exprs, d.EQ(f[0], v.Value()))
+			case ">":
+				exprs = append(exprs, d.GT(f[0], v.Value()))
+			case ">=":
+				exprs = append(exprs, d.GE(f[0], v.Value()))
+			case "<":
+				exprs = append(exprs, d.LT(f[0], v.Value()))
+			case "<=":
+				exprs = append(exprs, d.LE(f[0], v.Value()))
+			case "!=", "<>":
+				values := ztype.ToSlice(v.Value()).Value()
+				if len(values) == 1 {
+					exprs = append(exprs, d.NE(f[0], values[0]))
+				} else {
+					exprs = append(exprs, d.NotIn(f[0], values...))
 				}
-
-				switch upperKey {
-				case placeHolderOR:
-					exprs = append(exprs, d.Or(cexprs...))
-				default:
-					exprs = append(exprs, d.And(cexprs...))
+			case "LIKE":
+				exprs = append(exprs, d.Like(f[0], v.Value()))
+			case "IN":
+				exprs = append(exprs, d.In(f[0], v.SliceValue()...))
+			case "NOTIN", "NOT IN":
+				exprs = append(exprs, d.NotIn(f[0], v.SliceValue()...))
+			case "IS NULL":
+				exprs = append(exprs, d.IsNull(f[0]))
+			case "IS NOT NULL":
+				exprs = append(exprs, d.IsNotNull(f[0]))
+			case "BETWEEN":
+				s := v.SliceValue()
+				if len(s) != 2 {
+					return nil, errors.New("BETWEEN operator need two values")
 				}
-
-				continue
-			}
-
-			f := strings.SplitN(zstring.TrimSpace(k), " ", 2)
-			if len(f) != 2 {
-				switch val := v.Value().(type) {
-				case ztype.Maps, []ztype.Map:
-					m := ztype.ToSlice(val).Maps()
-					e := make([]string, 0, len(m))
-					for _, v := range m {
-						cexprs, err := s.parseExprs(d, v)
-						if err != nil {
-							return nil, err
-						}
-						e = append(e, cexprs...)
-					}
-
-					exprs = append(exprs, d.Or(e...))
-				case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
-					values := ztype.ToSlice(v.Value()).Value()
-					if len(values) == 1 {
-						exprs = append(exprs, d.EQ(f[0], values[0]))
-					} else {
-						exprs = append(exprs, d.In(f[0], values...))
-					}
-				default:
-					exprs = append(exprs, d.EQ(f[0], val))
-				}
-			} else {
-				switch strings.ToUpper(f[1]) {
-				default:
-					err = errors.New("Unknown operator: " + f[1])
-					return
-				case "=":
-					exprs = append(exprs, d.EQ(f[0], v.Value()))
-				case ">":
-					exprs = append(exprs, d.GT(f[0], v.Value()))
-				case ">=":
-					exprs = append(exprs, d.GE(f[0], v.Value()))
-				case "<":
-					exprs = append(exprs, d.LT(f[0], v.Value()))
-				case "<=":
-					exprs = append(exprs, d.LE(f[0], v.Value()))
-				case "!=", "<>":
-					values := ztype.ToSlice(v.Value()).Value()
-					if len(values) == 1 {
-						exprs = append(exprs, d.NE(f[0], values[0]))
-					} else {
-						exprs = append(exprs, d.NotIn(f[0], values...))
-					}
-				case "LIKE":
-					exprs = append(exprs, d.Like(f[0], v.Value()))
-				case "IN":
-					exprs = append(exprs, d.In(f[0], v.SliceValue()...))
-				case "NOTIN", "NOT IN":
-					exprs = append(exprs, d.NotIn(f[0], v.SliceValue()...))
-				case "IS NULL":
-					exprs = append(exprs, d.IsNull(f[0]))
-				case "IS NOT NULL":
-					exprs = append(exprs, d.IsNotNull(f[0]))
-				case "BETWEEN":
-					s := v.SliceValue()
-					if len(s) != 2 {
-						return nil, errors.New("BETWEEN operator need two values")
-					}
-					exprs = append(exprs, d.Between(f[0], s[0], s[1]))
-				}
+				exprs = append(exprs, d.Between(f[0], s[0], s[1]))
 			}
 		}
 	}
 
-	return
+	return exprs, nil
 }
 
 func (s *SQL) Insert(table string, fields []string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {

@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.19-0.20250626094439-61394206565f
+	github.com/sohaha/zlsgo v1.7.19-0.20250709060340-6ae0d44232c0
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20250513074027-d93ae4bce7fc
+	github.com/zlsgo/app_core v0.0.0-20250709060923-a5d9a7b0e1ce
 	github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea

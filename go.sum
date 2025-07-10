@@ -66,6 +66,8 @@ github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6g
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
 github.com/sohaha/zlsgo v1.7.19-0.20250626094439-61394206565f h1:HRZPjokGJkNSmLoLGMZ7zegzG99J9+47ud1QVOXOj1A=
 github.com/sohaha/zlsgo v1.7.19-0.20250626094439-61394206565f/go.mod h1:7LViqB5ll09RnlU5V5AW0oBnqFg260/q+B/SGDNNdmQ=
+github.com/sohaha/zlsgo v1.7.19-0.20250709060340-6ae0d44232c0 h1:emiEOUP/FvCwO4dO+Vf4q8BGMxV3CFh/yNHBSBDOq4w=
+github.com/sohaha/zlsgo v1.7.19-0.20250709060340-6ae0d44232c0/go.mod h1:7LViqB5ll09RnlU5V5AW0oBnqFg260/q+B/SGDNNdmQ=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/speps/go-hashids/v2 v2.0.1 h1:ViWOEqWES/pdOSq+C1SLVa8/Tnsd52XC34RY7lt7m4g=
@@ -91,6 +93,8 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/zlsgo/app_core v0.0.0-20250513074027-d93ae4bce7fc h1:RphSgDEitfXQibeFcDXlVmp7b/W3lNLvsYEb7ue+0fw=
 github.com/zlsgo/app_core v0.0.0-20250513074027-d93ae4bce7fc/go.mod h1:Dmo9etx0aXMezAmAmtok33nraQqxb19qQGSHgabQhrE=
+github.com/zlsgo/app_core v0.0.0-20250709060923-a5d9a7b0e1ce h1:fQjkDGxx9iDzzMalav4IAfNAEtu1t6ZZm2z1YA9o6/w=
+github.com/zlsgo/app_core v0.0.0-20250709060923-a5d9a7b0e1ce/go.mod h1:kqqkpzSlpDj2/9b6i8c7sYZ8/5d9Buced/qiCFLkA+w=
 github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e h1:HkbDrLmRESlgLUI95JZj/lYj9SRR6qhv/eR9M4oIQ/w=
 github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e/go.mod h1:C55LqcDMqfHqlmDZkkq21K9Do7GD3tZuPJC94XRzAUA=
 github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159 h1:haE+XlgESBx+QRZ5sk3roT6xXIn88B4ealwMbb9DPOE=

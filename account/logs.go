@@ -36,13 +36,15 @@ func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
 		return
 	}
 
-	var remark string
+	go func() {
+		var remark string
 
-	if r, ok := c.Value(ctxWithLogRemark); ok {
-		remark = ztype.ToString(r)
-	}
+		if r, ok := c.Value(ctxWithLogRemark); ok {
+			remark = ztype.ToString(r)
+		}
 
-	_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
+		_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
+	}()
 }
 
 func insertLog(c *znet.Context, m *model.Schema, account string, status int32, msg string, remark ...string) (interface{}, error) {

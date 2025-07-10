@@ -56,6 +56,7 @@ func permModel(ms *model.Schemas) error {
 				Type:  schema.Uint8,
 				Size:  9,
 				Label: "状态",
+				Index: true,
 				Options: mSchema.FieldOption{
 					Enum: []mSchema.FieldEnum{
 						{Value: "0", Label: "待激活"},
@@ -164,6 +165,7 @@ func logModel(ms *model.Schemas) error {
 				Size:     999,
 				Label:    "响应状态",
 				Nullable: true,
+				Index:    true,
 			},
 			"message": {
 				Type:     schema.String,
