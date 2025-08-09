@@ -17,6 +17,7 @@ const (
 	ctxWithLog        = "m::account::log"
 	ctxWithLogRemark  = "m::account::logRemark"
 	ctxWithIgnorePerm = "m::account::IgnorePerm"
+	ctxWithPermCheck  = "m::account::PermCheck"
 )
 
 func (requestWith) UID(c *znet.Context) string {

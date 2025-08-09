@@ -20,7 +20,7 @@ type Permission struct {
 var _ = reflect.TypeOf(&Permission{})
 
 func (h *Permission) Init(r *znet.Engine) error {
-	return PermisMiddleware(r)
+	return UsePermisMiddleware(r, nil)
 }
 
 // Get 规则列表

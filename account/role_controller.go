@@ -20,7 +20,7 @@ type Role struct {
 var _ = reflect.TypeOf(&Role{})
 
 func (h *Role) Init(r *znet.Engine) error {
-	return PermisMiddleware(r)
+	return UsePermisMiddleware(r, nil)
 }
 
 // Get 角色列表

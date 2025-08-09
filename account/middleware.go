@@ -2,41 +2,46 @@ package account
 
 import (
 	"errors"
+	"time"
 
 	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/account/rbac"
 
 	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zcli"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
+	zsession "github.com/sohaha/zlsgo/znet/session"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
 )
 
-var verifyPermissions []func(c *znet.Context) error
+var (
+	verifyPermissions = []znet.Handler{}
+	ignoreRoutes      = []string{}
+)
 
-func PermisMiddleware(r *znet.Engine, ignore ...string) error {
+func UsePermisMiddleware(r *znet.Engine, call func(c *znet.Context) error, ignore ...string) error {
 	if verifyPermissions == nil {
 		return errors.New("middleware not initialized, please call Init first")
 	}
 
 	if len(ignore) > 0 {
-		permissions := verifyPermissions[0]
-		verifyPermissions[0] = func(c *znet.Context) error {
+		r.Use(func(c *znet.Context) error {
+			c.WithValue(ctxWithPermCheck, call)
 			for _, v := range ignore {
 				if zstring.Match(c.Request.URL.Path, v) {
-					c.Next()
-					return nil
+					c.WithValue(ctxWithIgnorePerm, true)
+					break
 				}
 			}
-			return permissions(c)
-		}
+			c.Next()
+			return nil
+		})
 	}
 
-	for i := range verifyPermissions {
-		r.Use(verifyPermissions[i])
-	}
+	r.Use(verifyPermissions...)
 
 	return nil
 }
@@ -86,76 +91,118 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		m.Options.ApiPrefix + "/base/logs",
 	}
 
-	verifyPermissions = []func(c *znet.Context) error{
-		func(c *znet.Context) error {
-			token := jwt.GetToken(c)
-			if token == "" {
-				return zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
-			}
+	verifyPermissions = []znet.Handler{}
 
-			if userModel == nil {
-				return errors.New(accountName + " accoutModel not found")
-			}
+	if m.Options.Session != nil {
+		s := zsession.New(m.Options.Session, func(c *zsession.Config) {
+			c.ExpiresAt = time.Duration(m.Options.Expire) * time.Second
+		})
 
-			uid, err := getJWTForCache(userModel, token, m.Options.key)
-			if err != nil {
-				return err
-			}
-
-			c.WithValue(ctxWithUID, uid)
-
-			u, err := getUserForCache(userModel, uid)
-			if err != nil {
-				return err
-			}
-
-			c.WithValue(ctxWithUser, u)
-
-			if u.Get("status").Int() != 1 {
-				return permissionDenied(errors.New("用户已被禁用"))
-			}
-
-			isInlayAdmin := u.Get("administrator").Bool()
-			c.WithValue(ctxWithIsInlayAdmin, isInlayAdmin)
-
-			roles := u.Get("role").SliceString()
-			c.WithValue(ctxWithRole, roles)
-
-			// 管理员直接通过，避免权限检查
-			if isInlayAdmin {
-				c.Next()
-				return nil
-			}
-
-			// 管理员直接通过
-			if isInlayAdmin {
-				c.Next()
-				return nil
-			}
-
-			// 检查公共路由
-			if zarray.Contains(publicRoutes, c.Request.URL.Path) {
-				c.Next()
-				return nil
-			}
-
-			// 检查是否忽略权限限制
-			if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
-				c.Next()
-				return nil
-			}
-
-			// 检查权限
-			for _, r := range roles {
-				isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
-				if isAllow {
-					c.Next()
-					return nil
+		go func() {
+			timer := time.NewTicker(time.Duration(m.Options.Expire) * time.Second)
+			defer timer.Stop()
+			for {
+				select {
+				case <-timer.C:
+					m.Options.Session.Collect()
+				case <-zcli.SingleKillSignal():
+					return
 				}
 			}
+		}()
 
-			return permissionDenied(errors.New("没有访问权限"))
-		},
+		verifyPermissions = append(verifyPermissions, s)
+	}
+
+	verifyPermissions = append(verifyPermissions, func(c *znet.Context) error {
+		var ignorePerm bool
+		if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
+			ignorePerm = b.(bool)
+		}
+
+		token := jwt.GetToken(c)
+		if token == "" {
+			if m.Options.Session != nil {
+				s, err := zsession.Get(c)
+				if err == nil {
+					token = s.Get("token").String()
+				}
+			}
+			if token == "" {
+				if ignorePerm {
+					return nil
+				}
+				return zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
+			}
+		}
+
+		if userModel == nil {
+			return errors.New(accountName + " accoutModel not found")
+		}
+
+		uid, err := getJWTForCache(userModel, token, m.Options.key)
+		if err != nil {
+			return err
+		}
+
+		c.WithValue(ctxWithUID, uid)
+
+		u, err := getUserForCache(userModel, uid)
+		if err != nil {
+			return err
+		}
+
+		c.WithValue(ctxWithUser, u)
+
+		if u.Get("status").Int() != 1 {
+			return permissionDenied(errors.New("用户已被禁用"))
+		}
+
+		isInlayAdmin := u.Get("administrator").Bool()
+		c.WithValue(ctxWithIsInlayAdmin, isInlayAdmin)
+
+		roles := u.Get("role").SliceString()
+		c.WithValue(ctxWithRole, roles)
+
+		// 管理员直接通过，避免权限检查
+		if isInlayAdmin {
+			c.Next()
+			return nil
+		}
+
+		// 管理员直接通过
+		if isInlayAdmin {
+			c.Next()
+			return nil
+		}
+
+		// 检查公共路由
+		if zarray.Contains(publicRoutes, c.Request.URL.Path) {
+			c.Next()
+			return nil
+		}
+
+		// 检查是否忽略权限限制
+		if ignorePerm {
+			c.Next()
+			return nil
+		}
+
+		// 检查权限
+		for _, r := range roles {
+			isAllow, _ := permission.Can(r, c.Request.Method, c.Request.URL.Path)
+			if isAllow {
+				c.Next()
+				return nil
+			}
+		}
+
+		if b, ok := c.Value(ctxWithPermCheck); ok && b != nil {
+			return b.(func(c *znet.Context) error)(c)
+		}
+
+		return permissionDenied(errors.New("没有访问权限"))
+	},
 		func(c *znet.Context) error {
 			c.Next()
 
@@ -166,7 +213,7 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 
 			logRequest(c, logModel, u.(ztype.Map))
 			return nil
-		},
-	}
+		})
+
 	return nil
 }

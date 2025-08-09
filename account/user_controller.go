@@ -17,7 +17,7 @@ type User struct {
 var _ = reflect.TypeOf(&User{})
 
 func (h *User) Init(r *znet.Engine) error {
-	return PermisMiddleware(r)
+	return UsePermisMiddleware(r, nil)
 }
 
 // Get 用户列表

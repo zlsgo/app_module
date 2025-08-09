@@ -16,6 +16,7 @@ import (
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
+	zsession "github.com/sohaha/zlsgo/znet/session"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -40,28 +41,32 @@ var _ = reflect.TypeOf(&Index{})
 const saltLen = 4
 
 func (h *Index) Init(r *znet.Engine) error {
-	{
-		// 无需权限校验
-		noPerm := r.Group("/", func(e *znet.Engine) {
-			e.Use(limiter.IPMiddleware())
-		})
-		// 登录
-		noPerm.POST("/login", h.login)
+	r.Use(limiter.IPMiddleware())
 
-		// 获取系统信息
-		noPerm.GET("/site", h.getSite)
-
-		// 刷新 token
-		noPerm.Any("/refresh-token", h.refreshToken)
-
-		// 用户注册
-		noPerm.POST("/register", h.register)
+	noPermRoutes := []string{
+		"/login",
+		"/refresh-token",
+		"/register",
+		"/site",
 	}
-
-	err := PermisMiddleware(r)
+	err := UsePermisMiddleware(r, nil, zarray.Map(noPermRoutes, func(i int, v string) string {
+		return strings.TrimRight(h.Path, "/") + v
+	})...)
 	if err != nil {
 		return err
 	}
+
+	// 登录
+	r.POST("/login", h.login)
+
+	// 获取系统信息
+	r.GET("/site", h.getSite)
+
+	// 刷新 token
+	r.Any("/refresh-token", h.refreshToken)
+
+	// 用户注册
+	r.POST("/register", h.register)
 
 	return nil
 }
@@ -251,6 +256,15 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		_, _ = insertLog(c, mLog, user.Get("account").String(), 200, "登录成功")
 	}
 
+	if h.module.Options.Session != nil {
+		s, _ := zsession.Get(c)
+		if s != nil {
+			s.Set("token", accessToken)
+			s.Set("refresh_token", refreshToken)
+			s.Save()
+		}
+	}
+
 	return ztype.Map{
 		"uid":           uid,
 		"token":         accessToken,
@@ -271,6 +285,12 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 
 	if err == nil {
 		clearCache(jwt.GetToken(c), uid)
+		if h.module.Options.Session != nil {
+			s, _ := zsession.Get(c)
+			if s != nil {
+				s.Destroy()
+			}
+		}
 	}
 	return nil, err
 }
@@ -325,6 +345,14 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	info := salt + uid
 	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
 
+	if h.module.Options.Session != nil {
+		s, _ := zsession.Get(c)
+		if s != nil {
+			s.Set("token", accessToken)
+			s.Set("refresh_token", refreshToken)
+			s.Save()
+		}
+	}
 	return ztype.Map{
 		"token":         accessToken,
 		"refresh_token": refreshToken,

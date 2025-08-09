@@ -18,7 +18,7 @@ type Message struct {
 var _ = reflect.TypeOf(&Message{})
 
 func (h *Message) Init(r *znet.Engine) error {
-	return PermisMiddleware(r)
+	return UsePermisMiddleware(r, nil)
 }
 
 // Get 站内通知列表

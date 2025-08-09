@@ -9,6 +9,7 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
+	zsession "github.com/sohaha/zlsgo/znet/session"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
@@ -59,6 +60,7 @@ type Options struct {
 	Only                 bool                     `z:"only"`
 	DisabledLogIP        bool                     `z:"disabled_ip"`
 	EnableRegister       bool                     `z:"register"`
+	Session              zsession.Store           `z:"-"`
 }
 
 func (o Options) ConfKey() string {
