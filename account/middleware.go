@@ -22,14 +22,14 @@ var (
 	ignoreRoutes      = []string{}
 )
 
-func UsePermisMiddleware(r *znet.Engine, call func(c *znet.Context) error, ignore ...string) error {
+func UsePermisMiddleware(r *znet.Engine, authErrHandler func(c *znet.Context, err error) error, ignore ...string) error {
 	if verifyPermissions == nil {
 		return errors.New("middleware not initialized, please call Init first")
 	}
 
 	if len(ignore) > 0 {
 		r.Use(func(c *znet.Context) error {
-			c.WithValue(ctxWithPermCheck, call)
+			c.WithValue(ctxWithPermCheck, authErrHandler)
 			for _, v := range ignore {
 				if zstring.Match(c.Request.URL.Path, v) {
 					c.WithValue(ctxWithIgnorePerm, true)
@@ -132,7 +132,13 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 				if ignorePerm {
 					return nil
 				}
-				return zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
+
+				err = zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
+				if b, ok := c.Value(ctxWithPermCheck); ok && b != nil {
+					err = b.(func(c *znet.Context, err error) error)(c, err)
+				}
+
+				return err
 			}
 		}
 
@@ -197,11 +203,12 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 			}
 		}
 
+		err = permissionDenied(errors.New("没有访问权限"))
 		if b, ok := c.Value(ctxWithPermCheck); ok && b != nil {
-			return b.(func(c *znet.Context) error)(c)
+			err = b.(func(c *znet.Context, err error) error)(c, err)
 		}
 
-		return permissionDenied(errors.New("没有访问权限"))
+		return err
 	},
 		func(c *znet.Context) error {
 			c.Next()

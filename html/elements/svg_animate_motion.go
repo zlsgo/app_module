@@ -1,0 +1,1433 @@
+package elements
+
+import (
+	"fmt"
+	"github.com/sohaha/zlsgo/zarray"
+)
+
+// The <animateMotion> SVG element is used to animate a transformation attribute
+// on a target element, thereby allowing the animation of translation, rotation,
+// and scaling.
+type SVGANIMATEMOTIONElement struct {
+	*Element
+}
+
+// Create a new SVGANIMATEMOTIONElement element.
+// This will create a new element with the tag
+// "animateMotion" during rendering.
+func SVG_ANIMATEMOTION(children ...ElementRenderer) *SVGANIMATEMOTIONElement {
+	e := NewElement("animateMotion", children...)
+	e.IsSelfClosing = false
+	e.Descendants = children
+
+	return &SVGANIMATEMOTIONElement{Element: e}
+}
+
+func (e *SVGANIMATEMOTIONElement) Children(children ...ElementRenderer) *SVGANIMATEMOTIONElement {
+	e.Descendants = append(e.Descendants, children...)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfChildren(condition bool, children ...ElementRenderer) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, children...)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) TernChildren(condition bool, trueChildren, falseChildren ElementRenderer) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, trueChildren)
+	} else {
+		e.Descendants = append(e.Descendants, falseChildren)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) Attr(name string, value ...string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	if len(value) == 0 {
+		e.StringAttributes.Set(name, "")
+	} else {
+		e.StringAttributes.Set(name, value[0])
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) Attrs(attrs ...string) *SVGANIMATEMOTIONElement {
+	if len(attrs)%2 != 0 {
+		panic("attrs must be a multiple of 2")
+	}
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	for i := 0; i < len(attrs); i += 2 {
+		k := attrs[i]
+		v := attrs[i+1]
+		e.StringAttributes.Set(k, v)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) AttrsMap(attrs map[string]string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	for k, v := range attrs {
+		e.StringAttributes.Set(k, v)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) Text(text string) *SVGANIMATEMOTIONElement {
+	e.Descendants = append(e.Descendants, Text(text))
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) TextF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.Text(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfText(condition bool, text string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, Text(text))
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfTextF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, Text(fmt.Sprintf(format, args...)))
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) Escaped(text string) *SVGANIMATEMOTIONElement {
+	e.Descendants = append(e.Descendants, Escaped(text))
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfEscaped(condition bool, text string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, Escaped(text))
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) EscapedF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.Escaped(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfEscapedF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Descendants = append(e.Descendants, EscapedF(format, args...))
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) CustomData(key, value string) *SVGANIMATEMOTIONElement {
+	if e.CustomDataAttributes == nil {
+		e.CustomDataAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.CustomDataAttributes.Set(key, value)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfCustomData(condition bool, key, value string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.CustomData(key, value)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) CustomDataF(key, format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.CustomData(key, fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfCustomDataF(condition bool, key, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.CustomData(key, fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) CustomDataRemove(key string) *SVGANIMATEMOTIONElement {
+	if e.CustomDataAttributes == nil {
+		return e
+	}
+	e.CustomDataAttributes.Delete(key)
+	return e
+}
+
+// Controls whether or not the animation is cumulative.
+func (e *SVGANIMATEMOTIONElement) ACCUMULATE(c SVGAnimateMotionAccumulateChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("accumulate", string(c))
+	return e
+}
+
+type SVGAnimateMotionAccumulateChoice string
+
+const (
+	// The animation is not cumulative
+	// Each iteration starts over from the beginning.
+	SVGAnimateMotionAccumulate_none SVGAnimateMotionAccumulateChoice = "none"
+	// The animation is cumulative
+	// Each iteration the animation picks up where it left off in the previous
+	// iteration.
+	SVGAnimateMotionAccumulate_sum SVGAnimateMotionAccumulateChoice = "sum"
+)
+
+// Remove the attribute ACCUMULATE from the element.
+func (e *SVGANIMATEMOTIONElement) ACCUMULATERemove(c SVGAnimateMotionAccumulateChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("accumulate")
+	return e
+}
+
+// Controls whether or not the animation is additive.
+func (e *SVGANIMATEMOTIONElement) ADDITIVE(c SVGAnimateMotionAdditiveChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("additive", string(c))
+	return e
+}
+
+type SVGAnimateMotionAdditiveChoice string
+
+const (
+	// The animation is not additive
+	// The animation replaces the underlying value.
+	SVGAnimateMotionAdditive_replace SVGAnimateMotionAdditiveChoice = "replace"
+	// The animation is additive
+	// The animation adds to the underlying value.
+	SVGAnimateMotionAdditive_sum SVGAnimateMotionAdditiveChoice = "sum"
+)
+
+// Remove the attribute ADDITIVE from the element.
+func (e *SVGANIMATEMOTIONElement) ADDITIVERemove(c SVGAnimateMotionAdditiveChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("additive")
+	return e
+}
+
+// Defines when the animation should begin.
+func (e *SVGANIMATEMOTIONElement) BEGIN(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("begin", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) BEGINF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.BEGIN(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfBEGIN(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.BEGIN(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfBEGINF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.BEGIN(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute BEGIN from the element.
+func (e *SVGANIMATEMOTIONElement) BEGINRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("begin")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) BEGINRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.BEGINRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines a relative offset value for the animation.
+func (e *SVGANIMATEMOTIONElement) BY(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("by", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) BYF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.BY(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfBY(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.BY(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfBYF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.BY(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute BY from the element.
+func (e *SVGANIMATEMOTIONElement) BYRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("by")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) BYRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.BYRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the pacing of the animation.
+func (e *SVGANIMATEMOTIONElement) CALC_MODE(c SVGAnimateMotionCalcModeChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("calcMode", string(c))
+	return e
+}
+
+type SVGAnimateMotionCalcModeChoice string
+
+const (
+	// The animation is not paced
+	// Each iteration of the animation is displayed as fast as possible.
+	SVGAnimateMotionCalcMode_discrete SVGAnimateMotionCalcModeChoice = "discrete"
+	// The animation is paced such that it takes the same amount of time to go from
+	// the start value to the end value throughout the animation.
+	SVGAnimateMotionCalcMode_linear SVGAnimateMotionCalcModeChoice = "linear"
+	// The animation is paced according to a cubic function.
+	SVGAnimateMotionCalcMode_paced SVGAnimateMotionCalcModeChoice = "paced"
+	// The animation is paced according to a cubic function, but with easing at both
+	// the start and end.
+	SVGAnimateMotionCalcMode_spline SVGAnimateMotionCalcModeChoice = "spline"
+)
+
+// Remove the attribute CALC_MODE from the element.
+func (e *SVGANIMATEMOTIONElement) CALC_MODERemove(c SVGAnimateMotionCalcModeChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("calcMode")
+	return e
+}
+
+// Defines the duration of the animation.
+func (e *SVGANIMATEMOTIONElement) DUR(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("dur", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) DURF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.DUR(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfDUR(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.DUR(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfDURF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.DUR(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute DUR from the element.
+func (e *SVGANIMATEMOTIONElement) DURRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("dur")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) DURRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.DURRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines when the animation should end.
+func (e *SVGANIMATEMOTIONElement) END(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("end", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) ENDF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.END(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfEND(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.END(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfENDF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.END(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute END from the element.
+func (e *SVGANIMATEMOTIONElement) ENDRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("end")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) ENDRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.ENDRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the fill behavior for the animation.
+func (e *SVGANIMATEMOTIONElement) FILL(c SVGAnimateMotionFillChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("fill", string(c))
+	return e
+}
+
+type SVGAnimateMotionFillChoice string
+
+const (
+	// The animation will hold the attribute value when the animation ends.
+	SVGAnimateMotionFill_freeze SVGAnimateMotionFillChoice = "freeze"
+	// The animation will remove the attribute value when the animation ends.
+	SVGAnimateMotionFill_remove SVGAnimateMotionFillChoice = "remove"
+)
+
+// Remove the attribute FILL from the element.
+func (e *SVGANIMATEMOTIONElement) FILLRemove(c SVGAnimateMotionFillChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("fill")
+	return e
+}
+
+// Defines the initial value of the attribute.
+func (e *SVGANIMATEMOTIONElement) FROM(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("from", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) FROMF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.FROM(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfFROM(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.FROM(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfFROMF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.FROM(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute FROM from the element.
+func (e *SVGANIMATEMOTIONElement) FROMRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("from")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) FROMRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.FROMRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the values for a cubic Bézier function that controls interval pacing.
+func (e *SVGANIMATEMOTIONElement) KEY_SPLINES(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("keySplines", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) KEY_SPLINESF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.KEY_SPLINES(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfKEY_SPLINES(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.KEY_SPLINES(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfKEY_SPLINESF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.KEY_SPLINES(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute KEY_SPLINES from the element.
+func (e *SVGANIMATEMOTIONElement) KEY_SPLINESRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("keySplines")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) KEY_SPLINESRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.KEY_SPLINESRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines when the animation should take place in terms of time fractions.
+func (e *SVGANIMATEMOTIONElement) KEY_TIMES(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("keyTimes", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) KEY_TIMESF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.KEY_TIMES(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfKEY_TIMES(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.KEY_TIMES(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfKEY_TIMESF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.KEY_TIMES(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute KEY_TIMES from the element.
+func (e *SVGANIMATEMOTIONElement) KEY_TIMESRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("keyTimes")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) KEY_TIMESRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.KEY_TIMESRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the maximum value allowed for the attribute.
+func (e *SVGANIMATEMOTIONElement) MAX(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("max", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) MAXF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.MAX(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfMAX(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.MAX(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfMAXF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.MAX(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute MAX from the element.
+func (e *SVGANIMATEMOTIONElement) MAXRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("max")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) MAXRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.MAXRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the minimum value allowed for the attribute.
+func (e *SVGANIMATEMOTIONElement) MIN(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("min", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) MINF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.MIN(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfMIN(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.MIN(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfMINF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.MIN(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute MIN from the element.
+func (e *SVGANIMATEMOTIONElement) MINRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("min")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) MINRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.MINRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the number of times the animation should repeat.
+func (e *SVGANIMATEMOTIONElement) REPEAT_COUNT(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("repeatCount", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) REPEAT_COUNTF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.REPEAT_COUNT(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfREPEAT_COUNT(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.REPEAT_COUNT(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfREPEAT_COUNTF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.REPEAT_COUNT(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute REPEAT_COUNT from the element.
+func (e *SVGANIMATEMOTIONElement) REPEAT_COUNTRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("repeatCount")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) REPEAT_COUNTRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.REPEAT_COUNTRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines the duration for repeating an animation.
+func (e *SVGANIMATEMOTIONElement) REPEAT_DUR(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("repeatDur", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) REPEAT_DURF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.REPEAT_DUR(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfREPEAT_DUR(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.REPEAT_DUR(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfREPEAT_DURF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.REPEAT_DUR(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute REPEAT_DUR from the element.
+func (e *SVGANIMATEMOTIONElement) REPEAT_DURRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("repeatDur")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) REPEAT_DURRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.REPEAT_DURRemove(fmt.Sprintf(format, args...))
+}
+
+// Defines if an animation should restart after it completes.
+func (e *SVGANIMATEMOTIONElement) RESTART(c SVGAnimateMotionRestartChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("restart", string(c))
+	return e
+}
+
+type SVGAnimateMotionRestartChoice string
+
+const (
+	// The animation will restart indefinitely.
+	SVGAnimateMotionRestart_always SVGAnimateMotionRestartChoice = "always"
+	// The animation will not restart after it completes.
+	SVGAnimateMotionRestart_never SVGAnimateMotionRestartChoice = "never"
+	// The animation will restart after it completes if the animation is not currently
+	// active.
+	SVGAnimateMotionRestart_whenNotActive SVGAnimateMotionRestartChoice = "whenNotActive"
+)
+
+// Remove the attribute RESTART from the element.
+func (e *SVGANIMATEMOTIONElement) RESTARTRemove(c SVGAnimateMotionRestartChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("restart")
+	return e
+}
+
+// Defines the ending value of the attribute.
+func (e *SVGANIMATEMOTIONElement) TO(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("to", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) TOF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.TO(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfTO(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.TO(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfTOF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.TO(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute TO from the element.
+func (e *SVGANIMATEMOTIONElement) TORemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("to")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) TORemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.TORemove(fmt.Sprintf(format, args...))
+}
+
+// Defines a list of discrete values to interpolate.
+func (e *SVGANIMATEMOTIONElement) VALUES(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("values", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) VALUESF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.VALUES(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfVALUES(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.VALUES(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfVALUESF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.VALUES(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute VALUES from the element.
+func (e *SVGANIMATEMOTIONElement) VALUESRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("values")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) VALUESRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.VALUESRemove(fmt.Sprintf(format, args...))
+}
+
+// Specifies a unique id for an element
+func (e *SVGANIMATEMOTIONElement) ID(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("id", s)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IDF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.ID(fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfID(condition bool, s string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.ID(s)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfIDF(condition bool, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.ID(fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Remove the attribute ID from the element.
+func (e *SVGANIMATEMOTIONElement) IDRemove(s string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("id")
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IDRemoveF(format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.IDRemove(fmt.Sprintf(format, args...))
+}
+
+// Specifies one or more classnames for an element (refers to a class in a style
+// sheet)
+func (e *SVGANIMATEMOTIONElement) CLASS(s ...string) *SVGANIMATEMOTIONElement {
+	if e.DelimitedStrings == nil {
+		e.DelimitedStrings = zarray.NewSortMap[string, *DelimitedBuilder[string]]()
+	}
+	ds, ok := e.DelimitedStrings.Get("class")
+	if !ok {
+		ds = NewDelimitedBuilder[string](" ")
+		e.DelimitedStrings.Set("class", ds)
+	}
+	ds.Add(s...)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfCLASS(condition bool, s ...string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.CLASS(s...)
+	}
+	return e
+}
+
+// Remove the attribute CLASS from the element.
+func (e *SVGANIMATEMOTIONElement) CLASSRemove(s ...string) *SVGANIMATEMOTIONElement {
+	if e.DelimitedStrings == nil {
+		return e
+	}
+	ds, ok := e.DelimitedStrings.Get("class")
+	if !ok {
+		return e
+	}
+	ds.Remove(s...)
+	return e
+}
+
+// Specifies an inline CSS style for an element
+func (e *SVGANIMATEMOTIONElement) STYLEF(k string, format string, args ...any) *SVGANIMATEMOTIONElement {
+	return e.STYLE(k, fmt.Sprintf(format, args...))
+}
+
+func (e *SVGANIMATEMOTIONElement) IfSTYLE(condition bool, k string, v string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.STYLE(k, v)
+	}
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) STYLE(k string, v string) *SVGANIMATEMOTIONElement {
+	if e.KVStrings == nil {
+		e.KVStrings = zarray.NewSortMap[string, *KVBuilder]()
+	}
+	kv, ok := e.KVStrings.Get("style")
+	if !ok {
+		kv = NewKVBuilder(":", ";")
+		e.KVStrings.Set("style", kv)
+	}
+	kv.Add(k, v)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfSTYLEF(condition bool, k string, format string, args ...any) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.STYLE(k, fmt.Sprintf(format, args...))
+	}
+	return e
+}
+
+// Add the attributes in the map to the element.
+func (e *SVGANIMATEMOTIONElement) STYLEMap(m map[string]string) *SVGANIMATEMOTIONElement {
+	if e.KVStrings == nil {
+		e.KVStrings = zarray.NewSortMap[string, *KVBuilder]()
+	}
+	kv, ok := e.KVStrings.Get("style")
+	if !ok {
+		kv = NewKVBuilder(":", ";")
+		e.KVStrings.Set("style", kv)
+	}
+	for k, v := range m {
+		kv.Add(k, v)
+	}
+	return e
+}
+
+// Add pairs of attributes to the element.
+func (e *SVGANIMATEMOTIONElement) STYLEPairs(pairs ...string) *SVGANIMATEMOTIONElement {
+	if len(pairs)%2 != 0 {
+		panic("Must have an even number of pairs")
+	}
+	if e.KVStrings == nil {
+		e.KVStrings = zarray.NewSortMap[string, *KVBuilder]()
+	}
+	kv, ok := e.KVStrings.Get("style")
+	if !ok {
+		kv = NewKVBuilder(":", ";")
+		e.KVStrings.Set("style", kv)
+	}
+
+	for i := 0; i < len(pairs); i += 2 {
+		kv.Add(pairs[i], pairs[i+1])
+	}
+
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfSTYLEPairs(condition bool, pairs ...string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.STYLEPairs(pairs...)
+	}
+	return e
+}
+
+// Remove the attribute STYLE from the element.
+func (e *SVGANIMATEMOTIONElement) STYLERemove(keys ...string) *SVGANIMATEMOTIONElement {
+	if e.KVStrings == nil {
+		return e
+	}
+	kv, ok := e.KVStrings.Get("style")
+	if !ok {
+		return e
+	}
+	for _, k := range keys {
+		kv.Remove(k)
+	}
+	return e
+}
+
+// Make a request for an HTML
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req")
+	return e
+}
+
+// Replace another part of a page with incoming HTML
+
+func (e *SVGANIMATEMOTIONElement) Z_TARGET(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-target"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_TARGET(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_TARGET(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_TARGET from the element.
+func (e *SVGANIMATEMOTIONElement) Z_TARGETRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-target")
+	return e
+}
+
+// Select only a part of a response
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_SELECTOR(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-selector"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_SELECTOR(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_SELECTOR(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_SELECTOR from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_SELECTORRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-selector")
+	return e
+}
+
+// Select a strategy for HTML replacement
+
+func (e *SVGANIMATEMOTIONElement) Z_SWAP(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-swap"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_SWAP(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_SWAP(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_SWAP from the element.
+func (e *SVGANIMATEMOTIONElement) Z_SWAPRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-swap")
+	return e
+}
+
+// Push HTML from server to a client
+
+func (e *SVGANIMATEMOTIONElement) Z_SWAP_PUSH(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-swap-push"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_SWAP_PUSH(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_SWAP_PUSH(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_SWAP_PUSH from the element.
+func (e *SVGANIMATEMOTIONElement) Z_SWAP_PUSHRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-swap-push")
+	return e
+}
+
+// Specify event which triggers the request
+
+func (e *SVGANIMATEMOTIONElement) Z_TRIGGER(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-trigger"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_TRIGGER(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_TRIGGER(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_TRIGGER from the element.
+func (e *SVGANIMATEMOTIONElement) Z_TRIGGERRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-trigger")
+	return e
+}
+
+// Is it GET or POST?
+func (e *SVGANIMATEMOTIONElement) Z_REQ_METHOD(c SVGAnimateMotionZReqMethodChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+	e.StringAttributes.Set("z-req-method", string(c))
+	return e
+}
+
+type SVGAnimateMotionZReqMethodChoice string
+
+const (
+	// default GET
+	SVGAnimateMotionZReqMethod_empty SVGAnimateMotionZReqMethodChoice = ""
+	// GET
+	SVGAnimateMotionZReqMethod_get SVGAnimateMotionZReqMethodChoice = "get"
+	// POST
+	SVGAnimateMotionZReqMethod_post SVGAnimateMotionZReqMethodChoice = "post"
+)
+
+// Remove the attribute Z_REQ_METHOD from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_METHODRemove(c SVGAnimateMotionZReqMethodChoice) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-method")
+	return e
+}
+
+// How to deal with multiple requests being generated
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_STRATEGY(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-strategy"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_STRATEGY(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_STRATEGY(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_STRATEGY from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_STRATEGYRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-strategy")
+	return e
+}
+
+// Change URL after request
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_HISTORY(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-history"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_HISTORY(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_HISTORY(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_HISTORY from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_HISTORYRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-history")
+	return e
+}
+
+// Additional data for request
+
+func (e *SVGANIMATEMOTIONElement) Z_DATA(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-data"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_DATA(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_DATA(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_DATA from the element.
+func (e *SVGANIMATEMOTIONElement) Z_DATARemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-data")
+	return e
+}
+
+// As ts-data, but for JSON requests
+
+func (e *SVGANIMATEMOTIONElement) Z_JSON(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-json"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_JSON(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_JSON(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_JSON from the element.
+func (e *SVGANIMATEMOTIONElement) Z_JSONRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-json")
+	return e
+}
+
+// Combine multiple requests into a single one
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_BATCH(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-batch"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_BATCH(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_BATCH(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_BATCH from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_BATCHRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-batch")
+	return e
+}
+
+// Run actions
+
+func (e *SVGANIMATEMOTIONElement) Z_ACTION(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-action"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_ACTION(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_ACTION(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_ACTION from the element.
+func (e *SVGANIMATEMOTIONElement) Z_ACTIONRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-action")
+	return e
+}
+
+// Actions to run before request
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_BEFORE(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-before"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_BEFORE(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_BEFORE(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_BEFORE from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_BEFORERemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-before")
+	return e
+}
+
+// Actions to run after request
+
+func (e *SVGANIMATEMOTIONElement) Z_REQ_AFTER(expression string) *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		e.StringAttributes = zarray.NewSortMap[string, string]()
+	}
+
+	key := "z-req-after"
+
+	e.StringAttributes.Set(key, expression)
+	return e
+}
+
+func (e *SVGANIMATEMOTIONElement) IfZ_REQ_AFTER(condition bool, expression string) *SVGANIMATEMOTIONElement {
+	if condition {
+		e.Z_REQ_AFTER(expression)
+	}
+	return e
+}
+
+// Remove the attribute Z_REQ_AFTER from the element.
+func (e *SVGANIMATEMOTIONElement) Z_REQ_AFTERRemove() *SVGANIMATEMOTIONElement {
+	if e.StringAttributes == nil {
+		return e
+	}
+	e.StringAttributes.Delete("z-req-after")
+	return e
+}
