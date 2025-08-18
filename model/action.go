@@ -595,8 +595,8 @@ func insertData(m *Schema, data ztype.Map) (ztype.Map, error) {
 	}
 
 	if *m.define.Options.Timestamps {
-		data[CreatedAtKey] = ztime.Time()
-		data[UpdatedAtKey] = ztime.Time()
+		data[CreatedAtKey] = ztime.Now()
+		data[UpdatedAtKey] = ztime.Now()
 	}
 
 	// if m.models.Options.CreatedBy {
@@ -709,7 +709,7 @@ func UpdateMany[T filter](
 		}
 	}
 	if *m.define.Options.Timestamps {
-		data[UpdatedAtKey] = ztime.Time()
+		data[UpdatedAtKey] = ztime.Now()
 	}
 
 	f := getFilter(m, filter)
