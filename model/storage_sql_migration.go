@@ -32,6 +32,10 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 	var exist bool
 
 	err = m.DB.Transaction(func(db *zdb.DB) (err error) {
+		oldDB := m.DB
+		m.DB = db
+		defer func() { m.DB = oldDB }()
+
 		if exist = m.HasTable(); !exist {
 			err = m.CreateTable(db)
 		} else {

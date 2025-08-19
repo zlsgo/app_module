@@ -98,6 +98,8 @@ github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea h1:gEfVEFjmDgLNRZ6ARz
 github.com/zlsgo/wechat v0.0.0-20240228035432-fecc0dd04eea/go.mod h1:Jwa8W2vwV7trFsOmmqX/ogo0rfaorS2JgZ6Ja+WxnyA=
 github.com/zlsgo/zdb v0.0.0-20250708045710-005e0c9acd02 h1:dDp+1r00oj8yK9d9aTCZ35l94p3rYvgHs9xOx85ZTyo=
 github.com/zlsgo/zdb v0.0.0-20250708045710-005e0c9acd02/go.mod h1:6NTEJXj/DdY0VPm0DTwcTSyO+lHwVnfJScXnWVTfAYo=
+github.com/zlsgo/zdb v0.0.0-20250819060758-db8741506100 h1:fx2kUDYCiEIZRcmAOsSIxE6rxpji5jHwUE3hwRPk+Tk=
+github.com/zlsgo/zdb v0.0.0-20250819060758-db8741506100/go.mod h1:6NTEJXj/DdY0VPm0DTwcTSyO+lHwVnfJScXnWVTfAYo=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/multierr v1.9.0 h1:7fIwc/ZtS0q++VgcfqFDxSBZVv/Xo49/SYnDFupUwlI=

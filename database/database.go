@@ -16,7 +16,7 @@ var options = Options{
 	Driver:       "sqlite",
 	Sqlite: &Sqlite{
 		Path:       "data/db.db",
-		Parameters: "_pragma=busy_timeout(5000)",
+		Parameters: "",
 	},
 	MySQL: &Mysql{
 		Host:       "127.0.0.1",

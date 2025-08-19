@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"runtime"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zerror"
@@ -11,9 +12,7 @@ import (
 )
 
 func initDB(db Options) (*zdb.DB, error) {
-	var (
-		dbConf driver.IfeConfig
-	)
+	var dbConf driver.IfeConfig
 
 	d := strings.ToLower(db.Driver)
 	if d == "" {
@@ -42,7 +41,20 @@ func initDB(db Options) (*zdb.DB, error) {
 
 	builder.DefaultDriver = dbConf.(driver.Dialect)
 
-	e, err := zdb.New(dbConf)
+	var e *zdb.DB
+	if d == "sqlite" {
+		main, _ := dri(db)
+		main.DB().SetMaxOpenConns(1)
+		numCores := runtime.NumCPU()
+		if numCores > 10 {
+			numCores = 10
+		}
+		dbConf.DB().SetMaxOpenConns(numCores)
+		e, err = zdb.NewCluster([]driver.IfeConfig{main, dbConf})
+	} else {
+		e, err = zdb.New(dbConf)
+	}
+
 	if err != nil {
 		return nil, zerror.With(err, "数据库连接失败")
 	}
