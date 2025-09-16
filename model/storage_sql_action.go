@@ -34,18 +34,20 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 			if exprs, err = parseExprsBuildCond(d, value, exprs); err != nil {
 				return
 			}
-
 			continue
 		}
 
-		if strings.Contains(k, placeHolder) {
-			if exprs, err = parseExprsBuildCond(d, value, exprs); err == nil {
-				continue
+		upperKey := strings.ToUpper(k)
+		isPlaceHolder := upperKey == placeHolderOR || upperKey == placeHolderAND
+		if strings.Contains(k, placeHolder) && !isPlaceHolder {
+			exprs, err = parseExprsBuildCond(d, value, exprs)
+			if err != nil {
+				return
 			}
+			continue
 		}
 
 		v := ztype.New(value)
-		upperKey := strings.ToUpper(k)
 		if upperKey == placeHolderOR || upperKey == placeHolderAND {
 			m := v.Map()
 			var cexprs []string
@@ -54,11 +56,13 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 				return nil, err
 			}
 
-			switch upperKey {
-			case placeHolderOR:
-				exprs = append(exprs, d.Or(cexprs...))
-			default:
-				exprs = append(exprs, d.And(cexprs...))
+			if len(cexprs) > 0 {
+				switch upperKey {
+				case placeHolderOR:
+					exprs = append(exprs, d.Or(cexprs...))
+				default:
+					exprs = append(exprs, d.And(cexprs...))
+				}
 			}
 
 			continue
@@ -78,7 +82,6 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 					}
 					e = append(e, cexprs...)
 				}
-
 				exprs = append(exprs, d.Or(e...))
 			case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
 				values := ztype.ToSlice(v.Value()).Value()
