@@ -119,20 +119,26 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 // GetInfo 获取用户信息
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
-	// TODO: 考虑做缓存处理
-	info, err := model.FindOne(h.accoutModel, h.module.Request.UID(c), func(so *model.CondOptions) {
-		so.Fields = h.accoutModel.GetFields("password", "salt")
-	})
+	// 使用缓存获取用户信息
+	uid := h.module.Request.UID(c)
+	userInfo, err := getUserForCache(h.accoutModel, uid)
 	if err != nil {
-		return nil, err
-	}
+		// 如果缓存失败，直接查询数据库
+		info, err := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) {
+			so.Fields = h.accoutModel.GetFields("password", "salt")
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	if info.IsEmpty() {
-		return nil, zerror.InvalidInput.Text("用户不存在")
+		if info.IsEmpty() {
+			return nil, zerror.InvalidInput.Text("用户不存在")
+		}
+		userInfo = info
 	}
 
 	perms, _ := model.FindCols(h.roleModel, "permission", ztype.Map{
-		"alias": info.Get("role").SliceString(),
+		"alias": userInfo.Get("role").SliceString(),
 	})
 	permIDs := make([]int, 0)
 	for i := range perms {
@@ -146,7 +152,7 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	})
 
 	data := ztype.Map{
-		"info":       info,
+		"info":       userInfo,
 		"permission": permission,
 	}
 	return data, nil

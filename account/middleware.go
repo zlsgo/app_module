@@ -14,7 +14,6 @@ import (
 	zsession "github.com/sohaha/zlsgo/znet/session"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/app_module/model"
 )
 
 var (
@@ -64,10 +63,8 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		return errors.New(roleName + " roleName not found")
 	}
 
-	// TODO: 可能需要独立出来方便做缓存
-	roles, err := model.Find(roleModel, ztype.Map{
-		"status": 1,
-	})
+	// 使用缓存获取角色权限
+	roles, err := getRolesForCache(roleModel)
 	if err != nil {
 		return err
 	}

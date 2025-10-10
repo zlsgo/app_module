@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zstring"
@@ -15,16 +16,25 @@ const (
 	placeHolder    = "$"
 	placeHolderOR  = "$OR"
 	placeHolderAND = "$AND"
+	maxParseDepth  = 50 // 最大递归深度限制
 )
 
 func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string, err error) {
+	return s.parseExprsWithDepth(d, filter, 0)
+}
+
+func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth int) (exprs []string, err error) {
 	if len(filter) == 0 {
 		return nil, nil
 	}
 
+	if depth >= maxParseDepth {
+		return nil, fmt.Errorf("parseExprs: max recursion depth (%d) exceeded at depth %d", maxParseDepth, depth)
+	}
+
 	exprs = make([]string, 0, len(filter))
-	for k := range filter {
-		value := filter[k]
+
+	for k, value := range filter {
 		if value == nil {
 			exprs = append(exprs, d.IsNull(k))
 			continue
@@ -38,7 +48,10 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 		}
 
 		upperKey := strings.ToUpper(k)
-		isPlaceHolder := upperKey == placeHolderOR || upperKey == placeHolderAND
+		isPlaceHolderOR := upperKey == placeHolderOR
+		isPlaceHolderAND := upperKey == placeHolderAND
+		isPlaceHolder := isPlaceHolderOR || isPlaceHolderAND
+
 		if strings.Contains(k, placeHolder) && !isPlaceHolder {
 			exprs, err = parseExprsBuildCond(d, value, exprs)
 			if err != nil {
@@ -48,41 +61,47 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 		}
 
 		v := ztype.New(value)
-		if upperKey == placeHolderOR || upperKey == placeHolderAND {
+
+		if isPlaceHolder {
 			m := v.Map()
 			var cexprs []string
-			cexprs, err = s.parseExprs(d, m)
+			cexprs, err = s.parseExprsWithDepth(d, m, depth+1)
 			if err != nil {
 				return nil, err
 			}
 
 			if len(cexprs) > 0 {
-				switch upperKey {
-				case placeHolderOR:
+				if isPlaceHolderOR {
 					exprs = append(exprs, d.Or(cexprs...))
-				default:
+				} else {
 					exprs = append(exprs, d.And(cexprs...))
 				}
 			}
-
 			continue
 		}
 
-		trimmedKey := zstring.TrimSpace(k)
+		trimmedKey := k
+		if strings.ContainsAny(k, " \t\n\r") {
+			trimmedKey = zstring.TrimSpace(k)
+		}
+
 		f := strings.SplitN(trimmedKey, " ", 2)
+
 		if len(f) != 2 {
 			switch val := v.Value().(type) {
 			case ztype.Maps, []ztype.Map:
 				m := ztype.ToSlice(val).Maps()
 				e := make([]string, 0, len(m))
-				for _, v := range m {
-					cexprs, err := s.parseExprs(d, v)
+				for _, mapItem := range m {
+					cexprs, err := s.parseExprsWithDepth(d, mapItem, depth+1)
 					if err != nil {
 						return nil, err
 					}
 					e = append(e, cexprs...)
 				}
-				exprs = append(exprs, d.Or(e...))
+				if len(e) > 0 {
+					exprs = append(exprs, d.Or(e...))
+				}
 			case []interface{}, []string, []int64, []int32, []int16, []int8, []int, []uint64, []uint32, []uint16, []uint8, []uint, []float64, []float32:
 				values := ztype.ToSlice(v.Value()).Value()
 				valuesLen := len(values)
@@ -97,10 +116,8 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 				exprs = append(exprs, d.EQ(f[0], val))
 			}
 		} else {
-			switch strings.ToUpper(f[1]) {
-			default:
-				err = errors.New("Unknown operator: " + f[1])
-				return
+			operator := strings.ToUpper(f[1])
+			switch operator {
 			case "=":
 				exprs = append(exprs, d.EQ(f[0], v.Value()))
 			case ">":
@@ -134,6 +151,8 @@ func (s *SQL) parseExprs(d *builder.BuildCond, filter ztype.Map) (exprs []string
 					return nil, errors.New("BETWEEN operator need two values")
 				}
 				exprs = append(exprs, d.Between(f[0], s[0], s[1]))
+			default:
+				return nil, errors.New("Unknown operator: " + f[1])
 			}
 		}
 	}
@@ -153,8 +172,9 @@ func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...f
 		return []interface{}{}, err
 	}
 
-	for _, id := range ids {
-		lastIds = append(lastIds, id)
+	lastIds = make([]interface{}, len(ids))
+	for i, id := range ids {
+		lastIds[i] = id
 	}
 	return
 }

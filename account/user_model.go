@@ -28,8 +28,15 @@ const accountName = "account"
 func accountModelDefine(p *Module) error {
 	adminDefaultPassword := p.Options.AdminDefaultPassword
 	if adminDefaultPassword == "" {
-		// TODO: 默认密码，后续是不是要改成随机密码
-		adminDefaultPassword = "qw123456."
+		// 生成安全的随机密码
+		var err error
+		adminDefaultPassword, err = GenerateSecurePassword(12, true)
+		if err != nil {
+			// 如果随机生成失败，使用备用密码
+			adminDefaultPassword = "Admin@2025#Secure"
+		}
+		// 记录生成的密码（仅首次初始化时）
+		p.Log.Warnf("Admin default password generated: %s (Please change it immediately after first login)\n", adminDefaultPassword)
 	}
 	inlayUser := append(ztype.Maps{{
 		model.IDKey():   1,

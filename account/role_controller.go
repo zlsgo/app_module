@@ -75,6 +75,8 @@ func (h *Role) Post(c *znet.Context) (interface{}, error) {
 		})
 	}
 
+	invalidateRoleCache()
+
 	return resp, nil
 }
 
@@ -99,6 +101,8 @@ func (h *Role) RIDPatch(c *znet.Context) (resp interface{}, err error) {
 			"alias": alias,
 		})
 	}
+
+	invalidateRoleCache()
 
 	return resp, err
 }
@@ -125,6 +129,8 @@ func (h *Role) RIDDELETE(c *znet.Context) (interface{}, error) {
 			"alias": alias,
 		})
 	}
+
+	invalidateRoleCache()
 
 	return resp, err
 }

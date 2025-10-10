@@ -214,6 +214,84 @@ func relationson(
 	return
 }
 
+const (
+	relationKeySeparator = "\x1F"
+)
+
+// buildRelationMapSingle 构建关联关系的HashMap，用于O(1)查找
+func buildRelationMapSingle(items ztype.Maps, schemaKeys []string) map[string]int {
+	if len(items) == 0 || len(schemaKeys) == 0 {
+		return make(map[string]int)
+	}
+
+	schemaKeyLen := len(schemaKeys)
+	itemsMap := make(map[string]int, len(items))
+
+	keyParts := make([]string, schemaKeyLen)
+
+	for i := range items {
+		for si := 0; si < schemaKeyLen; si++ {
+			val := items[i].Get(schemaKeys[si])
+			if val.Value() == nil {
+				keyParts[si] = "<NULL>"
+			} else {
+				keyParts[si] = val.String()
+			}
+		}
+		mapKey := strings.Join(keyParts, relationKeySeparator)
+		itemsMap[mapKey] = i
+	}
+
+	return itemsMap
+}
+
+// buildRelationMapMany 构建一对多关联的HashMap
+func buildRelationMapMany(items ztype.Maps, schemaKeys []string) map[string][]int {
+	if len(items) == 0 || len(schemaKeys) == 0 {
+		return make(map[string][]int)
+	}
+
+	schemaKeyLen := len(schemaKeys)
+	itemsMap := make(map[string][]int, len(items))
+
+	keyParts := make([]string, schemaKeyLen)
+
+	for i := range items {
+		for si := 0; si < schemaKeyLen; si++ {
+			val := items[i].Get(schemaKeys[si])
+			// 使用 Value() 检查 nil，nil 值使用特殊标记
+			if val.Value() == nil {
+				keyParts[si] = "<NULL>"
+			} else {
+				keyParts[si] = val.String()
+			}
+		}
+		mapKey := strings.Join(keyParts, relationKeySeparator)
+		itemsMap[mapKey] = append(itemsMap[mapKey], i)
+	}
+
+	return itemsMap
+}
+
+// buildLookupKey 根据外键构建查找key
+func buildLookupKey(row ztype.Map, foreignKeys []string) string {
+	if len(foreignKeys) == 0 {
+		return ""
+	}
+
+	keyParts := make([]string, len(foreignKeys))
+	for i, fk := range foreignKeys {
+		val := row.Get(fk)
+		// 使用 Value() 检查 nil，nil 值使用特殊标记
+		if val.Value() == nil {
+			keyParts[i] = "<NULL>"
+		} else {
+			keyParts[i] = val.String()
+		}
+	}
+	return strings.Join(keyParts, relationKeySeparator)
+}
+
 func relationsonValue(
 	key string,
 	typ schema.RelationType,
@@ -253,13 +331,18 @@ func handlerRelationson(
 ) (ztype.Maps, error) {
 	for key := range childRelationson {
 		d := m.define.Relations[key]
-		m, ok := m.getSchema(d.Schema)
+		childSchema, ok := m.getSchema(d.Schema)
 		if !ok {
 			continue
 		}
 
-		ok = true
 		schemaKeyLen, fields := len(d.SchemaKey), childRelationson[key]
+
+		// 边界检查: 确保 SchemaKey 和 ForeignKey 长度一致
+		if len(d.ForeignKey) != schemaKeyLen {
+			return nil, errors.New("schema key and foreign key length mismatch")
+		}
+
 		filter := make(ztype.Map, schemaKeyLen)
 		for i := 0; i < schemaKeyLen; i++ {
 			value := make([]any, 0, len(rows))
@@ -292,15 +375,14 @@ func handlerRelationson(
 		}
 
 		tmpKeys := make([]string, 0, schemaKeyLen)
-		items, err := find(m, getFilter(m, filter), false, func(co *CondOptions) {
+		items, err := find(childSchema, getFilter(childSchema, filter), false, func(co *CondOptions) {
 			co.Fields = fields
 
 			if len(co.Fields) == 0 {
 				co.Fields = allFields
 			} else {
 				for i := 0; i < schemaKeyLen; i++ {
-					ok = zarray.Contains(co.Fields, d.SchemaKey[i])
-					if !ok {
+					if !zarray.Contains(co.Fields, d.SchemaKey[i]) {
 						tmpKeys = append(tmpKeys, d.SchemaKey[i])
 						co.Fields = append(co.Fields, d.SchemaKey[i])
 					}
@@ -324,89 +406,68 @@ func handlerRelationson(
 			continue
 		}
 
+		tmpKeysMap := make(map[string]struct{}, len(tmpKeys))
+		for _, k := range tmpKeys {
+			tmpKeysMap[k] = struct{}{}
+		}
+
 		switch d.Type {
 		case schema.RelationSingle:
+			itemsMap := buildRelationMapSingle(items, d.SchemaKey)
 			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				eq := false
-				for i := range items {
-					eqSum := 0
-					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).
-							String() ==
-							row.Get(d.ForeignKey[si]).
-								String() {
-							eqSum++
+				mapKey := buildLookupKey(row, d.ForeignKey)
+				if idx, ok := itemsMap[mapKey]; ok && idx >= 0 && idx < len(items) {
+					value := make(ztype.Map, len(items[idx]))
+					for k := range items[idx] {
+						if _, skip := tmpKeysMap[k]; skip {
+							continue
 						}
+						value[k] = items[idx][k]
 					}
-					if eqSum == schemaKeyLen {
-						eq = true
-						value := make(ztype.Map, len(items[i]))
-						for k := range items[i] {
-							if zarray.Contains(tmpKeys, k) {
-								continue
-							}
-							value[k] = items[i][k]
-						}
-						row.Set(key, value)
-						break
-					}
-				}
-				if !eq {
+					row.Set(key, value)
+				} else {
 					row.Set(key, ztype.Map{})
 				}
 				return row
 			}, 10)
 
 		case schema.RelationSingleMerge:
+			itemsMap := buildRelationMapSingle(items, d.SchemaKey)
 			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				for i := range items {
-					eqSum := 0
-					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).
-							String() ==
-							row.Get(d.ForeignKey[si]).
-								String() {
-							eqSum++
+				mapKey := buildLookupKey(row, d.ForeignKey)
+				if idx, ok := itemsMap[mapKey]; ok && idx >= 0 && idx < len(items) {
+					for k := range items[idx] {
+						if _, skip := tmpKeysMap[k]; skip {
+							continue
 						}
-					}
-					if eqSum == schemaKeyLen {
-						for k := range items[i] {
-							if zarray.Contains(tmpKeys, k) {
-								continue
-							}
-							row.Set(k, items[i][k])
-						}
-						break
+						row.Set(k, items[idx][k])
 					}
 				}
 				return row
 			}, 10)
-		case schema.RelationMany:
-			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
-				values := make(ztype.Maps, 0)
-				for i := range items {
-					eqSum := 0
-					for si := 0; si < schemaKeyLen; si++ {
-						if items[i].Get(d.SchemaKey[si]).
-							String() ==
-							row.Get(d.ForeignKey[si]).
-								String() {
-							eqSum++
-						}
-					}
-					if eqSum == schemaKeyLen {
-						value := make(ztype.Map, len(items[i]))
-						for k := range items[i] {
-							if zarray.Contains(tmpKeys, k) {
-								continue
-							}
-							value[k] = items[i][k]
-						}
-						values = append(values, value)
-					}
-				}
 
-				row.Set(key, values)
+		case schema.RelationMany:
+			itemsMap := buildRelationMapMany(items, d.SchemaKey)
+			rows = zarray.Map(rows, func(_ int, row ztype.Map) ztype.Map {
+				mapKey := buildLookupKey(row, d.ForeignKey)
+				if indices, ok := itemsMap[mapKey]; ok {
+					values := make(ztype.Maps, 0, len(indices))
+					for _, idx := range indices {
+						if idx >= 0 && idx < len(items) {
+							value := make(ztype.Map, len(items[idx]))
+							for k := range items[idx] {
+								if _, skip := tmpKeysMap[k]; skip {
+									continue
+								}
+								value[k] = items[idx][k]
+							}
+							values = append(values, value)
+						}
+					}
+					row.Set(key, values)
+				} else {
+					row.Set(key, ztype.Maps{})
+				}
 				return row
 			}, 10)
 		}
@@ -535,10 +596,8 @@ func FindCols[T filter](
 	fn ...func(*CondOptions),
 ) (ztype.SliceType, error) {
 	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
-		if fn != nil {
-			for i := range fn {
-				fn[i](so)
-			}
+		for i := range fn {
+			fn[i](so)
 		}
 		so.Fields = []string{field}
 	})

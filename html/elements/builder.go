@@ -2,12 +2,14 @@ package elements
 
 import (
 	"fmt"
-	"github.com/sohaha/zlsgo/zarray"
-	"github.com/sohaha/zlsgo/zutil"
-	"golang.org/x/exp/constraints"
 	"html"
 	"io"
 	"strings"
+	"sync"
+
+	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zutil"
+	"golang.org/x/exp/constraints"
 )
 
 var (
@@ -18,6 +20,14 @@ var (
 	equalDblQuote     = []byte("=\"")
 	dblQuote          = []byte("\"")
 	space             = []byte(" ")
+
+	builderPool = sync.Pool{
+		New: func() interface{} {
+			b := &strings.Builder{}
+			b.Grow(256)
+			return b
+		},
+	}
 )
 
 type ElementRenderer interface {
@@ -146,7 +156,6 @@ func (e *Element) Render(w io.Writer) error {
 
 	if finalKeys.Len() > 0 {
 		finalKeys.ForEach(func(k string, v string) bool {
-
 			w.Write(space)
 			w.Write([]byte(k))
 
@@ -184,7 +193,12 @@ func (e *Element) Render(w io.Writer) error {
 type customDataKeyModifier func() string
 
 func customDataKey(key string, modifiers ...customDataKeyModifier) string {
-	sb := strings.Builder{}
+	sb := builderPool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builderPool.Put(sb)
+	}()
+
 	sb.WriteString(key)
 	for _, m := range modifiers {
 		sb.WriteRune('.')

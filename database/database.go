@@ -54,6 +54,10 @@ func (p *Plugin) Reload(conf *service.Conf) error {
 		return zerror.With(err, "新配置初始化数据库失败")
 	}
 
+	if p.db != nil {
+		_ = p.db.Close()
+	}
+
 	p.db = db
 	options = nOptions
 	return nil
