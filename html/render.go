@@ -6,11 +6,11 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zreflect"
-	"github.com/zlsgo/app_module/html/elements"
+	"github.com/zlsgo/app_module/html/el"
 )
 
 type (
-	invoker func(c *znet.Context) elements.ElementRenderer
+	invoker func(c *znet.Context) el.ElementRenderer
 )
 
 var invokerValue zdi.PreInvoker = (invoker)(nil)
@@ -31,7 +31,7 @@ func (h invoker) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerCode func(c *znet.Context) (int, elements.ElementRenderer)
+	invokerCode func(c *znet.Context) (int, el.ElementRenderer)
 )
 
 var invokerCodeValue zdi.PreInvoker = (invokerCode)(nil)
@@ -52,7 +52,7 @@ func (h invokerCode) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerZ func(c *znet.Context, x *ZHTML) elements.ElementRenderer
+	invokerZ func(c *znet.Context, x *ZHTML) el.ElementRenderer
 )
 
 var invokerZValue zdi.PreInvoker = (invokerZ)(nil)
@@ -74,7 +74,7 @@ func (h invokerZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerCodeZ func(c *znet.Context, x *ZHTML) (int, elements.ElementRenderer)
+	invokerCodeZ func(c *znet.Context, x *ZHTML) (int, el.ElementRenderer)
 )
 
 var invokerCodeZValue zdi.PreInvoker = (invokerCodeZ)(nil)
