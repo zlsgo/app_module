@@ -1,429 +1,346 @@
-package el_test
+package el
 
 import (
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
-	"github.com/zlsgo/app_module/html/el"
 )
 
-func TestBasicElement(t *testing.T) {
+func TestElementSetGet(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	head := el.HEAD(
-		el.TITLE(el.Text("测试页面标题")),
-		el.META().Attrs("name", "description", "content", "测试页面描述"),
-	)
+	el := DIV()
+	el.Set("custom", "value")
+	tt.Equal("value", el.Get("custom"))
 
-	css := el.LINK().Attrs("rel", "stylesheet").AttrsMap(map[string]string{"href": "/css/style.css"})
-	head.Children(css)
-
-	html := el.HTML(head).Attr("lang", "en")
-
-	form := el.FORM().
-		AttrsMap(map[string]string{"method": "post", "action": "/submit", "enctype": "multipart/form-data"})
-
-	body := el.BODY(form).Attrs("data-test")
-	html.Children(body)
-
-	a := el.A().Attr("href", "/").Text("首页")
-	div := el.DIV().Children(a)
-	group := el.Group(el.DIV().Text("1"), el.DIV().Text("2"))
-	body.Children(div, group)
-
-	script := el.SCRIPT().Text("console.log('hello world');")
-	body.Children(script)
-
-	b, err := el.RenderToBytes(html)
-	tt.NoError(err)
-
-	result := string(b)
-	expects := []string{
-		`<html lang="en">`,
-		`<title>测试页面标题</title>`,
-		`<meta name="description" content="测试页面描述" />`,
-		`<link rel="stylesheet" href="/css/style.css" />`,
-		`<body data-test>`,
-		`<form`,
-		`method="post"`,
-		`action="/submit"`,
-		`enctype="multipart/form-data"`,
-		`<a href="/">首页</a>`,
-		`<script>console.log('hello world');</script>`,
-	}
-	for _, expect := range expects {
-		if !strings.Contains(result, expect) {
-			tt.Log("result: ", result)
-			tt.Fatal("expect: ", expect)
-		}
-	}
+	el.Set("custom", "new")
+	tt.Equal("new", el.Get("custom"))
 }
 
-func TestElementAttributes(t *testing.T) {
+func TestElementSetAttribute(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	// 测试 Attr 方法
-	div := el.DIV().Attr("id", "test").Attr("data-value", "123")
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, `id="test"`))
-	tt.EqualTrue(strings.Contains(result, `data-value="123"`))
-
-	// 测试空属性
-	div2 := el.DIV().Attr("disabled")
-	b2, _ := el.RenderToBytes(div2)
-	result2 := string(b2)
-	tt.EqualTrue(strings.Contains(result2, "disabled"))
-}
-
-func TestElementAttrs(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().Attrs("id", "main", "class", "container")
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, `id="main"`))
-	tt.EqualTrue(strings.Contains(result, `class="container"`))
-}
-
-func TestElementAttrsMap(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	attrs := map[string]string{
-		"id":    "test",
-		"class": "box",
-		"style": "color: red",
-	}
-	div := el.DIV().AttrsMap(attrs)
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, `id="test"`))
-	tt.EqualTrue(strings.Contains(result, `class="box"`))
-}
-
-func TestElementBoolAttr(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	input := el.INPUT().
-		Attr("type", "checkbox").
-		BoolAttr("checked", true).
-		BoolAttr("disabled", false)
-
-	b, _ := el.RenderToBytes(input)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "checked"))
-	tt.EqualTrue(!strings.Contains(result, "disabled"))
-
-	// 测试 BoolValue String 方法
-	bv := el.BoolValue(true)
-	tt.Equal("true", bv.String())
-	bv2 := el.BoolValue(false)
-	tt.Equal("false", bv2.String())
-}
-
-func TestElementClass(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().
-		Class("container").
-		Class("active", "highlight")
-
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "class"))
-	tt.EqualTrue(strings.Contains(result, "container"))
-	tt.EqualTrue(strings.Contains(result, "active"))
-	tt.EqualTrue(strings.Contains(result, "highlight"))
-}
-
-func TestElementRemoveClass(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().
-		Class("container", "active", "highlight").
-		RemoveClass("active")
-
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "container"))
-	tt.EqualTrue(!strings.Contains(result, "active"))
-	tt.EqualTrue(strings.Contains(result, "highlight"))
-}
-
-func TestElementStyle(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().
-		Style("color", "red").
-		Style("font-size", "16px").
-		Style("margin", "10px")
-
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-
-	tt.Log(result)
-	tt.EqualTrue(strings.Contains(result, "style"))
-	tt.EqualTrue(strings.Contains(result, "color"))
-	tt.EqualTrue(strings.Contains(result, "red"))
-	tt.EqualTrue(strings.Contains(result, "font-size"))
-	tt.EqualTrue(strings.Contains(result, "16px"))
-}
-
-func TestElementText(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().Text("Hello").Text(" World")
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "Hello"))
-	tt.EqualTrue(strings.Contains(result, " World"))
-}
-
-func TestElementTextF(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().TextF("Count: %d", 42)
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "Count: 42"))
-}
-
-func TestElementEscaped(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().Escaped("<script>alert('xss')</script>")
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(!strings.Contains(result, "<script>"))
-	tt.EqualTrue(strings.Contains(result, "&lt;script&gt;"))
-}
-
-func TestElementEscapedF(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().EscapedF("<b>%s</b>", "Bold")
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "&lt;b&gt;"))
-	tt.EqualTrue(strings.Contains(result, "Bold"))
-}
-
-func TestElementIfText(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().
-		IfText(true, "Visible").
-		IfText(false, "Hidden")
-
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "Visible"))
-	tt.EqualTrue(!strings.Contains(result, "Hidden"))
-}
-
-func TestElementIfEscaped(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div1 := el.DIV().IfEscaped(true, "<b>Bold</b>")
-	b1, _ := el.RenderToBytes(div1)
-	result1 := string(b1)
-	tt.EqualTrue(strings.Contains(result1, "&lt;b&gt;"))
-
-	div2 := el.DIV().IfEscaped(false, "<b>Bold</b>")
-	b2, _ := el.RenderToBytes(div2)
-	result2 := string(b2)
-	tt.EqualTrue(!strings.Contains(result2, "Bold"))
-}
-
-func TestElementChaining(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	div := el.DIV().
-		Attr("id", "main").
-		Class("container").
-		Style("padding", "20px").
-		Text("Hello World")
-
-	b, _ := el.RenderToBytes(div)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, `id="main"`))
-	tt.EqualTrue(strings.Contains(result, "class"))
-	tt.EqualTrue(strings.Contains(result, "container"))
-	tt.EqualTrue(strings.Contains(result, "style"))
-	tt.EqualTrue(strings.Contains(result, "padding"))
-	tt.EqualTrue(strings.Contains(result, "Hello World"))
-}
-
-func TestIf(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	// 条件为 true
-	result1 := el.If(true, el.DIV().Text("Visible"))
-	b1, _ := el.RenderToBytes(result1)
-	tt.EqualTrue(strings.Contains(string(b1), "Visible"))
-
-	// 条件为 false
-	result2 := el.If(false, el.DIV().Text("Hidden"))
-	tt.Equal(true, result2 == nil)
-}
-
-func TestTern(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	// 条件为 true
-	result1 := el.Tern(true, el.DIV().Text("True"), el.DIV().Text("False"))
-	b1, _ := el.RenderToBytes(result1)
-	tt.EqualTrue(strings.Contains(string(b1), "True"))
-
-	// 条件为 false
-	result2 := el.Tern(false, el.DIV().Text("True"), el.DIV().Text("False"))
-	b2, _ := el.RenderToBytes(result2)
-	tt.EqualTrue(strings.Contains(string(b2), "False"))
-}
-
-func TestRange(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	items := []string{"A", "B", "C"}
-	result := el.Range(items, func(item string) el.ElementRenderer {
-		return el.DIV().Text(item)
+	t.Run("set new attribute", func(t *testing.T) {
+		el := DIV()
+		el.SetAttribute("title", "test")
+		tt.Equal("test", el.GetAttribute("title"))
 	})
 
-	b, _ := el.RenderToBytes(result)
-	str := string(b)
-	tt.EqualTrue(strings.Contains(str, "A"))
-	tt.EqualTrue(strings.Contains(str, "B"))
-	tt.EqualTrue(strings.Contains(str, "C"))
+	t.Run("overwrite attribute", func(t *testing.T) {
+		el := DIV(Attr("id", "old"))
+		tt.Equal("old", el.GetAttribute("id"))
+		el.SetAttribute("id", "new")
+		tt.Equal("new", el.GetAttribute("id"))
+	})
 }
 
-func TestRangeI(t *testing.T) {
+func TestElementAddClass(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	items := []string{"A", "B", "C"}
-	result := el.RangeI(items, func(i int, item string) el.ElementRenderer {
-		return el.DIV().TextF("%d: %s", i, item)
+	t.Run("add to empty", func(t *testing.T) {
+		el := DIV()
+		el.AddClass("foo")
+		tt.Equal("foo", el.GetAttribute("class"))
 	})
 
-	b, _ := el.RenderToBytes(result)
-	str := string(b)
-	tt.EqualTrue(strings.Contains(str, "0: A"))
-	tt.EqualTrue(strings.Contains(str, "1: B"))
-	tt.EqualTrue(strings.Contains(str, "2: C"))
+	t.Run("add to existing", func(t *testing.T) {
+		el := DIV(Class("bar"))
+		el.AddClass("baz")
+		tt.Equal("bar baz", el.GetAttribute("class"))
+	})
 }
 
-func TestDynGroup(t *testing.T) {
+func TestElementGetAttributes(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	result := el.DynGroup(
-		func() el.ElementRenderer { return el.DIV().Text("1") },
-		func() el.ElementRenderer { return el.DIV().Text("2") },
-		func() el.ElementRenderer { return nil }, // 测试 nil 过滤
+	el := DIV(ID("app"), Class("container"))
+	attrs := el.GetAttributes()
+
+	tt.Equal(2, len(attrs))
+	tt.Equal("app", attrs["id"])
+	tt.Equal("container", attrs["class"])
+}
+
+func TestElementSetAttributes(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	el := DIV(ID("old"))
+	el.SetAttributes(map[string]string{
+		"id":    "new",
+		"class": "active",
+	})
+
+	tt.Equal("new", el.GetAttribute("id"))
+	tt.Equal("active", el.GetAttribute("class"))
+}
+
+func TestElementAppendNode(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	el := DIV()
+	tt.Equal(0, len(el.GetNodes()))
+
+	el.AppendNode(Text("hello"))
+	tt.Equal(1, len(el.GetNodes()))
+
+	el.AppendNode(SPAN(Text("world")))
+	tt.Equal(2, len(el.GetNodes()))
+
+	ChunkTest{
+		Node:     el,
+		Rendered: "<div>hello<span>world</span></div>",
+	}.Assert(tt)
+}
+
+func TestElementClone(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	original := DIV(
+		ID("original"),
+		Class("foo"),
+		Text("content"),
 	)
+	original.Set("meta", "data")
 
-	b, _ := el.RenderToBytes(result)
-	str := string(b)
-	tt.EqualTrue(strings.Contains(str, "1"))
-	tt.EqualTrue(strings.Contains(str, "2"))
+	clone := original.Clone()
+	clone.SetAttribute("id", "cloned")
+	clone.AddClass("bar")
+
+	tt.Equal("original", original.GetAttribute("id"))
+	tt.Equal("foo", original.GetAttribute("class"))
+
+	tt.Equal("cloned", clone.GetAttribute("id"))
+	tt.Equal("foo bar", clone.GetAttribute("class"))
+
+	tt.Equal(len(original.GetNodes()), len(clone.GetNodes()))
 }
 
-func TestDynIf(t *testing.T) {
+func TestElementTag(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	// 条件为 true
-	result1 := el.DynIf(true,
-		func() el.ElementRenderer { return el.DIV().Text("A") },
-		func() el.ElementRenderer { return el.DIV().Text("B") },
-	)
-	b1, _ := el.RenderToBytes(result1)
-	str1 := string(b1)
-	tt.EqualTrue(strings.Contains(str1, "A"))
-	tt.EqualTrue(strings.Contains(str1, "B"))
+	t.Run("normal tag", func(t *testing.T) {
+		el := El("DiV")
+		tt.Equal("div", el.Tag())
+	})
 
-	// 条件为 false
-	result2 := el.DynIf(false,
-		func() el.ElementRenderer { return el.DIV().Text("C") },
-	)
-	tt.Equal(true, result2 == nil)
+	t.Run("doctype", func(t *testing.T) {
+		el := VoidEl("!DOCTYPE", Attr("html", ""))
+		tt.Equal("!DOCTYPE", el.Tag())
+	})
 }
 
-func TestDynTern(t *testing.T) {
+func TestVoidElement(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	// 条件为 true
-	result1 := el.DynTern(true,
-		func() el.ElementRenderer { return el.DIV().Text("True") },
-		func() el.ElementRenderer { return el.DIV().Text("False") },
-	)
-	b1, _ := el.RenderToBytes(result1)
-	tt.EqualTrue(strings.Contains(string(b1), "True"))
+	tests := []struct {
+		node     Node
+		rendered string
+	}{
+		{BR(), "<br>"},
+		{HR(), "<hr>"},
+		{IMG(Alt("test")), `<img alt="test">`},
+		{INPUT(Type("text")), `<input type="text">`},
+		{LINK(Href("style.css")), `<link href="style.css">`},
+		{META(Charset("utf-8")), `<meta charset="utf-8">`},
+	}
 
-	// 条件为 false
-	result2 := el.DynTern(false,
-		func() el.ElementRenderer { return el.DIV().Text("True") },
-		func() el.ElementRenderer { return el.DIV().Text("False") },
-	)
-	b2, _ := el.RenderToBytes(result2)
-	tt.EqualTrue(strings.Contains(string(b2), "False"))
+	for _, test := range tests {
+		ChunkTest{
+			Node:     test.node,
+			Rendered: test.rendered,
+		}.Assert(tt)
+	}
 }
 
-func TestError(t *testing.T) {
+func TestCommonElements(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	err := errors.New("test error")
-	result := el.Error(err)
-	b, _ := el.RenderToBytes(result)
-	tt.Equal("test error", string(b))
+	tests := []struct {
+		node     Node
+		rendered string
+	}{
+		{A(Href("#"), Text("link")), `<a href="#">link</a>`},
+		{ABBR(Title("title"), Text("abbr")), `<abbr title="title">abbr</abbr>`},
+		{ADDRESS(Text("addr")), "<address>addr</address>"},
+		{ARTICLE(Text("art")), "<article>art</article>"},
+		{ASIDE(Text("aside")), "<aside>aside</aside>"},
+		{B(Text("bold")), "<b>bold</b>"},
+		{BUTTON(Text("click")), "<button>click</button>"},
+		{CODE(Text("code")), "<code>code</code>"},
+		{EM(Text("emphasis")), "<em>emphasis</em>"},
+		{FOOTER(Text("foot")), "<footer>foot</footer>"},
+		{FORM(Action("/submit")), `<form action="/submit"></form>`},
+		{H1(Text("h1")), "<h1>h1</h1>"},
+		{H2(Text("h2")), "<h2>h2</h2>"},
+		{H3(Text("h3")), "<h3>h3</h3>"},
+		{H4(Text("h4")), "<h4>h4</h4>"},
+		{H5(Text("h5")), "<h5>h5</h5>"},
+		{H6(Text("h6")), "<h6>h6</h6>"},
+		{HEADER(Text("head")), "<header>head</header>"},
+		{I(Text("italic")), "<i>italic</i>"},
+		{LABEL(For("input")), `<label for="input"></label>`},
+		{LI(Text("item")), "<li>item</li>"},
+		{MAIN(Text("main")), "<main>main</main>"},
+		{MARK(Text("mark")), "<mark>mark</mark>"},
+		{NAV(Text("nav")), "<nav>nav</nav>"},
+		{OL(LI(Text("1"))), "<ol><li>1</li></ol>"},
+		{OPTION(Value("v"), Text("opt")), `<option value="v">opt</option>`},
+		{PRE(Text("pre")), "<pre>pre</pre>"},
+		{Q(Text("quote")), "<q>quote</q>"},
+		{S(Text("strike")), "<s>strike</s>"},
+		{SECTION(Text("sec")), "<section>sec</section>"},
+		{SELECT(OPTION(Text("opt"))), "<select><option>opt</option></select>"},
+		{SMALL(Text("small")), "<small>small</small>"},
+		{STRONG(Text("strong")), "<strong>strong</strong>"},
+		{SUB(Text("sub")), "<sub>sub</sub>"},
+		{SUP(Text("sup")), "<sup>sup</sup>"},
+		{TABLE(TR(TD(Text("cell")))), "<table><tr><td>cell</td></tr></table>"},
+		{TBODY(TR(TD(Text("b")))), "<tbody><tr><td>b</td></tr></tbody>"},
+		{TEXTAREA(Text("text")), "<textarea>text</textarea>"},
+		{TFOOT(TR(TD(Text("f")))), "<tfoot><tr><td>f</td></tr></tfoot>"},
+		{TH(Text("h")), "<th>h</th>"},
+		{THEAD(TR(TH(Text("h")))), "<thead><tr><th>h</th></tr></thead>"},
+		{U(Text("under")), "<u>under</u>"},
+		{UL(LI(Text("item"))), "<ul><li>item</li></ul>"},
+	}
+
+	for _, test := range tests {
+		ChunkTest{
+			Node:     test.node,
+			Rendered: test.rendered,
+		}.Assert(tt)
+	}
 }
 
-func TestTextContent(t *testing.T) {
+func TestCommonAttributes(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	text := el.Text("Hello World")
-	b, _ := el.RenderToBytes(text)
-	tt.Equal("Hello World", string(b))
+	tests := []struct {
+		node     Node
+		rendered string
+	}{
+		{DIV(Accept("image/*")), `<div accept="image/*"></div>`},
+		{DIV(AcceptCharset("utf-8")), `<div accept-charset="utf-8"></div>`},
+		{DIV(AccessKey("a")), `<div accesskey="a"></div>`},
+		{DIV(Action("/path")), `<div action="/path"></div>`},
+		{DIV(Align("center")), `<div align="center"></div>`},
+		{IMG(Alt("image")), `<img alt="image">`},
+		{DIV(Aria("label", "test")), `<div aria-label="test"></div>`},
+		{DIV(Async("true")), `<div async="true"></div>`},
+		{DIV(Autocomplete("off")), `<div autocomplete="off"></div>`},
+		{DIV(Autofocus("true")), `<div autofocus="true"></div>`},
+		{DIV(Autoplay("true")), `<div autoplay="true"></div>`},
+		{DIV(Charset("utf-8")), `<div charset="utf-8"></div>`},
+		{DIV(Color("red")), `<div color="red"></div>`},
+		{DIV(Cols("10")), `<div cols="10"></div>`},
+		{DIV(Colspan("2")), `<div colspan="2"></div>`},
+		{DIV(Content("text")), `<div content="text"></div>`},
+		{DIV(Controls("true")), `<div controls="true"></div>`},
+		{DIV(Coords("0,0")), `<div coords="0,0"></div>`},
+		{DIV(Crossorigin("anonymous")), `<div crossorigin="anonymous"></div>`},
+		{DIV(Datetime("2023-01-01")), `<div datetime="2023-01-01"></div>`},
+		{DIV(Default("true")), `<div default="true"></div>`},
+		{DIV(Dirname("dir")), `<div dirname="dir"></div>`},
+		{DIV(Disabled), `<div disabled></div>`},
+		{DIV(Download("file")), `<div download="file"></div>`},
+		{DIV(Draggable("true")), `<div draggable="true"></div>`},
+		{DIV(Enctype("multipart/form-data")), `<div enctype="multipart/form-data"></div>`},
+		{DIV(EnterKeyHint("go")), `<div enterkeyhint="go"></div>`},
+		{DIV(FormAction("/action")), `<div formaction="/action"></div>`},
+		{DIV(Headers("h1 h2")), `<div headers="h1 h2"></div>`},
+		{DIV(Height("100")), `<div height="100"></div>`},
+		{DIV(Hidden("true")), `<div hidden="true"></div>`},
+		{DIV(High("90")), `<div high="90"></div>`},
+		{DIV(Href("/page")), `<div href="/page"></div>`},
+		{DIV(HrefLang("en")), `<div hreflang="en"></div>`},
+		{DIV(HttpEquiv("refresh")), `<div http-equiv="refresh"></div>`},
+		{DIV(Inert("true")), `<div inert="true"></div>`},
+		{DIV(InputMode("numeric")), `<div inputmode="numeric"></div>`},
+		{DIV(IsMap("true")), `<div ismap="true"></div>`},
+		{DIV(Kind("captions")), `<div kind="captions"></div>`},
+		{DIV(Label("text")), `<div label="text"></div>`},
+		{DIV(Src("/img.png")), `<div src="/img.png"></div>`},
+		{DIV(Role("button")), `<div role="button"></div>`},
+		{DIV(Lang("en")), `<div lang="en"></div>`},
+		{DIV(List("list1")), `<div list="list1"></div>`},
+		{DIV(Loop("true")), `<div loop="true"></div>`},
+		{DIV(Low("10")), `<div low="10"></div>`},
+		{DIV(Max("100")), `<div max="100"></div>`},
+		{DIV(MaxLength("255")), `<div maxlength="255"></div>`},
+		{DIV(Media("screen")), `<div media="screen"></div>`},
+		{DIV(Method("post")), `<div method="post"></div>`},
+		{DIV(Min("0")), `<div min="0"></div>`},
+		{DIV(MinLength("5")), `<div minlength="5"></div>`},
+		{DIV(Multiple("true")), `<div multiple="true"></div>`},
+		{DIV(Muted("true")), `<div muted="true"></div>`},
+		{DIV(Name("field")), `<div name="field"></div>`},
+		{DIV(Placeholder("hint")), `<div placeholder="hint"></div>`},
+		{DIV(Tabindex("1")), `<div tabindex="1"></div>`},
+		{DIV(Type("text")), `<div type="text"></div>`},
+		{DIV(Rel("stylesheet")), `<div rel="stylesheet"></div>`},
+		{DIV(Width("200")), `<div width="200"></div>`},
+		{DIV(Value("test")), `<div value="test"></div>`},
+		{DIV(ShadowRootMode("open")), `<div shadowrootmode="open"></div>`},
+		{DIV(Slot("content")), `<div slot="content"></div>`},
+		{DIV(Property("og:title"), Content("Title")), `<div property="og:title" content="Title"></div>`},
+	}
+
+	for _, test := range tests {
+		ChunkTest{
+			Node:     test.node,
+			Rendered: test.rendered,
+		}.Assert(tt)
+	}
 }
 
-func TestTextF(t *testing.T) {
+func TestSpecialAttributes(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	text := el.TextF("Count: %d, Name: %s", 42, "Test")
-	b, _ := el.RenderToBytes(text)
-	tt.Equal("Count: 42, Name: Test", string(b))
-}
+	t.Run("ContentEditable", func(t *testing.T) {
+		node := DIV(ContentEditable)
+		ChunkTest{
+			Node:     node,
+			Rendered: `<div contenteditable></div>`,
+		}.Assert(tt)
+	})
 
-func TestEscapedContent(t *testing.T) {
-	tt := zlsgo.NewTest(t)
+	t.Run("Checked", func(t *testing.T) {
+		node := INPUT(Type("checkbox"), Checked)
+		ChunkTest{
+			Node:     node,
+			Rendered: `<input type="checkbox" checked>`,
+		}.Assert(tt)
+	})
 
-	escaped := el.Escaped("<script>alert('xss')</script>")
-	b, _ := el.RenderToBytes(escaped)
-	tt.EqualTrue(strings.Contains(string(b), "&lt;script&gt;"))
-}
+	t.Run("Defer", func(t *testing.T) {
+		node := SCRIPT(Defer)
+		ChunkTest{
+			Node:     node,
+			Rendered: `<script defer></script>`,
+		}.Assert(tt)
+	})
 
-func TestEscapedF(t *testing.T) {
-	tt := zlsgo.NewTest(t)
+	t.Run("As", func(t *testing.T) {
+		node := LINK(As("style"))
+		ChunkTest{
+			Node:     node,
+			Rendered: `<link as="style">`,
+		}.Assert(tt)
+	})
 
-	escaped := el.EscapedF("<b>%s</b>", "Bold")
-	b, _ := el.RenderToBytes(escaped)
-	result := string(b)
-	tt.EqualTrue(strings.Contains(result, "&lt;b&gt;"))
-	tt.EqualTrue(strings.Contains(result, "Bold"))
-}
+	t.Run("FormAttr", func(t *testing.T) {
+		node := INPUT(Form("form1"))
+		ChunkTest{
+			Node:     node,
+			Rendered: `<input form="form1">`,
+		}.Assert(tt)
+	})
 
-func TestGroup(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-
-	group := el.Group(
-		el.DIV().Text("1"),
-		el.DIV().Text("2"),
-		el.DIV().Text("3"),
-	)
-
-	b, err := el.RenderToBytes(group)
-	tt.NoError(err)
-	str := string(b)
-	tt.EqualTrue(strings.Contains(str, "1"))
-	tt.EqualTrue(strings.Contains(str, "2"))
-	tt.EqualTrue(strings.Contains(str, "3"))
+	t.Run("For", func(t *testing.T) {
+		node := LABEL(For("input1"))
+		ChunkTest{
+			Node:     node,
+			Rendered: `<label for="input1"></label>`,
+		}.Assert(tt)
+	})
 }

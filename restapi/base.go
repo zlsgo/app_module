@@ -1,6 +1,7 @@
 package restapi
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zerror"
@@ -19,7 +20,7 @@ func (h *controller) Init(r *znet.Engine) error {
 	var models *model.Stores
 	err := h.DI.Resolve(&models)
 	if err != nil {
-		return err
+		return errors.New("functional model has not been registered")
 	}
 
 	if h.options.Middleware != nil {

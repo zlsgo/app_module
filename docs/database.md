@@ -1,0 +1,118 @@
+# Database 数据库模块
+
+Database 模块提供了统一的数据库连接和管理功能，支持多种数据库驱动和高级特性。
+
+## 支持的数据库
+
+- ✅ MySQL
+- ✅ PostgreSQL
+- ✅ SQLite3
+
+## 功能特性
+
+- 🔌 多数据库支持（MySQL、PostgreSQL、SQLite3）
+- 🔄 数据库驱动管理
+- 📊 基础连接池功能
+- 🗃️ 数据库配置管理
+- 🛠️ 模块化设计
+
+## 模块结构
+
+```
+database/
+├── database.go        # 数据库初始化
+├── driver.go          # 驱动管理
+├── mysql.go           # MySQL 配置
+├── postgres.go        # PostgreSQL 配置
+├── sqlite3.go         # SQLite3 配置
+├── options.go         # 配置选项
+├── service.go         # 服务封装
+├── assign.go          # 单数据库连接
+├── module.go          # 模块定义
+```
+
+## 快速开始
+
+### 基本使用
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sohaha/zlsgo/zlog"
+    "github.com/zlsgo/app_module/database"
+    "github.com/zlsgo/app_core/service"
+    "github.com/zlsgo/zdb"
+)
+
+func main() {
+    // 初始化应用
+    app := service.NewApp()(nil)
+
+    // 数据库模块
+    dbMod := database.New()
+
+    // 注册全部模块
+    err := service.InitModule([]service.Module{dbMod}, app)
+    if err != nil {
+        panic(err)
+    }
+
+    // 使用数据库对象
+    err = app.DI.InvokeWithErrorOnly(func(db *zdb.DB) {
+        zlog.Info(db.QueryToMaps(`SELECT sqlite_version() AS version;`))
+
+        // 使用数据库
+        var result []map[string]interface{}
+        err := db.Table("users").Find(&result)
+        if err != nil {
+            zlog.Error(err)
+            return
+        }
+
+        fmt.Printf("用户数量: %d\n", len(result))
+    })
+    if err != nil {
+        panic(err)
+    }
+}
+```
+
+### 配置文件
+
+数据库模块支持完整的配置文件，可以根据不同的数据库类型进行配置。
+
+#### 完整配置示例
+
+```yaml
+# 数据库配置
+database:
+  driver: "mysql"                     # 数据库驱动类型: mysql, postgres, sqlite
+  
+  # MySQL 配置（当 driver 为 "mysql" 时使用）
+  mysql:
+    host: "localhost"                # 数据库主机地址
+    port: 3306                       # 数据库端口
+    user: "root"                     # 数据库用户名
+    password: "password"             # 数据库密码
+    db_name: "myapp"                 # 数据库名称
+    charset: "utf8mb4"               # 字符集
+  
+  # PostgreSQL 配置（当 driver 为 "postgres" 时使用）
+  postgres:
+    host: "localhost"                # 数据库主机地址
+    port: 5432                       # 数据库端口
+    user: "postgres"                 # 数据库用户名
+    password: "password"             # 数据库密码
+    db_name: "myapp"                 # 数据库名称
+    ssl_mode: "disable"              # SSL 模式: disable, require, verify-ca, verify-full
+  
+  # SQLite3 配置（当 driver 为 "sqlite" 时使用）
+  sqlite:
+    path: "./data/app.db"            # 数据库文件路径
+  
+  # 模式配置
+  mode:
+    delete_column: false             # 是否删除未使用的列
+```
