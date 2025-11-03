@@ -198,7 +198,7 @@ mod := model.New(func(o *model.Options) {
 
 ## Store API
 
-`Module.MustGetStore(name)` / `Module.GetStore(name)` 返回 `*model.Store`，提供：
+`Module.MustGetStore(name)` 返回 `*model.Store`，`Module.GetStore(name)` 返回 `(*model.Store, bool)`，提供：
 
 - 写入：`Insert`、`InsertMany`
 - 查询：`Find`、`FindOne`、`FindCols`、`FindCol`、`Pages`
