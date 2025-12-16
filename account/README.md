@@ -85,7 +85,7 @@ func main() {
 
 ```yaml
 account:
-  key: "your-secret-key"              # 加密密钥（必须32位）
+  key: "your-secret-key"              # 加密密钥（模块内部会自动补齐到32位）
   prefix: "/api"                      # API 前缀
   admin_default_password: "admin123"  # 默认管理员密码
   model_prefix: "sys_"                # 数据表前缀

@@ -5,12 +5,12 @@ Database 模块提供了统一的数据库连接和管理功能，支持多种�
 ## 支持的数据库
 
 - ✅ MySQL
-- ✅ PostgreSQL
-- ✅ SQLite3
+- ✅ PostgreSQL（需要使用构建标签启用，见下文）
+- ✅ SQLite（驱动名为 `sqlite`）
 
 ## 功能特性
 
-- 🔌 多数据库支持（MySQL、PostgreSQL、SQLite3）
+- 🔌 多数据库支持（MySQL、PostgreSQL、SQLite）
 - 🔄 数据库驱动管理
 - 📊 基础连接池功能
 - 🗃️ 数据库配置管理
@@ -24,7 +24,7 @@ database/
 ├── driver.go          # 驱动管理
 ├── mysql.go           # MySQL 配置
 ├── postgres.go        # PostgreSQL 配置
-├── sqlite3.go         # SQLite3 配置
+├── sqlite3.go         # SQLite 配置
 ├── options.go         # 配置选项
 ├── service.go         # 服务封装
 ├── assign.go          # 单数据库连接
@@ -108,7 +108,7 @@ database:
     db_name: "myapp"                 # 数据库名称
     ssl_mode: "disable"              # SSL 模式: disable, require, verify-ca, verify-full
   
-  # SQLite3 配置（当 driver 为 "sqlite" 时使用）
+  # SQLite 配置（当 driver 为 "sqlite" 时使用）
   sqlite:
     path: "./data/app.db"            # 数据库文件路径
   
@@ -116,3 +116,17 @@ database:
   mode:
     delete_column: false             # 是否删除未使用的列
 ```
+
+## 注意事项
+
+### PostgreSQL 构建标签
+
+PostgreSQL 驱动文件带有构建标签：
+
+- `pkg/app_module/database/postgres.go` 使用 `//go:build postgres`
+
+因此在默认构建条件下可能不会包含 PostgreSQL 支持，需要在构建时启用对应 tag。
+
+### delete_column 字段
+
+配置项 `mode.delete_column` 会映射到 `database.Options.Mode.DelteColumn`（结构体字段名存在拼写，但 JSON key 为 `delete_column`，配置不受影响）。
