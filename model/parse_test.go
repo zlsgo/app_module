@@ -92,7 +92,7 @@ func TestSet(t *testing.T) {
 
 	_, _ = Insert(m, map[string]interface{}{"action": "demo", "ip": "127.0.0.3", "status": "1"})
 
-	row, err := FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) {
+	row, err := FindOne(m.Model(), ztype.Map{}, func(ModelOptions *CondOptions) {
 		ModelOptions.OrderBy = map[string]string{IDKey(): "DESC"}
 		ModelOptions.Fields = []string{IDKey(), "status"}
 	})
@@ -103,7 +103,7 @@ func TestSet(t *testing.T) {
 	tt.NoError(err)
 	tt.Log(total)
 
-	row, err = FindOne(m, ztype.Map{}, func(ModelOptions *CondOptions) {
+	row, err = FindOne(m.Model(), ztype.Map{}, func(ModelOptions *CondOptions) {
 		ModelOptions.OrderBy = map[string]string{IDKey(): "DESC"}
 	})
 	tt.NoError(err)

@@ -17,7 +17,7 @@ var userCache = zcache.NewFast()
 
 func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 	user, _ := userCache.ProvideGet(uid, func() (interface{}, bool) {
-		f, err := model.FindOne(m, uid)
+		f, err := model.FindOne(m.Model(), uid)
 		if err != nil || f.IsEmpty() {
 			return ztype.Map{}, false
 		}
@@ -59,7 +59,7 @@ func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 
 		salt := info.Info[:saltLen]
 		uid := info.Info[saltLen:]
-		f, err := model.FindCols(m, "salt", uid)
+		f, err := model.FindCols(m.Model(), "salt", uid)
 		if err != nil || f.Index(0).String() != salt {
 			return [2]interface{}{}, false
 		}
@@ -113,7 +113,7 @@ var (
 // getRolesForCache 获取缓存的角色列表
 func getRolesForCache(roleModel *model.Schema) ([]ztype.Map, error) {
 	result, _ := roleCache.ProvideGet("all_active_roles", func() (interface{}, bool) {
-		roles, err := model.Find(roleModel, ztype.Map{
+		roles, err := model.FindMaps(roleModel.Model(), ztype.Map{
 			"status": 1,
 		})
 		if err != nil {
@@ -127,7 +127,7 @@ func getRolesForCache(roleModel *model.Schema) ([]ztype.Map, error) {
 	}
 
 	// 如果缓存获取失败，直接查询数据库
-	return model.Find(roleModel, ztype.Map{
+	return model.FindMaps(roleModel.Model(), ztype.Map{
 		"status": 1,
 	})
 }

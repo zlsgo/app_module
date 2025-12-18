@@ -91,7 +91,7 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := model.FindCols(h.accoutModel, "salt", uid)
+	f, err := model.FindCols(h.accoutModel.Model(), "salt", uid)
 	if err != nil || f.Index(0).String() != salt {
 		return nil, zerror.InvalidInput.Text("refresh_token 已失效")
 	}
@@ -124,7 +124,7 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	userInfo, err := getUserForCache(h.accoutModel, uid)
 	if err != nil {
 		// 如果缓存失败，直接查询数据库
-		info, err := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) {
+		info, err := model.FindOne(h.accoutModel.Model(), uid, func(so *model.CondOptions) {
 			so.Fields = h.accoutModel.GetFields("password", "salt")
 		})
 		if err != nil {
@@ -137,14 +137,14 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 		userInfo = info
 	}
 
-	perms, _ := model.FindCols(h.roleModel, "permission", ztype.Map{
+	perms, _ := model.FindCols(h.roleModel.Model(), "permission", ztype.Map{
 		"alias": userInfo.Get("role").SliceString(),
 	})
 	permIDs := make([]int, 0)
 	for i := range perms {
 		permIDs = append(permIDs, perms[i].SliceInt()...)
 	}
-	permission, _ := model.FindCols(h.permModel, "alias", ztype.Map{
+	permission, _ := model.FindCols(h.permModel.Model(), "alias", ztype.Map{
 		model.IDKey(): zarray.Unique(permIDs),
 		"alias !=":    "",
 	}, func(o *model.CondOptions) {
@@ -203,7 +203,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := model.FindOne(h.accoutModel, ztype.Map{
+	user, err := model.FindOne(h.accoutModel.Model(), ztype.Map{
 		"account": account,
 	})
 	if err != nil {
@@ -325,7 +325,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := h.module.Request.UID(c)
-	user, _ := model.FindOne(h.accoutModel, uid, func(so *model.CondOptions) {
+	user, _ := model.FindOne(h.accoutModel.Model(), uid, func(so *model.CondOptions) {
 		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
 	if user.IsEmpty() {

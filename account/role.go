@@ -124,7 +124,7 @@ func (m *Module) setPermission(permission *rbac.RBAC, roleInfo ztype.Map) error 
 		return permission.RemoveRole(roleInfo.Get("alias").String())
 	}
 
-	perms, err := model.Find(permModel, ztype.Map{
+	perms, err := model.FindMaps(permModel.Model(), ztype.Map{
 		model.IDKey(): permissionIds,
 		"status":      1,
 	}, func(o *model.CondOptions) {

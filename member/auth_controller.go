@@ -77,7 +77,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				password := zstring.Rand(16)
 				err = h.module.schemas.Storage().Transaction(func(s *model.SQL) (err error) {
 					memberSchema := h.memberModel.Schema(s)
-					_, exists, _ := model.FindCol(memberSchema, "account", ztype.Map{"account": account})
+					_, exists, _ := model.FindCol(memberSchema.Model(), "account", ztype.Map{"account": account})
 					if exists {
 						return errors.New("账号已存在，无法自动注册")
 					}

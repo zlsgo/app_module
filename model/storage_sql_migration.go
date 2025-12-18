@@ -60,7 +60,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 
 func (m *Migration) InitValue(first bool) error {
 	if !first {
-		row, err := FindOne(m.Model, ztype.Map{}, func(o *CondOptions) {
+		row, err := FindOne(m.Model.Model(), ztype.Map{}, func(o *CondOptions) {
 			o.Fields = []string{"COUNT(*) AS count"}
 		})
 		if err == nil {

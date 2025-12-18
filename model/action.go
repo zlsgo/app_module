@@ -18,7 +18,7 @@ type filter interface {
 	ztype.Map | constraints.Integer | string | Filter
 }
 
-func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
+func getFilter[T filter | any](m *Schema, filter T) (filterMap ztype.Map) {
 	f := (interface{})(filter)
 
 	filterData, ok := f.(Filter)
@@ -26,6 +26,21 @@ func getFilter[T filter](m *Schema, filter T) (filterMap ztype.Map) {
 		filterMap = ztype.Map(filterData)
 	} else {
 		filterMap, ok = f.(ztype.Map)
+	}
+
+	if !ok {
+		mapData := ztype.ToMap(f)
+		if len(mapData) > 0 {
+			if len(mapData) == 1 {
+				if mapData.Get("0").Value() != f {
+					filterMap = mapData
+					ok = true
+				}
+			} else {
+				filterMap = mapData
+				ok = true
+			}
+		}
 	}
 
 	if !ok {
@@ -375,7 +390,7 @@ func handlerRelationson(
 		}
 
 		tmpKeys := make([]string, 0, schemaKeyLen)
-		items, err := find(childSchema, getFilter(childSchema, filter), false, func(co *CondOptions) {
+		items, err := findMaps(childSchema.Model(), getFilter(childSchema, filter), false, func(co *CondOptions) {
 			co.Fields = fields
 
 			if len(co.Fields) == 0 {
@@ -485,9 +500,9 @@ func handlerRelationson(
 	return rows, nil
 }
 
-func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (rows ztype.Maps, err error) {
+func findMaps(m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (resp ztype.Maps, err error) {
 	if cryptId {
-		_ = m.DeCrypt(filter)
+		_ = m.schema.DeCrypt(filter)
 	}
 
 	var (
@@ -495,7 +510,7 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 		foreignKeys      []string
 	)
 
-	rows, err = m.Storage.Find(m.GetTableName(), m.GetFields(), filter, func(so *CondOptions) {
+	resp, err = m.schema.Storage.Find(m.schema.GetTableName(), m.schema.GetFields(), filter, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -503,50 +518,73 @@ func find(m *Schema, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (
 			fn[i](so)
 		}
 
-		childRelationson, foreignKeys = relationson(m, so)
+		childRelationson, foreignKeys = relationson(m.schema, so)
 		if len(so.Fields) > 0 && len(so.Join) == 0 {
-			so.Fields = m.filterFields(so.Fields)
+			so.Fields = m.schema.filterFields(so.Fields)
 		} else if len(so.Fields) == 0 {
-			so.Fields = m.GetFields()
+			so.Fields = m.schema.GetFields()
 		} else if len(so.Fields) == 0 {
 			so.Fields = allFields
 		}
 	})
 	if err != nil {
-		return rows, err
+		return
 	}
 
-	rows, err = handlerRelationson(m, rows, childRelationson, foreignKeys)
+	resp, err = handlerRelationson(m.schema, resp, childRelationson, foreignKeys)
 	if err != nil {
-		return rows, err
+		return
 	}
 
-	if len(m.afterProcess) > 0 {
-		for i := range rows {
-			row := &rows[i]
-			for k, v := range m.afterProcess {
+	if len(m.schema.afterProcess) > 0 {
+		for i := range resp {
+			row := &resp[i]
+			for k, v := range m.schema.afterProcess {
 				if _, ok := (*row)[k]; ok {
 					(*row)[k], err = v[0](row.Get(k).String())
 					if err != nil {
-						return nil, err
+						return
 					}
 				}
 			}
-			if cryptId && *m.define.Options.CryptID {
-				m.EnCrypt(row)
+			if cryptId && *m.schema.define.Options.CryptID {
+				m.schema.EnCrypt(row)
 			}
 		}
 	}
 
-	return rows, nil
+	return resp, nil
 }
 
-func Find[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	return find(m, getFilter(m, filter), true, fn...)
+func find[R any | ztype.Map](m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (rows []R, err error) {
+	resp, err := findMaps(m, filter, cryptId, fn...)
+	if err != nil {
+		return nil, err
+	}
+
+	var r R
+	if _, ok := any(r).(ztype.Map); ok {
+		rows = make([]R, len(resp))
+		for i := range resp {
+			rows[i] = any(resp[i]).(R)
+		}
+		return rows, nil
+	}
+
+	err = ztype.To(resp, &rows)
+	return rows, err
 }
 
-func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
-	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
+func Find[R any | ztype.Map, T filter | any](m *Store, filter T, fn ...func(*CondOptions)) ([]R, error) {
+	return find[R](m, getFilter(m.schema, filter), true, fn...)
+}
+
+func FindMaps[T filter | any](m *Store, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
+	return Find[ztype.Map](m, filter, fn...)
+}
+
+func FindOne[T filter | any](m *Store, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
+	rows, err := findMaps(m, getFilter(m.schema, filter), true, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -555,12 +593,12 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 		}
 
 		// for _, v := range so.Relations {
-		// 	r, ok := m.define.Relations[v]
+		// 	r, ok := m.schema.define.Relations[v]
 		// 	if !ok {
 		// 		continue
 		// 	}
 
-		// 	s, ok := m.getSchema(r.Model)
+		// 	s, ok := m.schema.getSchema(r.Model)
 		// 	if !ok {
 		// 		continue
 		// 	}
@@ -590,12 +628,12 @@ func FindOne[T filter](m *Schema, filter T, fn ...func(*CondOptions)) (ztype.Map
 }
 
 func FindCols[T filter](
-	m *Schema,
+	m *Store,
 	field string,
 	filter T,
 	fn ...func(*CondOptions),
 ) (ztype.SliceType, error) {
-	rows, err := find(m, getFilter(m, filter), true, func(so *CondOptions) {
+	rows, err := findMaps(m, getFilter(m.schema, filter), true, func(so *CondOptions) {
 		for i := range fn {
 			fn[i](so)
 		}
@@ -615,7 +653,7 @@ func FindCols[T filter](
 }
 
 func FindCol[T filter](
-	m *Schema,
+	m *Store,
 	field string,
 	filter T,
 	fn ...func(*CondOptions),
@@ -627,7 +665,7 @@ func FindCol[T filter](
 	return values.First(), true, nil
 }
 
-func Count[T Filter](m *Schema, filter T, fn ...func(*CondOptions)) (uint64, error) {
+func Count[T Filter](m *Store, filter T, fn ...func(*CondOptions)) (uint64, error) {
 	data, err := FindCols(m, "count(*) as count", filter, func(co *CondOptions) {
 		for i := range fn {
 			fn[i](co)

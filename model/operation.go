@@ -91,35 +91,35 @@ func (o *Store) InsertMany(data ztype.Maps, fn ...func(*InsertOptions)) (lastId 
 
 // Count 统计数量
 func (o *Store) Count(filter Filter, fn ...func(*CondOptions)) (uint64, error) {
-	return Count(o.schema, filter, fn...)
+	return Count(o, filter, fn...)
 }
 
 // Exists 数据是否存在
 func (o *Store) Exists(filter Filter, fn ...func(*CondOptions)) (bool, error) {
-	total, err := Count(o.schema, filter, fn...)
+	total, err := Count(o, filter, fn...)
 	return total > 0, err
 }
 
 // FindCols 查询指定字段
 func (o *Store) FindCols(field string, filter Filter) (ztype.SliceType, error) {
-	return FindCols(o.schema, field, filter, func(co *CondOptions) {
+	return FindCols(o, field, filter, func(co *CondOptions) {
 		co.Fields = []string{field}
 	})
 }
 
 // Find 查询数据
 func (o *Store) Find(filter Filter, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	return Find(o.schema, filter, fn...)
+	return Find[ztype.Map](o, filter, fn...)
 }
 
 // FindOne 查询一条数据
 func (o *Store) FindOne(filter Filter, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o.schema, filter, fn...)
+	return FindOne(o, filter, fn...)
 }
 
 // FindOneByID 通过ID查询
 func (o *Store) FindOneByID(id any, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o.schema, ztype.Map{idKey: id}, fn...)
+	return FindOne(o, ztype.Map{idKey: id}, fn...)
 }
 
 // Pages 分页查询
