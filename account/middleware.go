@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	verifyPermissions = []znet.Handler{}
+	verifyPermissions []znet.Handler
 	ignoreRoutes      = []string{}
 )
 
@@ -91,12 +91,17 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 	verifyPermissions = []znet.Handler{}
 
 	if m.Options.Session != nil {
+		expireDuration := time.Duration(m.Options.Expire) * time.Second
+		if expireDuration <= 0 {
+			expireDuration = time.Hour * 24
+		}
+
 		s := zsession.New(m.Options.Session, func(c *zsession.Config) {
-			c.ExpiresAt = time.Duration(m.Options.Expire) * time.Second
+			c.ExpiresAt = expireDuration
 		})
 
 		go func() {
-			timer := time.NewTicker(time.Duration(m.Options.Expire) * time.Second)
+			timer := time.NewTicker(expireDuration)
 			defer timer.Stop()
 			for {
 				select {
@@ -168,12 +173,6 @@ func (m *Module) initMiddleware(permission *rbac.RBAC) error {
 		c.WithValue(ctxWithRole, roles)
 
 		// 管理员直接通过，避免权限检查
-		if isInlayAdmin {
-			c.Next()
-			return nil
-		}
-
-		// 管理员直接通过
 		if isInlayAdmin {
 			c.Next()
 			return nil

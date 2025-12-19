@@ -259,7 +259,11 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	if mLog, ok := h.module.mods.Get(logsName); ok {
-		_, _ = insertLog(c, mLog, user.Get("account").String(), 200, "登录成功")
+		ip := ""
+		if !noLogIP {
+			ip = c.GetClientIP()
+		}
+		_, _ = insertLog(mLog, user.Get("account").String(), ip, c.Request.Method, c.Request.URL.String(), 200, "登录成功", c.Request.URL.Query().Encode(), "")
 	}
 
 	if h.module.Options.Session != nil {

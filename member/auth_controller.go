@@ -75,7 +75,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				// 没有找到提供者，则需要先创建会员
 				account := "__" + p.Provider + "_" + p.ProviderID
 				password := zstring.Rand(16)
-				err = h.module.schemas.Storage().Transaction(func(s *model.SQL) (err error) {
+				err = h.module.schemas.Storage().Transaction(func(s model.Storageer) (err error) {
 					memberSchema := h.memberModel.Schema(s)
 					_, exists, _ := model.FindCol(memberSchema.Model(), "account", ztype.Map{"account": account})
 					if exists {

@@ -14,18 +14,25 @@ var noLogIP = false
 
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
-	m, _ := h.module.mods.Get(logsName)
+	m, ok := h.module.mods.Get(logsName)
+	if !ok || m == nil {
+		return nil, errors.New("日志模型未找到")
+	}
+
 	user := h.module.Request.User(c)
 	account := user.Get("account").String()
 	if account == "" {
 		return nil, errors.New("用户不存在")
 	}
 
-	page, pagesize, _ := common.VarPages(c)
+	page, pagesize, err := common.VarPages(c)
+	if err != nil {
+		return nil, err
+	}
 	return model.Pages(m, page, pagesize, ztype.Map{
 		"account": account,
 	}, func(co *model.CondOptions) {
-		co.OrderBy = map[string]string{model.IDKey(): "desc"}
+		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 	})
 }
 
@@ -36,37 +43,38 @@ func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
 		return
 	}
 
-	go func() {
-		var remark string
+	account := u.Get("account").String()
+	status := c.PrevContent().Code.Load()
+	msgStr, _ := msg.(string)
 
-		if r, ok := c.Value(ctxWithLogRemark); ok {
-			remark = ztype.ToString(r)
-		}
-
-		_, _ = insertLog(c, m, u.Get("account").String(), c.PrevContent().Code.Load(), msg.(string), remark)
-	}()
-}
-
-func insertLog(c *znet.Context, m *model.Schema, account string, status int32, msg string, remark ...string) (interface{}, error) {
-	var r string
-	if len(remark) > 0 {
-		r = remark[0]
+	var remark string
+	if r, ok := c.Value(ctxWithLogRemark); ok {
+		remark = ztype.ToString(r)
 	}
 
 	ip := ""
 	if !noLogIP {
 		ip = c.GetClientIP()
 	}
+	method := c.Request.Method
+	path := c.Request.URL.String()
+	params := c.Request.URL.Query().Encode()
 
+	go func() {
+		_, _ = insertLog(m, account, ip, method, path, status, msgStr, params, remark)
+	}()
+}
+
+func insertLog(m *model.Schema, account, ip, method, path string, status int32, msg, params, remark string) (interface{}, error) {
 	return model.Insert(m, ztype.Map{
 		"account":   account,
 		"ip":        ip,
-		"method":    c.Request.Method,
-		"path":      c.Request.URL.String(),
+		"method":    method,
+		"path":      path,
 		"status":    status,
 		"message":   msg,
-		"remark":    r,
-		"params":    c.Request.URL.Query().Encode(),
+		"remark":    remark,
+		"params":    params,
 		"record_at": ztime.Now(),
 	})
 }
