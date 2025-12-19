@@ -50,7 +50,7 @@ func (s *SQL) Migration(model *Schema) Migrationer {
 	}
 }
 
-func (s *SQL) Transaction(run func(s *SQL) error) (err error) {
+func (s *SQL) Transaction(run func(s Storageer) error) (err error) {
 	return s.db.Transaction(func(db *zdb.DB) (err error) {
 		return run(&SQL{
 			db:      db,
@@ -59,7 +59,7 @@ func (s *SQL) Transaction(run func(s *SQL) error) (err error) {
 	})
 }
 
-func sqlOrderBy(orderBy map[string]string, fieldPrefix string) (o []string) {
+func sqlOrderBy(orderBy []OrderByItem, fieldPrefix string) (o []string) {
 	l := len(orderBy)
 	if l == 0 {
 		return nil
@@ -67,18 +67,31 @@ func sqlOrderBy(orderBy map[string]string, fieldPrefix string) (o []string) {
 
 	o = make([]string, 0, l)
 	hasPrefix := fieldPrefix != ""
-	for field := range orderBy {
+	for _, item := range orderBy {
+		field := item.Field
+		if !isValidFieldName(field) {
+			continue
+		}
 		if hasPrefix && !strings.ContainsRune(field, '.') {
 			field = fieldPrefix + field
 		}
-		switch orderBy[field] {
-		case "-1":
-			o = append(o, field+" DESC")
-		case "1", "0":
-			o = append(o, field+" ASC")
-		default:
-			o = append(o, field+" "+orderBy[field])
+		dir := strings.ToUpper(item.Direction)
+		if dir != "ASC" && dir != "DESC" {
+			dir = "ASC"
 		}
+		o = append(o, field+" "+dir)
 	}
 	return
+}
+
+func isValidFieldName(field string) bool {
+	if field == "" {
+		return false
+	}
+	for _, c := range field {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.') {
+			return false
+		}
+	}
+	return true
 }

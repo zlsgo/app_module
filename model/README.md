@@ -7,22 +7,31 @@ Model 是 app_module 中提供的数据建模与访问层。它围绕 Schema 驱
 - **Schema 驱动**：通过结构化 Schema 描述字段、关系、初始数据及视图元数据。
 - **自动迁移**：启动阶段自动建表/增量同步、索引维护和初始数据写入。
 - **统一 CRUD**：`Store` 封装插入、查询、更新、删除、分页等常见操作，并内建软删除/时间戳逻辑。
+- **Repository 模式**：泛型 `Repository[T]` 提供类型安全的数据访问层，支持 Map 与 Struct 映射。
+- **链式查询**：`Query[T]` 提供流式 API 构建复杂查询，支持条件组合、排序、分页等。
+- **类型安全过滤**：`QueryFilter` 接口与构建函数（`Eq`、`In`、`Like` 等）提供类型安全的条件构建。
 - **字段管线**：支持 JSON/布尔/时间格式的 Before/After 处理、字段加密（密码/MD5）以及枚举标签映射。
 - **关联装载**：基于定义的 Relation 自动选择单条/合并/多条关联数据。
+- **CRUD 钩子**：支持 Insert/Update/Delete 前后的钩子事件。
 - **Schema API**：可选对外暴露模型元信息，便于管理端动态渲染。
 
 ## 目录结构
 
 ```
 model/
-├── action.go              // Store CRUD 入口
+├── action_*.go            // Store CRUD 操作（按功能拆分）
 ├── define.go              // Schema 运行时结构
 ├── field.go               // 字段解析与校验
-├── hook/define.go         // 迁移阶段钩子事件
+├── hook/define.go         // 钩子事件定义（迁移与 CRUD）
 ├── instance.go            // Schemas/Stores 容器
+├── mapper.go              // Mapper 接口与实现
 ├── module.go / model.go   // 模块初始化入口
 ├── operation.go           // Filter/Store API 封装
 ├── parse.go               // Schema 解析与完善
+├── pool.go                // CondOptions 对象池
+├── query_filter.go        // QueryFilter 接口与构建函数
+├── query.go               // 链式查询 Query Builder
+├── repository.go          // 泛型 Repository 层
 ├── storage.go / storage_sql*.go // 存储接口与 SQL 实现
 ├── utils.go               // 初始化辅助
 ├── valid.go               // 写入数据校验
@@ -134,10 +143,15 @@ mod := model.New(func(o *model.Options) {
 - `SoftDeletes`：启用软删除字段（默认 `deleted_at`）。
 - `Timestamps`：自动维护 `created_at` / `updated_at`。
 - `CryptID`：对主键 ID 进行 Hash 加密（使用 HashID）。
-- `Hook`：迁移阶段钩子，签名 `func(event hook.Event, data ...any) error`，事件枚举：
-  - `hook.EventMigrationStart`
-  - `hook.EventMigrationIndexDone`
-  - `hook.EventMigrationDone`
+- `Hook`：模型生命周期钩子，签名 `func(event hook.Event, data ...any) error`，事件枚举：
+  - 迁移事件：
+    - `hook.EventMigrationStart`
+    - `hook.EventMigrationIndexDone`
+    - `hook.EventMigrationDone`
+  - CRUD 事件：
+    - `hook.EventBeforeInsert` / `hook.EventAfterInsert`
+    - `hook.EventBeforeUpdate` / `hook.EventAfterUpdate`
+    - `hook.EventBeforeDelete` / `hook.EventAfterDelete`
 - `Salt` / `CryptLen`：ID 加密参数。
 - `LowFields`：在 Schema API 响应中隐藏的字段列表。
 - `FieldsSort`：字段排序优先级。
@@ -212,6 +226,206 @@ Store 会自动：
 - 自动填充 `created_at` / `updated_at` / `deleted_at` 等内建字段。
 - 根据配置对 ID/字段执行加密或解密。
 
+## Repository 模式
+
+`Repository[T]` 是基于 `Store` 的泛型封装层，提供类型安全的数据访问。
+
+### 创建 Repository
+
+```go
+store := mod.MustGetStore("user")
+
+// 方式一：使用工厂函数
+mapRepo := model.NewMapRepository(store)
+structRepo := model.NewStructRepository[User](store)
+
+// 方式二：从 Store 直接获取（推荐）
+mapRepo := store.Repository()           // 返回 *Repository[ztype.Map]
+structRepo := model.Repo[User](store)   // 返回 *Repository[User]
+
+// 方式三：自定义 Mapper
+customRepo := model.NewRepository(store, customMapper)
+```
+
+结构体映射示例：
+
+```go
+type User struct {
+    ID       int    `json:"id"`
+    Username string `json:"username"`
+    Email    string `json:"email"`
+}
+```
+
+### Repository API
+
+```go
+// 查询
+users, err := repo.Find(model.Q(ztype.Map{"status": 1}))
+user, err := repo.FindOne(model.Eq("username", "john"))
+user, err := repo.First(model.Eq("status", 1))  // FindOne 别名
+user, err := repo.FindByID(1)
+users, err := repo.FindByIDs([]any{1, 2, 3})
+all, err := repo.All()
+
+// 分页
+pageData, err := repo.Pages(1, 20, model.Q(ztype.Map{}))
+
+// 统计
+count, err := repo.Count(model.Eq("status", 1))
+exists, err := repo.Exists(model.Eq("username", "john"))
+
+// 写入
+id, err := repo.Insert(ztype.Map{"username": "john"})
+id, err := repo.InsertMany(ztype.Maps{...})
+
+// 更新
+affected, err := repo.Update(model.Eq("id", 1), ztype.Map{"status": 2})
+affected, err := repo.UpdateByID(1, ztype.Map{"status": 2})
+affected, err := repo.UpdateMany(model.In("id", []int{1,2}), ztype.Map{"status": 2})
+affected, err := repo.UpdateByIDs([]any{1, 2}, ztype.Map{"status": 2})
+
+// 删除
+affected, err := repo.Delete(model.Eq("id", 1))
+affected, err := repo.DeleteByID(1)
+affected, err := repo.DeleteMany(model.In("id", []int{1,2}))
+affected, err := repo.DeleteByIDs([]any{1, 2})
+
+// 辅助方法
+store := repo.Store()    // 获取底层 *Store
+schema := repo.Schema()  // 获取 *Schema
+```
+
+### QueryFilter 构建函数
+
+提供类型安全的条件构建：
+
+| 函数        | 说明         | 示例                                    |
+| ----------- | ------------ | --------------------------------------- |
+| `Q(map)`    | 原始 Map     | `Q(ztype.Map{"status": 1})`             |
+| `ID(v)`     | 主键匹配     | `ID(1)`                                 |
+| `Eq(f, v)`  | 等于         | `Eq("name", "john")`                    |
+| `Ne(f, v)`  | 不等于       | `Ne("status", 0)`                       |
+| `Gt(f, v)`  | 大于         | `Gt("age", 18)`                         |
+| `Ge(f, v)`  | 大于等于     | `Ge("age", 18)`                         |
+| `Lt(f, v)`  | 小于         | `Lt("age", 60)`                         |
+| `Le(f, v)`  | 小于等于     | `Le("age", 60)`                         |
+| `In(f, v)`  | IN 集合      | `In("id", []int{1,2,3})`                |
+| `NotIn`     | NOT IN       | `NotIn("status", []int{0, -1})`         |
+| `Like`      | 模糊匹配     | `Like("name", "%john%")`                |
+| `Between`   | 区间         | `Between("age", 18, 60)`                |
+| `IsNull`    | 为空         | `IsNull("deleted_at")`                  |
+| `IsNotNull` | 不为空       | `IsNotNull("email")`                    |
+| `And(...)`  | 条件组合 AND | `And(Eq("a", 1), Gt("b", 2))`           |
+| `Or(...)`   | 条件组合 OR  | `Or(Eq("status", 1), Eq("status", 2))` |
+
+## Query Builder（链式查询）
+
+`Query[T]` 提供流畅的链式 API 构建复杂查询：
+
+```go
+repo := model.NewMapRepository(store)
+
+// 链式查询
+users, err := repo.Query().
+    Where("status", 1).
+    WhereLike("name", "%john%").
+    WhereGt("age", 18).
+    Select("id", "username", "email").
+    OrderBy("created_at", "DESC").
+    Limit(10).
+    Find()
+
+// 分页查询
+pageData, err := repo.Query().
+    Where("status", 1).
+    OrderByDesc("id").
+    Pages(1, 20)
+
+// 单条查询
+user, err := repo.Query().
+    WhereID(1).
+    FindOne()
+
+// 统计
+count, err := repo.Query().
+    Where("status", 1).
+    Count()
+
+// 更新
+affected, err := repo.Query().
+    Where("status", 0).
+    Update(ztype.Map{"status": 1})
+
+// 删除
+affected, err := repo.Query().
+    Where("status", -1).
+    Delete()
+```
+
+### Query 方法
+
+| 方法                        | 说明                       |
+| --------------------------- | -------------------------- |
+| `Where(field, value)`       | 等值条件                   |
+| `WhereFilter(filter)`       | 自定义 QueryFilter         |
+| `WhereID(id)`               | 主键条件                   |
+| `WhereIn(field, values)`    | IN 条件                    |
+| `WhereNot(field, value)`    | 不等于                     |
+| `WhereGt/Ge/Lt/Le`          | 比较条件                   |
+| `WhereLike(field, pattern)` | 模糊匹配                   |
+| `WhereBetween(field, a, b)` | 区间条件                   |
+| `WhereNull/WhereNotNull`    | 空值判断                   |
+| `OrWhere(filters...)`       | OR 条件组                  |
+| `Select(fields...)`         | 指定返回字段               |
+| `OrderBy(field, dir)`       | 排序（默认 ASC）           |
+| `OrderByDesc(field)`        | 降序排序                   |
+| `GroupBy(fields...)`        | 分组                       |
+| `Limit(n)` / `Offset(n)`    | 限制与偏移                 |
+| `WithRelation(names...)`    | 加载关联                   |
+| `Find()` / `FindOne()`      | 执行查询                   |
+| `First()`                   | 等同 FindOne               |
+| `Pages(page, pagesize)`     | 分页查询                   |
+| `Count()` / `Exists()`      | 统计                       |
+| `Update(data)`              | 执行更新                   |
+| `Delete()`                  | 执行删除                   |
+
+## 批量操作
+
+`Repository[T]` 提供批量操作方法，适用于大数据量场景：
+
+```go
+repo := model.NewMapRepository(store)
+
+// 批量插入（自动分批，默认每批 1000 条）
+ids, err := repo.BatchInsert(ztype.Maps{
+    {"username": "user1"},
+    {"username": "user2"},
+    // ... 大量数据
+})
+
+// 自定义批量大小
+ids, err := repo.BatchInsert(data, model.BatchSize(500))
+
+// 事务内批量插入（全部成功或全部回滚）
+ids, err := repo.BatchInsertTx(data)
+
+// 批量更新
+affected, err := repo.BatchUpdate(model.Eq("status", 0), ztype.Map{"status": 1})
+
+// 批量删除
+affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
+```
+
+| 方法                         | 说明                              |
+| ---------------------------- | --------------------------------- |
+| `BatchInsert(data, opts...)`   | 分批插入，返回所有插入的 ID       |
+| `BatchInsertTx(data, opts...)` | 事务内分批插入，失败时全部回滚    |
+| `BatchUpdate(filter, data, opts...)` | 分批更新匹配的记录          |
+| `BatchDelete(filter, opts...)` | 分批删除匹配的记录                |
+
+> 默认批量大小 `DefaultBatchSize = 1000`，可通过 `BatchSize(n)` 调整。
+
 ## 查询与过滤器
 
 过滤条件使用 `model.Filter`（`type Filter ztype.Map`）或任意 `ztype.Map`：
@@ -240,7 +454,7 @@ Store 会自动：
 查询方法可接受 `func(*model.CondOptions)` 定制：
 
 - `Fields`：返回字段列表。包含 `关系` 或 `关系.字段` 时会触发关联查询。
-- `OrderBy`：`map[string]string`，支持 `ASC` / `DESC` / `1` / `-1`。
+- `OrderBy`：`[]OrderByItem`，每项包含 `Field` 和 `Direction`（`ASC` / `DESC`）。
 - `GroupBy`：字段分组。
 - `Join`：手动追加 `StorageJoin`（表名、别名、表达式）。
 - `Limit` / `Offset`：限制条数与偏移量。
@@ -275,23 +489,29 @@ Store 会自动：
 
 ## 事务
 
-SQL 存储提供 `Transaction`：
+存储接口提供 `Transaction`，推荐使用 `Repository.Tx` 进行事务操作：
 
 ```go
-store := mod.MustGetStore("user")
+repo := model.NewMapRepository(store)
 
-err := store.Schema().Storage.(*model.SQL).Transaction(func(tx *model.SQL) error {
-    id, err := tx.Insert("users", nil, ztype.Map{"username": "john"})
+err := repo.Tx(func(txRepo *model.Repository[ztype.Map]) error {
+    id, err := txRepo.Insert(ztype.Map{"username": "john"})
     if err != nil {
         return err
     }
-
-    _, err = tx.Insert("user_logs", nil, ztype.Map{"user_id": id, "action": "register"})
-    return err
+    // 同一事务内的其他操作
+    return nil
 })
 ```
 
-也可以直接使用 `module.schemas.Storage().Transaction(...)` 对底层存储开启事务。
+也可以直接使用底层存储的 `Transaction` 方法：
+
+```go
+err := store.Schema().Storage.Transaction(func(txStorage model.Storageer) error {
+    // 使用 txStorage 进行事务操作
+    return nil
+})
+```
 
 ## Schema API 与视图元数据
 

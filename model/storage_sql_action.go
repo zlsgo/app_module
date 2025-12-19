@@ -35,11 +35,6 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 	exprs = make([]string, 0, len(filter))
 
 	for k, value := range filter {
-		if value == nil {
-			exprs = append(exprs, d.IsNull(k))
-			continue
-		}
-
 		if k == "" {
 			if exprs, err = parseExprsBuildCond(d, value, exprs); err != nil {
 				return
@@ -180,9 +175,12 @@ func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...f
 }
 
 func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
-	o := CondOptions{}
+	o := acquireCondOptions()
+	defer releaseCondOptions(o)
 	for _, f := range fn {
-		f(&o)
+		if f != nil {
+			f(o)
+		}
 	}
 
 	return s.db.Delete(table, func(b *builder.DeleteBuilder) error {
@@ -202,6 +200,10 @@ func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func
 		}
 
 		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
+
+		if o.Limit > 0 {
+			b.Limit(o.Limit)
+		}
 
 		return nil
 	})
@@ -224,7 +226,13 @@ func (s *SQL) First(table string, fields []string, filter ztype.Map, fn ...func(
 }
 
 func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
-	o := zutil.Optional(CondOptions{}, fn...)
+	o := acquireCondOptions()
+	defer releaseCondOptions(o)
+	for _, f := range fn {
+		if f != nil {
+			f(o)
+		}
+	}
 	items, err := s.db.Find(table, func(b *builder.SelectBuilder) error {
 		var fieldPrefix string
 		hasJoin := len(o.Join) > 0
@@ -276,9 +284,12 @@ func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*
 }
 
 func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
-	o := CondOptions{}
+	o := acquireCondOptions()
+	defer releaseCondOptions(o)
 	for _, f := range fn {
-		f(&o)
+		if f != nil {
+			f(o)
+		}
 	}
 
 	rows, p, err := s.db.Pages(table, page, pagesize, func(b *builder.SelectBuilder) error {
@@ -334,9 +345,12 @@ func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter zt
 }
 
 func (s *SQL) Update(table string, fields []string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
-	o := CondOptions{}
+	o := acquireCondOptions()
+	defer releaseCondOptions(o)
 	for _, f := range fn {
-		f(&o)
+		if f != nil {
+			f(o)
+		}
 	}
 
 	return s.db.Update(table, data, func(b *builder.UpdateBuilder) error {

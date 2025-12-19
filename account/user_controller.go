@@ -32,9 +32,7 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	page, pagesize, _ := model.Common.VarPages(c)
 
 	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) {
-		co.OrderBy = map[string]string{
-			model.IDKey(): "desc",
-		}
+		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 		co.Fields = GetAccountModel().m.GetFields("password", "salt")
 	})
 	// data.Items.ForEach(func(i int, item ztype.Map) bool {

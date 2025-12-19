@@ -32,9 +32,7 @@ func (h *Role) Get(c *znet.Context) (data *model.PageData, err error) {
 	}
 
 	return restapi.Page(c, h.module.index.roleModel.Model(), filter, func(o *model.CondOptions) {
-		o.OrderBy = map[string]string{
-			model.IDKey(): "desc",
-		}
+		o.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 	})
 }
 

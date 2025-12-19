@@ -23,6 +23,10 @@ func (h *controller) Init(r *znet.Engine) error {
 		return errors.New("functional model has not been registered")
 	}
 
+	if h.options == nil {
+		return errors.New("restapi options is required")
+	}
+
 	if h.options.Middleware != nil {
 		r.Use(h.options.Middleware)
 	}
@@ -41,7 +45,7 @@ func (h *controller) Init(r *znet.Engine) error {
 			args = path[1]
 		}
 
-		if h.options.ResponseHook != nil && !h.options.ResponseHook(c, path[0], args, method) {
+		if h.options.ResponseHook == nil || !h.options.ResponseHook(c, path[0], args, method) {
 			r.HandleNotFound(c)
 			return nil, nil
 		}
@@ -74,21 +78,23 @@ func find(
 ) (any, error) {
 	switch id {
 	case "":
-		page, pagesize, _ := model.Common.VarPages(c)
+		page, pagesize, err := model.Common.VarPages(c)
+		if err != nil {
+			return nil, err
+		}
+		const maxPageSize = 1000
+		if pagesize > maxPageSize {
+			pagesize = maxPageSize
+		}
 		return mod.Pages(page, pagesize, filter, func(o *model.CondOptions) {
-			o.OrderBy = map[string]string{model.IDKey(): "desc"}
+			o.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 
 			if fn != nil {
 				fn(o)
 			}
 		})
 	case "*":
-		return mod.Find(filter, func(o *model.CondOptions) {
-			o.OrderBy = map[string]string{model.IDKey(): "desc"}
-			if fn != nil {
-				fn(o)
-			}
-		})
+		return nil, zerror.InvalidInput.Text("全量查询不允许，请使用分页")
 	default:
 		filter[model.IDKey()] = id
 		row, err := mod.FindOne(filter)

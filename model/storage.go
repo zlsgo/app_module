@@ -31,20 +31,13 @@ type StorageJoin struct {
 	ModelOptions builder.JoinOption
 }
 
-// type StorageWhere struct {
-// 	Expr string
-// 	// Cond  string
-// 	Field string
-// 	Value interface{}
-// }
-
 type StorageModelOptions struct{}
 
 type CondOptions struct {
 	// 查询字段 默认查询所有字段，如果字段包含空格那么会跳过追加表名前缀
 	Fields  []string
 	GroupBy []string
-	OrderBy map[string]string
+	OrderBy []OrderByItem
 	Join    []StorageJoin
 	Limit   int
 	Offset  int
@@ -58,7 +51,7 @@ type InsertOptions struct {
 type Storageer interface {
 	GetStorageType() StorageType
 	GetOptions() ztype.Map
-	Transaction(run func(s *SQL) error) (err error)
+	Transaction(run func(s Storageer) error) (err error)
 	Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error)
 	First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error)
 	Pages(table string, fields []string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error)

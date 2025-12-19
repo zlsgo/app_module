@@ -87,7 +87,7 @@ func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
 
 	resp, err := m.Find(model.Filter{"to": id, "status": 0}, func(co *model.CondOptions) {
 		co.Fields = []string{model.IDKey(), model.CreatedAtKey, "mtype"}
-		co.OrderBy = map[string]string{model.IDKey(): "desc"}
+		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 	})
 	if err != nil {
 		return nil, err
