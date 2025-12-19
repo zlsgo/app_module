@@ -77,14 +77,15 @@ func main() {
 
 模块启动后会在 `Options.Prefix` 下注册一个通配路由 `/*`，并根据 HTTP Method 转发到 `model.Store`：
 
-| 方法      | 路径                    | 行为                                                 |
-| --------- | ----------------------- | ---------------------------------------------------- |
-| GET       | `{prefix}/{model}`      | 分页查询（读取 `page`/`pagesize`），默认按 `id desc` |
-| GET       | `{prefix}/{model}/*`    | 查询全部（不分页）                                   |
-| GET       | `{prefix}/{model}/{id}` | 查询单条                                             |
-| POST      | `{prefix}/{model}`      | 插入（返回 `{ "id": ... }`）                         |
-| PUT/PATCH | `{prefix}/{model}/{id}` | 更新（返回 `{ "total": ... }`）                      |
-| DELETE    | `{prefix}/{model}/{id}` | 删除（返回 `{ "total": ... }`）                      |
+| 方法      | 路径                    | 行为                                                              |
+| --------- | ----------------------- | ----------------------------------------------------------------- |
+| GET       | `{prefix}/{model}`      | 分页查询（读取 `page`/`pagesize`，最大 1000），默认按 `id desc`   |
+| GET       | `{prefix}/{model}/{id}` | 查询单条                                                          |
+| POST      | `{prefix}/{model}`      | 插入（返回 `{ "id": ... }`）                                      |
+| PUT/PATCH | `{prefix}/{model}/{id}` | 更新（返回 `{ "total": ... }`）                                   |
+| DELETE    | `{prefix}/{model}/{id}` | 删除（返回 `{ "total": ... }`）                                   |
+
+> **注意**：出于安全考虑，已禁用全量查询（`{prefix}/{model}/*`），请使用分页接口。
 
 其中 `{model}` 来自 `model` 模块已注册的 `Stores`（`model.Store`）。
 
