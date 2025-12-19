@@ -5,14 +5,6 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 )
 
-// type View struct {
-// 	Disabled bool          `json:"disabled"`
-// 	Title    string        `json:"title"`
-// 	Fields   []string      `json:"Fields"`
-// 	Layouts  ztype.Var     `json:"layouts"`
-// 	Filters  []interface{} `json:"filters"`
-// }
-
 func (m *Schema) ParseLables(items ztype.Maps) ztype.Maps {
 	return zarray.Map(items, func(_ int, v ztype.Map) ztype.Map {
 		for k := range v {
