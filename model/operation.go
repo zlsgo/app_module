@@ -2,12 +2,14 @@ package model
 
 import (
 	"strconv"
-	"unsafe"
+	"sync/atomic"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/zdb/builder"
 )
+
+var condCounter uint64
 
 type Filter ztype.Map
 
@@ -16,7 +18,8 @@ func NewFilter() Filter {
 }
 
 func (f Filter) Cond(fn func(*builder.BuildCond) (exprs string)) Filter {
-	f[placeHolder+strconv.FormatInt(int64(uintptr(unsafe.Pointer(&fn))), 10)] = fn
+	id := atomic.AddUint64(&condCounter, 1)
+	f[placeHolder+strconv.FormatUint(id, 10)] = fn
 	return f
 }
 
@@ -157,4 +160,12 @@ func (o *Store) DeleteMany(filter Filter, fn ...func(*CondOptions)) (total int64
 func (o *Store) DeleteByID(id any, fn ...func(*CondOptions)) (total int64, err error) {
 	filter := ztype.Map{idKey: id}
 	return Delete(o.schema, filter, fn...)
+}
+
+func (o *Store) Repository() *Repository[ztype.Map] {
+	return NewMapRepository(o)
+}
+
+func Repo[T any](o *Store) *Repository[T] {
+	return NewStructRepository[T](o)
 }

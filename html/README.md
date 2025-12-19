@@ -81,11 +81,14 @@ func main() {
 
 `pkg/app_module/html/render.go` 注册了常见的处理函数签名：
 
-- `func(c *znet.Context) *el.Element`
-- `func(c *znet.Context) (int, *el.Element)`
+### 基础模式
 
+- `func(c *znet.Context) *el.Element` — 直接返回元素，状态码为 200
+- `func(c *znet.Context) (*el.Element, error)` — 返回元素或错误，错误时使用 ErrorPage
+- `func(c *znet.Context) (int, *el.Element)` — 返回自定义状态码与元素
 
 ```go
+// 基础模式 - 直接返回元素
 r.GET("/dashboard", func(c *znet.Context) *el.Element {
     return el.HTML(
         el.HEAD(el.TITLE(el.Text("Dashboard"))),
@@ -93,6 +96,22 @@ r.GET("/dashboard", func(c *znet.Context) *el.Element {
             el.H1(el.Text("仪表盘")),
             el.DIV(el.Text("完整页面内容")),
         ),
+    )
+})
+
+// 错误处理模式 - 可返回 error
+r.GET("/user", func(c *znet.Context) (*el.Element, error) {
+    user, err := getUser(c)
+    if err != nil {
+        return nil, err
+    }
+    return el.DIV(el.Text(user.Name)), nil
+})
+
+// 自定义状态码模式
+r.GET("/error", func(c *znet.Context) (int, *el.Element) {
+    return 404, el.HTML(
+        el.BODY(el.H1(el.Text("页面未找到"))),
     )
 })
 ```
