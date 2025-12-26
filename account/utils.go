@@ -1,11 +1,15 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
-type requestWith struct{}
+type requestWith struct {
+	module *Module
+}
 
 const (
 	ctxWithUID  = "m::account::uid"
@@ -36,10 +40,22 @@ func (requestWith) User(c *znet.Context) ztype.Map {
 	return uid.(ztype.Map)
 }
 
-func (r requestWith) RealUID(c *znet.Context) string {
+func (r requestWith) RealUID(c *znet.Context) (string, error) {
 	uid := r.UID(c)
-	nid, _ := GetAccountModel().Schema().DeCryptID(uid)
-	return nid
+	if uid == "" {
+		return "", errors.New("uid is empty")
+	}
+	if r.module == nil || r.module.accountModel == nil {
+		return "", errors.New("account model not initialized")
+	}
+	nid, err := r.module.accountModel.Schema().DeCryptID(uid)
+	if err != nil || nid == "" {
+		if err == nil {
+			err = errors.New("uid decrypt failed")
+		}
+		return "", err
+	}
+	return nid, nil
 }
 
 func (requestWith) Roles(c *znet.Context) []string {

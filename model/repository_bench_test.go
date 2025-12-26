@@ -119,20 +119,20 @@ func BenchmarkRepositoryQueryBuilder(b *testing.B) {
 
 func BenchmarkRepositoryStructMapper(b *testing.B) {
 	_, m := newTestDB(&testing.T{}, "bench_struct")
-	repo := Repo[TestUser](m.Model())
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
 
 	for i := 0; i < 100; i++ {
-		_, _ = repo.Insert(ztype.Map{
-			"name":   "StructUser" + ztype.ToString(i),
-			"email":  "struct" + ztype.ToString(i) + "@test.com",
-			"age":    20 + i%30,
-			"status": 1,
+		_, _ = repo.Insert(TestUserCreate{
+			Name:   "StructUser" + ztype.ToString(i),
+			Email:  "struct" + ztype.ToString(i) + "@test.com",
+			Age:    20 + i%30,
+			Status: 1,
 		})
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = repo.Find(Eq("status", 1))
+		_, _ = repo.Find(TestUserFilter{Status: 1})
 	}
 }
 

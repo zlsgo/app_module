@@ -17,7 +17,9 @@ type (
 		// Timestamps 注入创建/更新时间
 		Timestamps bool `z:"timestamps,omitempty"`
 		// CryptID 加密 ID
-		CryptID bool `z:"crypt_id,omitempty"`
+		CryptID          bool          `z:"crypt_id,omitempty"`
+		SoftDeleteIsTime bool          `z:"soft_delete_is_time,omitempty"`
+		OldColumn        DealOldColumn `z:"old_column,omitempty"`
 	}
 	Options struct {
 		// SetStorageer 手动设置数据库
@@ -39,8 +41,9 @@ type (
 	}
 )
 
+// New 创建新的模型模块实例
 func New(o ...func(*Options)) (m *Module) {
-	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "", Schemas: make([]schema.Schema, 0)}, o...)
+	opt := zutil.Optional(Options{Prefix: "model_", SchemaDir: "", Schemas: make([]schema.Schema, 0), SchemaOptions: DefaultSchemaOptions}, o...)
 
 	m = &Module{
 		Options: opt,

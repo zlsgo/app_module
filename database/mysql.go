@@ -10,8 +10,9 @@ import (
 	"github.com/zlsgo/zdb/driver/mysql"
 )
 
+// init 注册 mysql 驱动工厂
 func init() {
-	drivers["mysql"] = func(db Options) (dbConf driver.IfeConfig, err error) {
+	if err := Register("mysql", func(db Options) (dbConf driver.IfeConfig, err error) {
 		if db.MySQL == nil {
 			return nil, errors.New("初始化数据库失败: mysql 未配置")
 		}
@@ -26,5 +27,7 @@ func init() {
 			// Zone:       db.MySQL.Zone,
 		}
 		return
+	}); err != nil {
+		panic(err)
 	}
 }

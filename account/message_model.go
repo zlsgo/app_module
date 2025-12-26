@@ -17,15 +17,6 @@ type MessageModel struct {
 	module *Module
 }
 
-var messageModel *MessageModel
-
-func GetMessageModel() (*MessageModel, error) {
-	if messageModel == nil {
-		return nil, errors.New("message model not define")
-	}
-	return messageModel, nil
-}
-
 func messageModelDefine(m *Module) error {
 	const messageName = "message"
 	b := true
@@ -74,13 +65,16 @@ func messageModelDefine(m *Module) error {
 	}, false)
 
 	if err == nil {
-		messageModel = &MessageModel{model: mod, module: m, Store: mod.Model()}
+		m.messageModel = &MessageModel{model: mod, module: m, Store: mod.Model()}
 	}
 	return err
 }
 
 func (m *MessageModel) Unread(uid string) (ztype.Map, error) {
-	id, err := GetAccountModel().Schema().DeCryptID(uid)
+	if m.module == nil || m.module.accountModel == nil {
+		return nil, errors.New("account model not define")
+	}
+	id, err := m.module.accountModel.Schema().DeCryptID(uid)
 	if err != nil {
 		return nil, errors.New("用户 ID 错误")
 	}
@@ -119,12 +113,16 @@ func (m *MessageModel) SendMessage(from, to, title, message string, mtype ...str
 		return errors.New("接收者/发送者 ID 不能为空")
 	}
 
-	to, err = GetAccountModel().Schema().DeCryptID(to)
+	if m.module == nil || m.module.accountModel == nil {
+		return errors.New("account model not define")
+	}
+
+	to, err = m.module.accountModel.Schema().DeCryptID(to)
 	if err != nil {
 		return errors.New("接收者 ID 错误")
 	}
 
-	from, err = GetAccountModel().Schema().DeCryptID(from)
+	from, err = m.module.accountModel.Schema().DeCryptID(from)
 	if err != nil {
 		return errors.New("发送者 ID 错误")
 	}

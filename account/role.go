@@ -124,7 +124,7 @@ func (m *Module) setPermission(permission *rbac.RBAC, roleInfo ztype.Map) error 
 		return permission.RemoveRole(roleInfo.Get("alias").String())
 	}
 
-	perms, err := model.FindMaps(permModel.Model(), ztype.Map{
+	perms, err := permModel.Model().Find(model.Filter{
 		model.IDKey(): permissionIds,
 		"status":      1,
 	}, func(o *model.CondOptions) {
@@ -138,4 +138,56 @@ func (m *Module) setPermission(permission *rbac.RBAC, roleInfo ztype.Map) error 
 		role.AddGlobPermission(perm.Get("priority").Int(), perm.Get("action").String(), perm.Get("target").String())
 	}
 	return permission.MergerRole(roleInfo.Get("alias").String(), role)
+}
+
+func (m *Module) buildRBAC() (*rbac.RBAC, error) {
+	roleModel, ok := m.mods.Get(roleName)
+	if !ok {
+		return nil, errors.New(roleName + " roleName not found")
+	}
+
+	roles, err := m.loadActiveRoles(roleModel)
+	if err != nil {
+		return nil, err
+	}
+
+	permission := rbac.New()
+	if m.Options.InlayRBAC != nil {
+		if err := permission.Merge(m.Options.InlayRBAC); err != nil {
+			return nil, err
+		}
+	}
+
+	if m.Options.RBACFile != "" {
+		fPermission, err := rbac.ParseFile(m.Options.RBACFile)
+		if err != nil {
+			return nil, err
+		}
+		if err = permission.Merge(fPermission); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, r := range roles {
+		if err := m.setPermission(permission, r); err != nil {
+			return nil, err
+		}
+	}
+
+	permission.ForEachRole(func(key string, value *rbac.Role) bool {
+		value.AddGlobPermission(1, "*", m.Options.ApiPrefix+"/message/realtime")
+		return true
+	})
+
+	return permission, nil
+}
+
+func (m *Module) rebuildRBAC() error {
+	permission, err := m.buildRBAC()
+	if err != nil {
+		return err
+	}
+
+	m.permission.Store(permission)
+	return nil
 }

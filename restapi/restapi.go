@@ -4,11 +4,10 @@ import (
 	"github.com/sohaha/zlsgo/zutil"
 )
 
-var options Options
-
 func New(o ...func(options *Options)) *Module {
-	options = zutil.Optional(Options{
-		Prefix: "__",
+	options := zutil.Optional(Options{
+		Prefix:      "__",
+		MaxPageSize: defaultMaxPageSize,
 	}, o...)
 	return &Module{
 		options: options,

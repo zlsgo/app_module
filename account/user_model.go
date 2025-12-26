@@ -13,16 +13,6 @@ type AccountModel struct {
 	m   *model.Schema
 }
 
-var accountModel *AccountModel
-
-func GetAccountModel() *AccountModel {
-	if accountModel == nil {
-		panic("account model not define")
-	}
-
-	return accountModel
-}
-
 const accountName = "account"
 
 func accountModelDefine(p *Module) error {
@@ -181,7 +171,7 @@ func accountModelDefine(p *Module) error {
 	}, false)
 
 	if err == nil {
-		accountModel = &AccountModel{Store: mod.Model(), mod: p, m: mod}
+		p.accountModel = &AccountModel{Store: mod.Model(), mod: p, m: mod}
 	}
 	return err
 }

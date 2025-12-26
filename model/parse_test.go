@@ -77,7 +77,7 @@ func TestSet(t *testing.T) {
 
 	zdb.Debug.Store(true)
 
-	err = m.Migration().Auto(dealOldColumnNone)
+	err = m.Migration().Auto(DealOldColumnNone)
 	tt.NoError(err)
 
 	tt.Equal(m.GetName(), "日志模型")
@@ -92,18 +92,18 @@ func TestSet(t *testing.T) {
 
 	_, _ = Insert(m, map[string]interface{}{"action": "demo", "ip": "127.0.0.3", "status": "1"})
 
-	row, err := FindOne(m.Model(), ztype.Map{}, func(ModelOptions *CondOptions) {
+	row, err := FindOne[ztype.Map](m.Model(), Filter{}, func(ModelOptions *CondOptions) {
 		ModelOptions.OrderBy = []OrderByItem{{Field: IDKey(), Direction: "DESC"}}
 		ModelOptions.Fields = []string{IDKey(), "status"}
 	})
 	tt.NoError(err)
 	tt.Log(row)
 
-	total, err := Update(m, row.Get(IDKey()).String(), ztype.Map{"ip": "192.168.0.1", "status": 1})
+	total, err := Update(m, ID(row.Get(IDKey()).String()), ztype.Map{"ip": "192.168.0.1", "status": 1})
 	tt.NoError(err)
 	tt.Log(total)
 
-	row, err = FindOne(m.Model(), ztype.Map{}, func(ModelOptions *CondOptions) {
+	row, err = FindOne[ztype.Map](m.Model(), Filter{}, func(ModelOptions *CondOptions) {
 		ModelOptions.OrderBy = []OrderByItem{{Field: IDKey(), Direction: "DESC"}}
 	})
 	tt.NoError(err)

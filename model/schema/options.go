@@ -7,6 +7,7 @@ import (
 type Options struct {
 	DisabledMigrator *bool `json:"disabled_migrator,omitempty"`
 	SoftDeletes      *bool `json:"soft_deletes,omitempty"`
+	SoftDeleteIsTime *bool `json:"soft_delete_is_time,omitempty"`
 	Timestamps       *bool `json:"timestamps,omitempty"`
 	CryptID          *bool `json:"crypt_id,omitempty"`
 	Hook             func(event hook.Event, data ...any) error
@@ -28,6 +29,11 @@ func (o *Options) SetSalt(s string) *Options {
 
 func (o *Options) SetSoftDeletes(b bool) *Options {
 	o.SoftDeletes = &b
+	return o
+}
+
+func (o *Options) SetSoftDeleteIsTime(b bool) *Options {
+	o.SoftDeleteIsTime = &b
 	return o
 }
 

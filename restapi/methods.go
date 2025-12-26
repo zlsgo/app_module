@@ -1,6 +1,8 @@
 package restapi
 
 import (
+	"errors"
+
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
@@ -14,7 +16,7 @@ func FindById(
 	id string,
 	fn func(o *model.CondOptions),
 ) (ztype.Map, error) {
-	res, err := find(c, store, id, model.Filter{}, fn)
+	res, err := find(c, store, id, model.Filter{}, fn, defaultMaxPageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +31,7 @@ func Page(
 	filter model.Filter,
 	fn func(o *model.CondOptions),
 ) (*model.PageData, error) {
-	res, err := find(c, store, "", filter, fn)
+	res, err := find(c, store, "", filter, fn, defaultMaxPageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +46,7 @@ func Find(
 	filter model.Filter,
 	fn func(o *model.CondOptions),
 ) (ztype.Maps, error) {
-	res, err := find(c, store, "*", filter, fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(ztype.Maps), nil
+	return store.Find(filter, fn)
 }
 
 // Insert 添加数据
@@ -61,7 +58,7 @@ func Insert(
 ) (ztype.Map, error) {
 	j, err := c.GetJSONs()
 	if err != nil {
-		return nil, err
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	var data ztype.Map
@@ -96,7 +93,7 @@ func InsertMany(
 ) (ztype.Map, error) {
 	j, err := c.GetJSONs()
 	if err != nil {
-		return nil, err
+		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	var data ztype.Maps
@@ -139,7 +136,23 @@ func DeleteById(
 		return nil, zerror.InvalidInput.Text("id cannot empty")
 	}
 
-	return Delete(c, store, model.Filter{model.IDKey(): id}, handler)
+	info, err := store.FindOneByID(id)
+	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.NotFound.Text("id not found")
+		}
+		return nil, err
+	}
+	if handler != nil {
+		if err := handler(info); err != nil {
+			return nil, err
+		}
+	}
+	total, err := store.DeleteMany(model.Filter{model.IDKey(): id})
+	if err != nil {
+		return nil, err
+	}
+	return ztype.Map{"total": total}, nil
 }
 
 // Delete 删除多条数据
@@ -179,21 +192,22 @@ func UpdateById(
 
 	j, err := c.GetJSONs()
 	if err != nil {
-		return nil, err
+		return nil, zerror.InvalidInput.Text(err.Error())
+	}
+	if j.IsArray() {
+		return nil, zerror.InvalidInput.Text("request body must be object")
 	}
 
 	data := j.Map()
 
+	info, err := store.FindOneByID(id)
+	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.NotFound.Text("id not found")
+		}
+		return nil, err
+	}
 	if handler != nil {
-		info, err := store.FindOneByID(id)
-		if err != nil {
-			return nil, err
-		}
-
-		if info.IsEmpty() {
-			return nil, zerror.InvalidInput.Text("id not found")
-		}
-
 		data, err = handler(info, data)
 		if err != nil {
 			return nil, err

@@ -4,8 +4,11 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
@@ -24,14 +27,24 @@ import (
 type Module struct {
 	service.ModuleLifeCycle
 	service.App
-	db          *zdb.DB
-	mods        *model.Schemas
-	index       *Index
-	Request     *requestWith
-	Inside      *inside
-	Controllers []service.Controller
-	Options     Options
-	permission  *rbac.RBAC
+	db                *zdb.DB
+	mods              *model.Schemas
+	index             *Index
+	Request           *requestWith
+	Inside            *inside
+	Controllers       []service.Controller
+	Options           Options
+	permission        atomic.Pointer[rbac.RBAC]
+	userCache         *zcache.FastCache
+	jwtCache          *zcache.FastCache
+	roleCache         *zcache.FastCache
+	permissionCache   *zcache.FastCache
+	loginLimit        *zcache.FastCache
+	sessionHub        *zarray.Maper[string, *session]
+	verifyPermissions []znet.Handler
+	noLogIP           bool
+	accountModel      *AccountModel
+	messageModel      *MessageModel
 }
 
 var (
@@ -75,10 +88,48 @@ func New(key string, opt ...func(o *Options)) *Module {
 	m := &Module{
 		Options: zutil.Optional(Options{key: key, ApiPrefix: "/manage"}, opt...),
 		index:   &Index{},
-		Request: &requestWith{},
 	}
-	m.Inside = &inside{m: m}
+	m.initState()
 	return m
+}
+
+func (m *Module) initState() {
+	if m.index == nil {
+		m.index = &Index{}
+	}
+	if m.Request == nil {
+		m.Request = &requestWith{}
+	}
+	m.Request.module = m
+	if m.Inside == nil {
+		m.Inside = &inside{m: m}
+	} else {
+		m.Inside.m = m
+	}
+	if m.userCache == nil {
+		m.userCache = zcache.NewFast()
+	}
+	if m.jwtCache == nil {
+		m.jwtCache = zcache.NewFast()
+	}
+	if m.roleCache == nil {
+		m.roleCache = zcache.NewFast(func(o *zcache.Options) {
+			o.AutoCleaner = true
+			o.Expiration = time.Minute * 5
+		})
+	}
+	if m.permissionCache == nil {
+		m.permissionCache = zcache.NewFast(func(o *zcache.Options) {
+			o.AutoCleaner = true
+			o.Expiration = time.Minute * 5
+		})
+	}
+	if m.loginLimit == nil {
+		m.loginLimit = zcache.NewFast()
+	}
+	if m.sessionHub == nil {
+		m.sessionHub = zarray.NewHashMap[string, *session]()
+	}
 }
 
 func (m *Module) Tasks() []service.Task {
@@ -91,7 +142,7 @@ func (m *Module) Tasks() []service.Task {
 				}
 				// 删除一个月前的日志
 				t := time.Now().AddDate(0, -1, 0)
-				_, err := model.DeleteMany(lm, ztype.Map{
+				_, err := model.DeleteMany(lm, model.Filter{
 					"record_at <": ztime.FormatTime(t),
 				})
 				if err != nil {
@@ -106,6 +157,7 @@ func (m *Module) Tasks() []service.Task {
 
 func (m *Module) Load(zdi.Invoker) (any, error) {
 	return nil, m.DI.InvokeWithErrorOnly(func(c *service.Conf) error {
+		m.initState()
 		if m.Options.key == "" {
 			return errors.New("not account key")
 		}
@@ -139,6 +191,7 @@ func (m *Module) Load(zdi.Invoker) (any, error) {
 }
 
 func (m *Module) Start(di zdi.Invoker) (err error) {
+	m.initState()
 	if m.Options.InitDB != nil {
 		m.db, err = m.Options.InitDB()
 	} else {
@@ -163,30 +216,17 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	m.index.permModel, _ = m.mods.Get(permName)
 	m.index.roleModel, _ = m.mods.Get(roleName)
 
-	permission := m.Options.InlayRBAC
-	if permission == nil {
-		permission = rbac.New()
+	permission, err := m.buildRBAC()
+	if err != nil {
+		return err
 	}
+	m.permission.Store(permission)
 
-	if m.Options.RBACFile != "" {
-		fPermission, err := rbac.ParseFile(m.Options.RBACFile)
-		if err != nil {
-			return zerror.With(err, "parse rbac file error")
-		}
-
-		err = permission.Merge(fPermission)
-		if err != nil {
-			return zerror.With(err, "merge rbac file error")
-		}
-	}
-
-	if err = m.initMiddleware(permission); err != nil {
+	if err = m.initMiddleware(); err != nil {
 		return err
 	}
 
-	m.permission = permission
-
-	noLogIP = m.Options.DisabledLogIP
+	m.noLogIP = m.Options.DisabledLogIP
 	return
 }
 

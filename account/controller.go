@@ -12,7 +12,6 @@ import (
 	"github.com/zlsgo/app_module/model"
 
 	"github.com/sohaha/zlsgo/zarray"
-	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
@@ -49,7 +48,7 @@ func (h *Index) Init(r *znet.Engine) error {
 		"/register",
 		"/site",
 	}
-	err := UsePermisMiddleware(r, nil, zarray.Map(noPermRoutes, func(i int, v string) string {
+	err := h.module.UsePermisMiddleware(r, nil, zarray.Map(noPermRoutes, func(i int, v string) string {
 		return strings.TrimRight(h.Path, "/") + v
 	})...)
 	if err != nil {
@@ -91,20 +90,20 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := model.FindCols(h.accoutModel.Model(), "salt", uid)
-	if err != nil || f.Index(0).String() != salt {
+	f, err := model.FindCols[string](h.accoutModel.Model(), "salt", model.ID(uid))
+	if err != nil || len(f) == 0 || f[0] != salt {
 		return nil, zerror.InvalidInput.Text("refresh_token 已失效")
 	}
 
 	salt = zstring.Rand(saltLen)
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
 		"salt": salt,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	clearCache(token, uid)
+	h.module.clearCache(token, uid)
 
 	accessToken, refreshToken, err := jwt.GenToken(salt+uid, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
 	if err != nil {
@@ -121,30 +120,31 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// 使用缓存获取用户信息
 	uid := h.module.Request.UID(c)
-	userInfo, err := getUserForCache(h.accoutModel, uid)
+	userInfo, err := h.module.getUserForCache(h.accoutModel, uid)
 	if err != nil {
 		// 如果缓存失败，直接查询数据库
-		info, err := model.FindOne(h.accoutModel.Model(), uid, func(so *model.CondOptions) {
+		info, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.ID(uid), func(so *model.CondOptions) {
 			so.Fields = h.accoutModel.GetFields("password", "salt")
 		})
 		if err != nil {
+			if errors.Is(err, model.ErrNoRecord) {
+				return nil, zerror.InvalidInput.Text("用户不存在")
+			}
 			return nil, err
-		}
-
-		if info.IsEmpty() {
-			return nil, zerror.InvalidInput.Text("用户不存在")
 		}
 		userInfo = info
 	}
+	_ = userInfo.Delete("password")
+	_ = userInfo.Delete("salt")
 
-	perms, _ := model.FindCols(h.roleModel.Model(), "permission", ztype.Map{
+	perms, _ := model.FindCols[ztype.Type](h.roleModel.Model(), "permission", model.Filter{
 		"alias": userInfo.Get("role").SliceString(),
 	})
 	permIDs := make([]int, 0)
 	for i := range perms {
 		permIDs = append(permIDs, perms[i].SliceInt()...)
 	}
-	permission, _ := model.FindCols(h.permModel.Model(), "alias", ztype.Map{
+	permission, _ := model.FindCols[string](h.permModel.Model(), "alias", model.Filter{
 		model.IDKey(): zarray.Unique(permIDs),
 		"alias !=":    "",
 	}, func(o *model.CondOptions) {
@@ -158,34 +158,32 @@ func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	return data, nil
 }
 
-var loginLimit = zcache.NewFast()
-
 // isBusyLogin 短时间内登录失败超过指定次数禁止登录
-func isBusyLogin(c *znet.Context) (b bool) {
+func (m *Module) isBusyLogin(c *znet.Context) (b bool) {
 	ip := c.GetClientIP()
-	total, ok := loginLimit.Get(ip)
+	total, ok := m.loginLimit.Get(ip)
 	if !ok {
 		total = 0
 	}
 
 	b = ztype.ToInt(total) >= 5
 	if b {
-		loginFailed(c)
+		m.loginFailed(c)
 	}
 	return
 }
 
 // loginFailed 登录失败
-func loginFailed(c *znet.Context) {
+func (m *Module) loginFailed(c *znet.Context) {
 	ip := c.GetClientIP()
-	total, _ := loginLimit.Get(ip)
+	total, _ := m.loginLimit.Get(ip)
 	data := ztype.ToInt(total) + 1
-	loginLimit.Set(ip, data, zutil.BackOffDelay(ztype.ToInt(total), time.Hour/2, time.Hour))
+	m.loginLimit.Set(ip, data, zutil.BackOffDelay(ztype.ToInt(total), time.Hour/2, time.Hour))
 }
 
 // login 登录
 func (h *Index) login(c *znet.Context) (result interface{}, err error) {
-	if isBusyLogin(c) {
+	if h.module.isBusyLogin(c) {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("登录失败次数过多，请稍后再试"))
 	}
 
@@ -203,23 +201,21 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := model.FindOne(h.accoutModel.Model(), ztype.Map{
+	user, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.Filter{
 		"account": account,
 	})
 	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.InvalidInput.Text("账号或密码错误")
+		}
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
 	defer func() {
 		if err != nil {
-			loginFailed(c)
+			h.module.loginFailed(c)
 		}
 	}()
-
-	if user.IsEmpty() {
-		err = zerror.InvalidInput.Text("账号或密码错误")
-		return
-	}
 
 	err = bcrypt.CompareHashAndPassword(user.Get("password").Bytes(), zstring.String2Bytes(password))
 	if err != nil {
@@ -244,7 +240,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	uid := user.Get(model.IDKey()).String()
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
@@ -260,7 +256,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 
 	if mLog, ok := h.module.mods.Get(logsName); ok {
 		ip := ""
-		if !noLogIP {
+		if !h.module.noLogIP {
 			ip = c.GetClientIP()
 		}
 		_, _ = insertLog(mLog, user.Get("account").String(), ip, c.Request.Method, c.Request.URL.String(), 200, "登录成功", c.Request.URL.Query().Encode(), "")
@@ -289,12 +285,12 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
 
-	err := updateUser(h.accoutModel, uid, ztype.Map{
+	err := h.module.updateUser(h.accoutModel, uid, ztype.Map{
 		"salt": "",
 	})
 
 	if err == nil {
-		clearCache(jwt.GetToken(c), uid)
+		h.module.clearCache(jwt.GetToken(c), uid)
 		if h.module.Options.Session != nil {
 			s, _ := zsession.Get(c)
 			if s != nil {
@@ -328,10 +324,20 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
+	if ok, msg := ValidatePassword(password, DefaultPasswordConfig); !ok {
+		return nil, zerror.InvalidInput.Text(msg)
+	}
+
 	uid := h.module.Request.UID(c)
-	user, _ := model.FindOne(h.accoutModel.Model(), uid, func(so *model.CondOptions) {
+	user, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.ID(uid), func(so *model.CondOptions) {
 		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
+	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.InvalidInput.Text("用户不存在")
+		}
+		return nil, err
+	}
 	if user.IsEmpty() {
 		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
@@ -342,7 +348,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	salt := zstring.Rand(saltLen)
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
 		"salt":     salt,
 		"password": password,
 	})
@@ -350,7 +356,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 		return nil, err
 	}
 
-	clearCache(jwt.GetToken(c), uid)
+	h.module.clearCache(jwt.GetToken(c), uid)
 
 	info := salt + uid
 	accessToken, refreshToken, err := jwt.GenToken(info, h.module.Options.key, h.module.Options.Expire, h.module.Options.RefreshExpire)
@@ -381,7 +387,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 		}
 		update[k] = v
 	}
-	err := updateUser(h.accoutModel, uid, update)
+	err := h.module.updateUser(h.accoutModel, uid, update)
 	return nil, err
 }
 
@@ -402,7 +408,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 	baseName := strings.TrimSuffix(basePath, ext)
 	newAvatarPath := strings.Replace(avatarPath, baseName, uid, -1)
 
-	info, _ := getUserForCache(h.accoutModel, uid)
+	info, _ := h.module.getUserForCache(h.accoutModel, uid)
 	oldAvatarPath := info.Get("avatar").String()
 	if oldAvatarPath != "" {
 		_ = zfile.Remove("." + oldAvatarPath)
@@ -412,18 +418,16 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 		return nil, errors.New("头像保存失败")
 	}
 
-	err = updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
 		"avatar": newAvatarPath,
 	})
 
 	return newAvatarPath, err
 }
 
-func updateUser(m *model.Schema, id string, data ztype.Map) error {
-	_, err := model.Update(m, id, data)
-
-	clearCache("", id)
-
+func (m *Module) updateUser(schema *model.Schema, id string, data ztype.Map) error {
+	_, err := model.Update(schema, model.ID(id), data)
+	m.clearCache("", id)
 	return err
 }
 

@@ -3,7 +3,6 @@ package account
 import (
 	"errors"
 
-	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
@@ -36,13 +35,17 @@ func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 	}
 
 	// 检查账号是否存在
-	if exist, _ := GetAccountModel().Exists(model.Filter{
+	if g.m == nil || g.m.accountModel == nil {
+		return nil, zerror.InvalidInput.Text("账号模型未初始化")
+	}
+
+	if exist, _ := g.m.accountModel.Exists(model.Filter{
 		"account": account,
 	}); exist {
 		return nil, zerror.InvalidInput.Text("账号已存在")
 	}
 
-	id, err := GetAccountModel().Insert(data)
+	id, err := g.m.accountModel.Insert(data)
 	if err != nil {
 		return nil, err
 	}
@@ -50,13 +53,16 @@ func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 }
 
 func (g *inside) UpdateUser(uid interface{}, data ztype.Map) (resp ztype.Map, err error) {
-	user, err := GetAccountModel().FindOneByID(uid)
-	if err != nil {
-		return nil, err
+	if g.m == nil || g.m.accountModel == nil {
+		return nil, zerror.InvalidInput.Text("账号模型未初始化")
 	}
 
-	if user.IsEmpty() {
-		return nil, zerror.InvalidInput.Text("用户不存在")
+	user, err := g.m.accountModel.FindOneByID(uid)
+	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.InvalidInput.Text("用户不存在")
+		}
+		return nil, err
 	}
 
 	// 禁止修改超级管理员
@@ -68,35 +74,38 @@ func (g *inside) UpdateUser(uid interface{}, data ztype.Map) (resp ztype.Map, er
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
-	total, err := GetAccountModel().UpdateByID(uid, data)
+	total, err := g.m.accountModel.UpdateByID(uid, data)
 	if err != nil {
 		return nil, err
 	}
 
-	clearCache("", ztype.ToString(uid))
+	g.m.clearCache("", ztype.ToString(uid))
 	return ztype.Map{"total": total}, nil
 }
 
 func (g *inside) DeleteUser(uid interface{}) (resp ztype.Map, err error) {
-	user, err := GetAccountModel().FindOneByID(uid)
-	if err != nil {
-		return nil, err
+	if g.m == nil || g.m.accountModel == nil {
+		return nil, zerror.InvalidInput.Text("账号模型未初始化")
 	}
 
-	if user.IsEmpty() {
-		return nil, zerror.InvalidInput.Text("用户不存在")
+	user, err := g.m.accountModel.FindOneByID(uid)
+	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.InvalidInput.Text("用户不存在")
+		}
+		return nil, err
 	}
 
 	if user.Get("inlay").Bool() {
 		return nil, zerror.InvalidInput.Text("不能删除内置用户")
 	}
 
-	_, err = GetAccountModel().DeleteByID(uid)
+	_, err = g.m.accountModel.DeleteByID(uid)
 	if err != nil {
 		return nil, err
 	}
 
-	clearCache("", ztype.ToString(uid))
+	g.m.clearCache("", ztype.ToString(uid))
 
 	return nil, err
 }
@@ -123,19 +132,77 @@ func (g *inside) fixUserData(data *ztype.Map) error {
 		}
 
 		// 检查角色是否存在
-		if g.m != nil {
-			roles, _ := g.m.index.roleModel.Model().Find(model.Filter{"id": r}, func(co *model.CondOptions) {
-				co.Fields = []string{"alias"}
-			})
-			data.Set("role", zarray.Map(roles, func(i int, v ztype.Map) string {
-				return v.Get("alias").String()
-			}))
+		if g.m != nil && g.m.index != nil && g.m.index.roleModel != nil {
+			roleModel := g.m.index.roleModel
+			inputs := make([]string, 0, len(r))
+			for _, item := range r {
+				if item != "" {
+					inputs = append(inputs, item)
+				}
+			}
+
+			roleSet := make(map[string]struct{}, len(inputs))
+			roles := make([]string, 0, len(inputs))
+
+			if len(inputs) > 0 {
+				aliasRoles, _ := roleModel.Model().Find(model.In("alias", inputs), func(co *model.CondOptions) {
+					co.Fields = []string{"alias"}
+				})
+				for i := range aliasRoles {
+					alias := aliasRoles[i].Get("alias").String()
+					if alias == "" {
+						continue
+					}
+					if _, ok := roleSet[alias]; ok {
+						continue
+					}
+					roleSet[alias] = struct{}{}
+					roles = append(roles, alias)
+				}
+			}
+
+			idList := make([]string, 0, len(inputs))
+			for _, item := range inputs {
+				if _, ok := roleSet[item]; ok {
+					continue
+				}
+				if _, err := roleModel.DeCryptID(item); err == nil {
+					idList = append(idList, item)
+				}
+			}
+
+			if len(idList) > 0 {
+				idRoles, _ := roleModel.Model().Find(model.In(model.IDKey(), idList), func(co *model.CondOptions) {
+					co.Fields = []string{"alias"}
+				})
+				for i := range idRoles {
+					alias := idRoles[i].Get("alias").String()
+					if alias == "" {
+						continue
+					}
+					if _, ok := roleSet[alias]; ok {
+						continue
+					}
+					roleSet[alias] = struct{}{}
+					roles = append(roles, alias)
+				}
+			}
+
+			data.Set("role", roles)
 		}
 	}
 
 	password := data.Get("password")
 	if password.Exists() && password.String() == "" {
 		return errors.New("密码不能为空")
+	}
+	if password.Exists() {
+		pwd := password.String()
+		ok, msg := ValidatePassword(pwd, DefaultPasswordConfig)
+		if !ok {
+			return errors.New(msg)
+		}
+		data.Set("password", pwd)
 	}
 
 	return nil

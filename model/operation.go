@@ -9,49 +9,56 @@ import (
 	"github.com/zlsgo/zdb/builder"
 )
 
+// condCounter 条件计数器
 var condCounter uint64
 
+// Filter 过滤器类型
 type Filter ztype.Map
 
+// NewFilter 创建新的过滤器
 func NewFilter() Filter {
 	return Filter{}
 }
 
+// ToMap 转换为 Map
+func (f Filter) ToMap() ztype.Map {
+	return ztype.Map(f)
+}
+
+// Cond 添加条件表达式
 func (f Filter) Cond(fn func(*builder.BuildCond) (exprs string)) Filter {
 	id := atomic.AddUint64(&condCounter, 1)
 	f[placeHolder+strconv.FormatUint(id, 10)] = fn
 	return f
 }
 
+// Set 设置字段条件
 func (f Filter) Set(field string, cond any) Filter {
 	f[field] = cond
 	return f
 }
 
+// Get 获取字段值
 func (f Filter) Get(field string) ztype.Type {
 	return ztype.New(f[field])
 }
 
+// Model 创建模型存储实例
 func (m *Schema) Model() *Store {
-	if m.model == nil {
-		m.model = &Store{
-			schema: m,
-		}
-	}
-	return m.model
+	return &Store{schema: m}
 }
 
-// Stores 快捷操作
+// Stores 存储集合
 type Stores struct {
 	items *zarray.Maper[string, *Store]
 }
 
-// Get 获取操作对象
+// Get 获取指定名称的存储实例
 func (m *Stores) Get(name string) (*Store, bool) {
 	return m.items.Get(name)
 }
 
-// MustGet 获取操作对象
+// MustGet 获取存储实例，不存在则 panic
 func (m *Stores) MustGet(name string) *Store {
 	o, _ := m.items.Get(name)
 	if o == nil {
@@ -60,7 +67,7 @@ func (m *Stores) MustGet(name string) *Store {
 	return o
 }
 
-// All 全部模型
+// All 获取所有存储实例
 func (m *Stores) All() (models []*Store) {
 	models = make([]*Store, 0, m.items.Len())
 
@@ -72,100 +79,96 @@ func (m *Stores) All() (models []*Store) {
 	return
 }
 
-// Schema 获取模型
+// Schema 获取模型结构定义
 func (o *Store) Schema(Storage ...Storageer) *Schema {
 	if len(Storage) > 0 {
-		schema := *o.schema
-		schema.Storage = Storage[0]
-		return &schema
+		return cloneSchemaWithStorage(o.schema, Storage[0])
 	}
 	return o.schema
 }
 
-// Insert 插入数据
-func (o *Store) Insert(data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+// Insert 插入单条数据
+func (o *Store) Insert(data any, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
 	return Insert(o.schema, data, fn...)
 }
 
 // InsertMany 批量插入数据
-func (o *Store) InsertMany(data ztype.Maps, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+func (o *Store) InsertMany(data any, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
 	return InsertMany(o.schema, data, fn...)
 }
 
-// Count 统计数量
-func (o *Store) Count(filter Filter, fn ...func(*CondOptions)) (uint64, error) {
+// Count 统计记录数量
+func (o *Store) Count(filter QueryFilter, fn ...func(*CondOptions)) (uint64, error) {
 	return Count(o, filter, fn...)
 }
 
-// Exists 数据是否存在
-func (o *Store) Exists(filter Filter, fn ...func(*CondOptions)) (bool, error) {
+// Exists 检查记录是否存在
+func (o *Store) Exists(filter QueryFilter, fn ...func(*CondOptions)) (bool, error) {
 	total, err := Count(o, filter, fn...)
 	return total > 0, err
 }
 
-// FindCols 查询指定字段
-func (o *Store) FindCols(field string, filter Filter) (ztype.SliceType, error) {
-	return FindCols(o, field, filter, func(co *CondOptions) {
-		co.Fields = []string{field}
-	})
+// FindCols 查询指定字段值
+func (o *Store) FindCols(field string, filter QueryFilter) (ztype.SliceType, error) {
+	return findColsRaw(o, field, filter)
 }
 
-// Find 查询数据
-func (o *Store) Find(filter Filter, fn ...func(*CondOptions)) (ztype.Maps, error) {
+// Find 查询多条记录
+func (o *Store) Find(filter QueryFilter, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	return Find[ztype.Map](o, filter, fn...)
 }
 
-// FindOne 查询一条数据
-func (o *Store) FindOne(filter Filter, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o, filter, fn...)
+// FindOne 查询单条记录
+func (o *Store) FindOne(filter QueryFilter, fn ...func(*CondOptions)) (ztype.Map, error) {
+	return FindOne[ztype.Map](o, filter, fn...)
 }
 
-// FindOneByID 通过ID查询
+// FindOneByID 根据 ID 查询单条记录
 func (o *Store) FindOneByID(id any, fn ...func(*CondOptions)) (ztype.Map, error) {
-	return FindOne(o, ztype.Map{idKey: id}, fn...)
+	return FindOne[ztype.Map](o, ID(id), fn...)
 }
 
-// Pages 分页查询
-func (o *Store) Pages(page, pagesize int, filter Filter, fn ...func(*CondOptions)) (*PageData, error) {
-	return Pages(o.schema, page, pagesize, filter, fn...)
+// Pages 分页查询记录
+func (o *Store) Pages(page, pagesize int, filter QueryFilter, fn ...func(*CondOptions)) (*PageData, error) {
+	return pages(o.schema, page, pagesize, getFilter(o.schema, filter), true, fn...)
 }
 
-// Update 更新数据
-func (o *Store) Update(filter Filter, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+// Update 更新符合条件的记录
+func (o *Store) Update(filter QueryFilter, data any, fn ...func(*CondOptions)) (total int64, err error) {
 	return Update(o.schema, filter, data, fn...)
 }
 
-// UpdateMany 更新多条数据
-func (o *Store) UpdateMany(filter Filter, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
+// UpdateMany 批量更新记录
+func (o *Store) UpdateMany(filter QueryFilter, data any, fn ...func(*CondOptions)) (total int64, err error) {
 	return UpdateMany(o.schema, filter, data, fn...)
 }
 
-// UpdateByID 通过ID更新
-func (o *Store) UpdateByID(id any, data ztype.Map, fn ...func(*CondOptions)) (total int64, err error) {
-	filter := ztype.Map{idKey: id}
-	return Update(o.schema, filter, data, fn...)
+// UpdateByID 根据 ID 更新记录
+func (o *Store) UpdateByID(id any, data any, fn ...func(*CondOptions)) (total int64, err error) {
+	return Update(o.schema, ID(id), data, fn...)
 }
 
-// Delete 删除数据
-func (o *Store) Delete(filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
+// Delete 删除符合条件的记录
+func (o *Store) Delete(filter QueryFilter, fn ...func(*CondOptions)) (total int64, err error) {
 	return Delete(o.schema, filter, fn...)
 }
 
-// DeleteMany 删除多条数据
-func (o *Store) DeleteMany(filter Filter, fn ...func(*CondOptions)) (total int64, err error) {
+// DeleteMany 批量删除记录
+func (o *Store) DeleteMany(filter QueryFilter, fn ...func(*CondOptions)) (total int64, err error) {
 	return DeleteMany(o.schema, filter, fn...)
 }
 
-// DeleteByID 通过ID删除数据
+// DeleteByID 根据 ID 删除记录
 func (o *Store) DeleteByID(id any, fn ...func(*CondOptions)) (total int64, err error) {
-	filter := ztype.Map{idKey: id}
-	return Delete(o.schema, filter, fn...)
+	return Delete(o.schema, ID(id), fn...)
 }
 
-func (o *Store) Repository() *Repository[ztype.Map] {
+// Repository 创建 Map 类型仓储
+func (o *Store) Repository() *Repository[ztype.Map, QueryFilter, ztype.Map, ztype.Map] {
 	return NewMapRepository(o)
 }
 
-func Repo[T any](o *Store) *Repository[T] {
-	return NewStructRepository[T](o)
+// Repo 创建泛型仓储
+func Repo[T any, F any, C any, U any](o *Store) *Repository[T, F, C, U] {
+	return NewStructRepository[T, F, C, U](o)
 }

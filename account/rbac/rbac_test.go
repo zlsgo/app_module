@@ -1,6 +1,7 @@
 package rbac
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
@@ -105,7 +106,7 @@ func TestNewGo(t *testing.T) {
 func TestParseConfig(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	path := zfile.RootPath() + "testdata/rbac.toml"
+	path := filepath.Join(zfile.RootPath(), "testdata", "rbac.toml")
 	r, err := ParseFile(path)
 	tt.Log(path)
 	tt.NoError(err, true)

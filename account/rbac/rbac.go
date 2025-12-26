@@ -116,6 +116,10 @@ func (r *RBAC) RemoveRole(roleName string) error {
 	return nil
 }
 
+func (r *RBAC) Reset() {
+	r.roles = zarray.NewHashMap[string, *Role]()
+}
+
 func (r *RBAC) Can(roleName string, action, target string) (ok bool, err error) {
 	role, ok := r.roles.Get(roleName)
 	if !ok {

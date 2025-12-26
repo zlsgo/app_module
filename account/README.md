@@ -178,7 +178,7 @@ func main() {
     }
 
     _ = service.Global.DI.InvokeWithErrorOnly(func(r *znet.Engine) {
-        if err := account.UsePermisMiddleware(r, nil,
+        if err := accMod.UsePermisMiddleware(r, nil,
             accMod.Options.ApiPrefix+"/base/login",
             accMod.Options.ApiPrefix+"/base/register",
         ); err != nil {
@@ -192,10 +192,17 @@ func main() {
                 return
             }
 
+            realUID, err := accMod.Request.RealUID(c)
+            if err != nil {
+                c.Fail(400, err.Error())
+                return
+            }
+
             user := accMod.Request.User(c)
             c.JSON(200, ztype.Map{
-                "uid":  uid,
-                "info": user,
+                "uid":      uid,
+                "real_uid": realUID,
+                "info":     user,
             })
         })
     })

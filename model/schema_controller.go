@@ -55,6 +55,37 @@ func (m *Schema) GetFields(exclude ...string) []string {
 	})
 }
 
+func (m *Schema) refreshFieldsSet() {
+	fields := m.GetFields()
+	if len(fields) == 0 {
+		m.fieldsSet = nil
+		m.fullFieldsMap = nil
+		m.inlayFieldsMap = nil
+		return
+	}
+	set := make(map[string]struct{}, len(fields))
+	for i := range fields {
+		set[fields[i]] = struct{}{}
+	}
+	m.fieldsSet = set
+	m.fullFieldsMap = sliceToSet(m.fullFields)
+	m.inlayFieldsMap = sliceToSet(m.inlayFields)
+}
+
+func sliceToSet(items []string) map[string]struct{} {
+	if len(items) == 0 {
+		return nil
+	}
+	set := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		if item == "" {
+			continue
+		}
+		set[item] = struct{}{}
+	}
+	return set
+}
+
 func (m *Schema) MarshalJSON() ([]byte, error) {
 	json, err := zjson.Marshal(m.GetDefine())
 	return json, err

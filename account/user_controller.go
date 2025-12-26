@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/sohaha/zlsgo/znet"
@@ -17,7 +18,7 @@ type User struct {
 var _ = reflect.TypeOf(&User{})
 
 func (h *User) Init(r *znet.Engine) error {
-	return UsePermisMiddleware(r, nil)
+	return h.module.UsePermisMiddleware(r, nil)
 }
 
 // Get 用户列表
@@ -29,11 +30,18 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 	if account != "" {
 		filter["account"] = account + "%"
 	}
-	page, pagesize, _ := model.Common.VarPages(c)
+	page, pagesize, err := model.Common.VarPages(c)
+	if err != nil {
+		return nil, err
+	}
 
-	data, err = GetAccountModel().Pages(page, pagesize, filter, func(co *model.CondOptions) {
+	if h.module.accountModel == nil {
+		return nil, errors.New("account model not define")
+	}
+
+	data, err = h.module.accountModel.Pages(page, pagesize, filter, func(co *model.CondOptions) {
 		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
-		co.Fields = GetAccountModel().m.GetFields("password", "salt")
+		co.Fields = h.module.accountModel.m.GetFields("password", "salt")
 	})
 	// data.Items.ForEach(func(i int, item ztype.Map) bool {
 	// 	id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())

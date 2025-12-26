@@ -18,14 +18,16 @@ type Message struct {
 var _ = reflect.TypeOf(&Message{})
 
 func (h *Message) Init(r *znet.Engine) error {
-	return UsePermisMiddleware(r, nil)
+	return h.module.UsePermisMiddleware(r, nil)
 }
 
 // Get 站内通知列表
 func (h *Message) Get(c *znet.Context) (data ztype.Map, err error) {
 	uid := h.module.Request.UID(c)
-	m, _ := GetMessageModel()
-	unread, _ := m.Unread(uid)
+	if h.module.messageModel == nil {
+		return nil, zerror.InvalidInput.Text("消息模型未初始化")
+	}
+	unread, _ := h.module.messageModel.Unread(uid)
 
 	return ztype.Map{
 		"unread": unread,

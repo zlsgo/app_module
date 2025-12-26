@@ -113,7 +113,7 @@ func permModel(ms *model.Schemas) error {
 				"alias":       "global_allow",
 				"inlay":       true,
 				"target":      "*",
-				"action":      "/*",
+				"action":      "*",
 			},
 		},
 	}, false)

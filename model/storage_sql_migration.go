@@ -60,7 +60,7 @@ func (m *Migration) Auto(oldColumn ...DealOldColumn) (err error) {
 
 func (m *Migration) InitValue(first bool) error {
 	if !first {
-		row, err := FindOne(m.Model.Model(), ztype.Map{}, func(o *CondOptions) {
+		row, err := FindOne[ztype.Map](m.Model.Model(), Filter{}, func(o *CondOptions) {
 			o.Fields = []string{"COUNT(*) AS count"}
 		})
 		if err == nil {
@@ -171,12 +171,12 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 	table.SetDriver(db.GetDriver())
 
 	for _, v := range deleteColumns {
-		if dealOldColumn == dealOldColumnNone || isDisableMigratioField(m.Model, v) {
+		if dealOldColumn == DealOldColumnNone || isDisableMigratioField(m.Model, v) {
 			continue
 		}
-		if dealOldColumn == dealOldColumnDelete {
+		if dealOldColumn == DealOldColumnDelete {
 			sql, values = table.DropColumn(v)
-		} else if dealOldColumn == dealOldColumnRename {
+		} else if dealOldColumn == DealOldColumnRename {
 			sql, values = table.RenameColumn(v, deleteFieldPrefix+v)
 		}
 
@@ -192,7 +192,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 				sql    string
 				values []interface{}
 			)
-			if InsideOption.softDeleteIsTime {
+			if *m.Model.define.Options.SoftDeleteIsTime {
 				sql, values = table.AddColumn(DeletedAtKey, schema.Time, func(f *schema.Field) {
 					f.Comment = "删除时间"
 					f.NotNull = false
@@ -245,7 +245,7 @@ func (m *Migration) UpdateTable(db *zdb.DB, oldColumn ...DealOldColumn) error {
 		}
 	}
 
-	deleteColumn := dealOldColumn == dealOldColumnDelete
+	deleteColumn := dealOldColumn == DealOldColumnDelete
 	if len(addColumns) > 0 {
 		if len(m.Model.define.Options.FieldsSort) > 0 {
 			for _, n := range m.Model.define.Options.FieldsSort {
@@ -288,20 +288,7 @@ func (m *Migration) execAddColumn(
 	table *builder.TableBuilder,
 	oldColumns []string,
 ) error {
-	var (
-		ok    bool
-		field *mSchema.Field
-	)
-
-	for name := range modelFields {
-		if name == v {
-			ok = true
-			f := modelFields[name]
-			field = &f
-			break
-		}
-	}
-
+	field, ok := modelFields[v]
 	if !ok {
 		return nil
 	}
@@ -331,7 +318,7 @@ func (m *Migration) execAddColumn(
 
 func (m *Migration) fillField(fields []*schema.Field) []*schema.Field {
 	if *m.Model.define.Options.SoftDeletes {
-		if InsideOption.softDeleteIsTime {
+		if *m.Model.define.Options.SoftDeleteIsTime {
 			fields = append(fields, schema.NewField(DeletedAtKey, schema.Time, func(f *schema.Field) {
 				f.Size = 9999999999
 				f.NotNull = false

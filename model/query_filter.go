@@ -8,12 +8,6 @@ type QueryFilter interface {
 	ToMap() ztype.Map
 }
 
-type MapFilter ztype.Map
-
-func (f MapFilter) ToMap() ztype.Map {
-	return ztype.Map(f)
-}
-
 type IDQueryFilter struct {
 	ID any
 }
@@ -62,8 +56,14 @@ func (f orFilter) ToMap() ztype.Map {
 	return ztype.Map{placeHolderOR: subFilters}
 }
 
-func Q(m ztype.Map) QueryFilter {
-	return MapFilter(m)
+func Q[F any](m F) QueryFilter {
+	if filter, ok := any(m).(QueryFilter); ok {
+		return filter
+	}
+	if mapData, ok := filterToMap(m); ok {
+		return Filter(mapData)
+	}
+	return Filter(ztype.Map{})
 }
 
 func ID(id any) QueryFilter {
@@ -119,9 +119,23 @@ func IsNotNull(field string) QueryFilter {
 }
 
 func And(filters ...QueryFilter) QueryFilter {
-	return andFilter{filters: filters}
+	return andFilter{filters: compactFilters(filters...)}
 }
 
 func Or(filters ...QueryFilter) QueryFilter {
-	return orFilter{filters: filters}
+	return orFilter{filters: compactFilters(filters...)}
+}
+
+func compactFilters(filters ...QueryFilter) []QueryFilter {
+	if len(filters) == 0 {
+		return nil
+	}
+	result := make([]QueryFilter, 0, len(filters))
+	for _, filter := range filters {
+		if filter == nil {
+			continue
+		}
+		result = append(result, filter)
+	}
+	return result
 }

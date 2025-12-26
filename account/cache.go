@@ -7,24 +7,25 @@ import (
 	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/model"
 
-	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
-var userCache = zcache.NewFast()
-
-func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
-	user, _ := userCache.ProvideGet(uid, func() (interface{}, bool) {
-		f, err := model.FindOne(m.Model(), uid)
-		if err != nil || f.IsEmpty() {
+func (m *Module) getUserForCache(schema *model.Schema, uid string) (ztype.Map, error) {
+	user, _ := m.userCache.ProvideGet(uid, func() (interface{}, bool) {
+		f, err := model.FindOne[ztype.Map](schema.Model(), model.ID(uid), func(o *model.CondOptions) {
+			o.Fields = schema.GetFields("password", "salt")
+		})
+		if err != nil {
 			return ztype.Map{}, false
 		}
-		if *m.GetDefine().Options.CryptID {
-			id, _ := m.DeCryptID(uid)
+		if schema.GetDefine().Options.CryptID != nil && *schema.GetDefine().Options.CryptID {
+			id, _ := schema.DeCryptID(uid)
 			_ = f.Set("raw_id", id)
 		}
+		_ = f.Delete("password")
+		_ = f.Delete("salt")
 		return f, true
 	}, time.Hour)
 
@@ -33,20 +34,18 @@ func getUserForCache(m *model.Schema, uid string) (ztype.Map, error) {
 		return nil, zerror.WrapTag(zerror.NotFound)(errors.New("用户不存在"))
 	}
 
+	_ = info.Delete("password")
+	_ = info.Delete("salt")
 	return info, nil
 }
 
-func deleteUserForCache(uid string) {
-	userCache.Delete(uid)
+func (m *Module) deleteUserForCache(uid string) {
+	m.userCache.Delete(uid)
 }
 
-var (
-	jwtCache        = zcache.NewFast()
-	errUnauthorized = zerror.WrapTag(zerror.Unauthorized)(errors.New("登录状态过期，请重新登录"))
-)
-
-func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
-	resp, _ := jwtCache.ProvideGet(token, func() (interface{}, bool) {
+func (m *Module) getJWTForCache(schema *model.Schema, token, jwtKey string) (string, error) {
+	errUnauthorized := zerror.WrapTag(zerror.Unauthorized)(errors.New("登录状态过期，请重新登录"))
+	resp, _ := m.jwtCache.ProvideGet(token, func() (interface{}, bool) {
 		info, err := jwt.Parse(token, jwtKey)
 		if err != nil {
 			return [2]interface{}{}, false
@@ -59,8 +58,8 @@ func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 
 		salt := info.Info[:saltLen]
 		uid := info.Info[saltLen:]
-		f, err := model.FindCols(m.Model(), "salt", uid)
-		if err != nil || f.Index(0).String() != salt {
+		f, err := model.FindCols[string](schema.Model(), "salt", model.ID(uid))
+		if err != nil || len(f) == 0 || f[0] != salt {
 			return [2]interface{}{}, false
 		}
 
@@ -79,41 +78,30 @@ func getJWTForCache(m *model.Schema, token, jwtKey string) (string, error) {
 	}
 
 	if ztime.Clock()/1000000 > expiresAt {
-		deleteJWTForCache(token)
+		m.deleteJWTForCache(token)
 		return "", errUnauthorized
 	}
 
 	return uid, nil
 }
 
-func deleteJWTForCache(token string) {
-	jwtCache.Delete(token)
+func (m *Module) deleteJWTForCache(token string) {
+	m.jwtCache.Delete(token)
 }
 
-func clearCache(token, uid string) {
+func (m *Module) clearCache(token, uid string) {
 	if token != "" {
-		deleteJWTForCache(token)
+		m.deleteJWTForCache(token)
 	}
 	if uid != "" {
-		deleteUserForCache(uid)
+		m.deleteUserForCache(uid)
 	}
 }
 
-var (
-	roleCache = zcache.NewFast(func(o *zcache.Options) {
-		o.AutoCleaner = true
-		o.Expiration = time.Minute * 5
-	}) // 角色缓存
-	permissionCache = zcache.NewFast(func(o *zcache.Options) {
-		o.AutoCleaner = true
-		o.Expiration = time.Minute * 5
-	}) // 权限缓存
-)
-
 // getRolesForCache 获取缓存的角色列表
-func getRolesForCache(roleModel *model.Schema) ([]ztype.Map, error) {
-	result, _ := roleCache.ProvideGet("all_active_roles", func() (interface{}, bool) {
-		roles, err := model.FindMaps(roleModel.Model(), ztype.Map{
+func (m *Module) getRolesForCache(roleModel *model.Schema) ([]ztype.Map, error) {
+	result, _ := m.roleCache.ProvideGet("all_active_roles", func() (interface{}, bool) {
+		roles, err := model.FindMaps(roleModel.Model(), model.Filter{
 			"status": 1,
 		})
 		if err != nil {
@@ -127,21 +115,32 @@ func getRolesForCache(roleModel *model.Schema) ([]ztype.Map, error) {
 	}
 
 	// 如果缓存获取失败，直接查询数据库
-	return model.FindMaps(roleModel.Model(), ztype.Map{
+	return model.FindMaps(roleModel.Model(), model.Filter{
 		"status": 1,
 	})
 }
 
+func (m *Module) loadActiveRoles(roleModel *model.Schema) ([]ztype.Map, error) {
+	roles, err := model.FindMaps(roleModel.Model(), model.Filter{
+		"status": 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+	m.roleCache.Set("all_active_roles", roles)
+	return roles, nil
+}
+
 // invalidateRoleCache 使角色缓存失效
-func invalidateRoleCache() {
-	roleCache.Delete("all_active_roles")
+func (m *Module) invalidateRoleCache() {
+	m.roleCache.Delete("all_active_roles")
 }
 
 // getUserPermissionForCache 获取用户权限缓存
-func getUserPermissionForCache(userID string, getter func() (interface{}, error)) (interface{}, error) {
+func (m *Module) getUserPermissionForCache(userID string, getter func() (interface{}, error)) (interface{}, error) {
 	cacheKey := "user_perm_" + userID
 
-	result, _ := permissionCache.ProvideGet(cacheKey, func() (interface{}, bool) {
+	result, _ := m.permissionCache.ProvideGet(cacheKey, func() (interface{}, bool) {
 		perm, err := getter()
 		if err != nil {
 			return nil, false
@@ -157,7 +156,7 @@ func getUserPermissionForCache(userID string, getter func() (interface{}, error)
 }
 
 // invalidateUserPermCache 使用户权限缓存失效
-func invalidateUserPermCache(userID string) {
+func (m *Module) invalidateUserPermCache(userID string) {
 	cacheKey := "user_perm_" + userID
-	permissionCache.Delete(cacheKey)
+	m.permissionCache.Delete(cacheKey)
 }

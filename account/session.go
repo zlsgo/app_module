@@ -1,14 +1,14 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
 )
-
-var sessionHub = zarray.NewHashMap[string, *session]()
 
 type session struct {
 	sessions *zarray.Maper[string, *znet.SSE]
@@ -30,7 +30,11 @@ func (m *Module) newSession(c *znet.Context) (sse *znet.SSE, remove func(), err 
 		return nil, nil, zerror.InvalidInput.Text("用户未登录")
 	}
 
-	session, _, _ := sessionHub.ProvideGet(uid, func() (*session, bool) {
+	if m.sessionHub == nil {
+		return nil, nil, errors.New("session hub not initialized")
+	}
+
+	session, _, _ := m.sessionHub.ProvideGet(uid, func() (*session, bool) {
 		return &session{
 			sessions: zarray.NewHashMap[string, *znet.SSE](),
 		}, true
@@ -54,13 +58,16 @@ func (m *Module) newSession(c *znet.Context) (sse *znet.SSE, remove func(), err 
 	return sse, func() {
 		session.removeSession(id)
 		if session.sessions.Len() == 0 {
-			sessionHub.Delete(uid)
+			m.sessionHub.Delete(uid)
 		}
 	}, nil
 }
 
-func SendRealtime(uid string, data string, event ...string) bool {
-	if session, ok := sessionHub.Get(uid); ok {
+func (m *Module) SendRealtime(uid string, data string, event ...string) bool {
+	if m.sessionHub == nil {
+		return false
+	}
+	if session, ok := m.sessionHub.Get(uid); ok {
 		if session.sessions.Len() == 0 {
 			return false
 		}

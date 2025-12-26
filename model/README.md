@@ -7,9 +7,9 @@ Model 是 app_module 中提供的数据建模与访问层。它围绕 Schema 驱
 - **Schema 驱动**：通过结构化 Schema 描述字段、关系、初始数据及视图元数据。
 - **自动迁移**：启动阶段自动建表/增量同步、索引维护和初始数据写入。
 - **统一 CRUD**：`Store` 封装插入、查询、更新、删除、分页等常见操作，并内建软删除/时间戳逻辑。
-- **Repository 模式**：泛型 `Repository[T]` 提供类型安全的数据访问层，支持 Map 与 Struct 映射。
-- **链式查询**：`Query[T]` 提供流式 API 构建复杂查询，支持条件组合、排序、分页等。
-- **类型安全过滤**：`QueryFilter` 接口与构建函数（`Eq`、`In`、`Like` 等）提供类型安全的条件构建。
+- **Repository 模式**：泛型 `Repository[T, F, C, U]` 提供类型安全的数据访问层，过滤/创建/更新类型显式化。
+- **链式查询**：`Query[T, F, C, U]` 提供流式 API 构建复杂查询，支持条件组合、排序、分页等。
+- **类型安全过滤**：`QueryFilter` 构建函数（`Eq`、`In`、`Like` 等）与结构体过滤输入，统一到 Map 条件。
 - **字段管线**：支持 JSON/布尔/时间格式的 Before/After 处理、字段加密（密码/MD5）以及枚举标签映射。
 - **关联装载**：基于定义的 Relation 自动选择单条/合并/多条关联数据。
 - **CRUD 钩子**：支持 Insert/Update/Delete 前后的钩子事件。
@@ -64,6 +64,8 @@ mod := model.New(func(o *model.Options) {
         SoftDeletes:      true,
         Timestamps:       true,
         CryptID:          false,
+        SoftDeleteIsTime: false,
+        OldColumn:        model.DealOldColumnNone,
     }
 
     // 直接在代码中定义 Schema
@@ -97,6 +99,38 @@ mod := model.New(func(o *model.Options) {
 - **Extend**：自定义扩展信息（`ztype.Map`），常用于视图描述。
 - **Values**：`[]ztype.Map`，表首次初始化时插入的默认数据。
 - **Options**：`schema.Options`，控制模型级行为。
+
+### 通过结构体定义
+
+```go
+type User struct {
+    schema.Meta `name:"user" table:"users" comment:"用户表" options:"timestamps,soft_deletes,crypt_id" low_fields:"password" fields_sort:"id|name"`
+    ID       uint   `json:"id"`
+    Name     string `json:"name" field:"size:100,label:用户名"`
+    Email    string `json:"email" field:"size:200,unique"`
+    Status   int8   `json:"status" field:"default:1,enum:1=active|2=disabled"`
+    Password string `json:"password" field:"crypt:password,readonly"`
+    Profile  *Profile `relation:"type:single,schema:profiles,foreign:profile_id,fields:id|name"`
+}
+
+user := schema.NewFromStruct[User]("", "")
+o.Schemas.Append(user)
+```
+
+运行时结构体：
+
+```go
+user := schema.NewFromStructValue("", User{})
+o.Schemas.Append(user)
+```
+
+字段 tag 规则：
+
+- 使用 `json` 定义字段名，缺省为字段名 snake_case。
+- 使用 `field` 定义字段参数：`size`/`default`/`label`/`nullable`/`unique`/`index`/`crypt`/`format`/`enum`/`valid`/`disable_migration`。
+- `enum`/`valid` 列表使用 `|` 分隔，`valid` 采用 `method=arg@message` 格式。
+- 使用匿名嵌入 `schema.Meta` 定义表元信息：`name`/`table`/`comment`/`options`/`low_fields`/`fields_sort`/`crypt_salt`/`crypt_len`。
+- 使用 `relation` 定义关联字段，列表参数用 `|` 分隔：`type`/`schema`/`foreign`/`schema_key`/`fields`/`nullable`/`pivot_*`/`cascade`。
 
 ### 字段 Field
 
@@ -170,7 +204,7 @@ mod := model.New(func(o *model.Options) {
 - `Filter`：附加筛选条件。
 - `Nullable`：没有匹配数据时返回空对象/数组。
 
-解析阶段会自动将关系键名转换为 snake_case，并缓存关系键，供查询时匹配。
+解析阶段会自动将关系键名转换为 snake_case，供查询时匹配。
 
 ### Extend 视图
 
@@ -203,12 +237,11 @@ mod := model.New(func(o *model.Options) {
 
 ### 旧字段策略 & 软删除
 
-通过包级 `model.InsideOption` 控制：
+通过 `SchemaOptions` / `schema.Options` 控制：
 
-- `InsideOption.OldColumnDelete()`：迁移时删除旧字段。
-- `InsideOption.OldColumnRename()`：将旧字段重命名为 `__del__<name>`。
-- `InsideOption.OldColumnIgnore()`：保留旧字段（默认）。
-- `InsideOption.SoftDeleteIsTime(true)`：软删除字段使用时间类型，否则使用整型时间戳。
+- `SchemaOptions.OldColumn`：默认迁移策略（`DealOldColumnNone`/`DealOldColumnDelete`/`DealOldColumnRename`）。
+- `SchemaOptions.SoftDeleteIsTime`：默认软删除字段使用时间类型。
+- `schema.Options.SoftDeleteIsTime`：单个 Schema 覆盖软删除字段类型。
 
 ## Store API
 
@@ -220,6 +253,8 @@ mod := model.New(func(o *model.Options) {
 - 更新：`Update`、`UpdateMany`、`UpdateByID`
 - 删除：`Delete`、`DeleteMany`、`DeleteByID`
 
+Store 的写入与过滤参数支持 `ztype.Map`/`map[string]any`/结构体输入，结构体需提供 `z` 或 `json` tag；更新建议使用 `omitempty` 或指针字段避免覆盖零值。
+
 Store 会自动：
 
 - 在写入前执行字段 Before 管线与校验（`VerifiData`）。
@@ -228,7 +263,7 @@ Store 会自动：
 
 ## Repository 模式
 
-`Repository[T]` 是基于 `Store` 的泛型封装层，提供类型安全的数据访问。
+`Repository[T, F, C, U]` 是基于 `Store` 的泛型封装层，提供类型安全的数据访问，其中 F 为过滤类型、C 为创建类型、U 为更新类型。
 
 ### 创建 Repository
 
@@ -237,14 +272,14 @@ store := mod.MustGetStore("user")
 
 // 方式一：使用工厂函数
 mapRepo := model.NewMapRepository(store)
-structRepo := model.NewStructRepository[User](store)
+structRepo := model.NewStructRepository[User, UserFilter, UserCreate, UserPatch](store)
 
 // 方式二：从 Store 直接获取（推荐）
-mapRepo := store.Repository()           // 返回 *Repository[ztype.Map]
-structRepo := model.Repo[User](store)   // 返回 *Repository[User]
+mapRepo := store.Repository() // 返回 *Repository[ztype.Map, QueryFilter, ztype.Map, ztype.Map]
+structRepo := model.Repo[User, UserFilter, UserCreate, UserPatch](store) // 返回 *Repository[User, UserFilter, UserCreate, UserPatch]
 
 // 方式三：自定义 Mapper
-customRepo := model.NewRepository(store, customMapper)
+customRepo := model.NewRepository[User, UserFilter, UserCreate, UserPatch](store, customMapper)
 ```
 
 结构体映射示例：
@@ -255,40 +290,58 @@ type User struct {
     Username string `json:"username"`
     Email    string `json:"email"`
 }
+
+type UserCreate struct {
+    Username string `json:"username"`
+    Email    string `json:"email"`
+}
+
+type UserPatch struct {
+    Username string `json:"username,omitempty"`
+    Email    string `json:"email,omitempty"`
+    Status   int    `json:"status,omitempty"`
+}
+
+type UserFilter struct {
+    Username string `json:"username,omitempty"`
+    Status   int    `json:"status,omitempty"`
+}
 ```
 
 ### Repository API
 
+> Repository 的 filter 参数由 F 决定：结构体过滤直接传 F；若 F 为 QueryFilter，可用 Q(...) / Eq / ID / Filter。
+
 ```go
 // 查询
-users, err := repo.Find(model.Q(ztype.Map{"status": 1}))
-user, err := repo.FindOne(model.Eq("username", "john"))
-user, err := repo.First(model.Eq("status", 1))  // FindOne 别名
+users, err := repo.Find(UserFilter{Status: 1})
+user, err := repo.FindOne(UserFilter{Username: "john"})
+user, err := repo.First(UserFilter{Status: 1})  // FindOne 别名
 user, err := repo.FindByID(1)
 users, err := repo.FindByIDs([]any{1, 2, 3})
 all, err := repo.All()
 
 // 分页
-pageData, err := repo.Pages(1, 20, model.Q(ztype.Map{}))
+pageData, err := repo.Pages(1, 20, UserFilter{})
 
 // 统计
-count, err := repo.Count(model.Eq("status", 1))
-exists, err := repo.Exists(model.Eq("username", "john"))
+count, err := repo.Count(UserFilter{Status: 1})
+exists, err := repo.Exists(UserFilter{Username: "john"})
 
 // 写入
-id, err := repo.Insert(ztype.Map{"username": "john"})
-id, err := repo.InsertMany(ztype.Maps{...})
+id, err := repo.Insert(UserCreate{Username: "john", Email: "john@example.com"})
+id, err := repo.InsertMany([]UserCreate{...})
 
 // 更新
-affected, err := repo.Update(model.Eq("id", 1), ztype.Map{"status": 2})
-affected, err := repo.UpdateByID(1, ztype.Map{"status": 2})
-affected, err := repo.UpdateMany(model.In("id", []int{1,2}), ztype.Map{"status": 2})
-affected, err := repo.UpdateByIDs([]any{1, 2}, ztype.Map{"status": 2})
+affected, err := repo.Update(UserFilter{Username: "john"}, UserPatch{Username: "john"})
+affected, err := repo.UpdateByID(1, UserPatch{Email: "john@example.com"})
+affected, err := repo.UpdateMany(UserFilter{Status: 1}, UserPatch{Status: 2})
+affected, err := repo.UpdateByIDs([]any{1, 2}, UserPatch{Status: 2})
 
 // 删除
-affected, err := repo.Delete(model.Eq("id", 1))
+affected, err := repo.Delete(UserFilter{Username: "john"})
 affected, err := repo.DeleteByID(1)
-affected, err := repo.DeleteMany(model.In("id", []int{1,2}))
+affected, err := repo.DeleteMany(UserFilter{Status: 2})
 affected, err := repo.DeleteByIDs([]any{1, 2})
 
 // 辅助方法
@@ -296,13 +349,52 @@ store := repo.Store()    // 获取底层 *Store
 schema := repo.Schema()  // 获取 *Schema
 ```
 
+### 泛型用法
+
+```go
+type UserFilter struct {
+    Status int `json:"status,omitempty"`
+}
+
+type UserCreate struct {
+    Username string `json:"username"`
+    Email    string `json:"email"`
+    Status   int    `json:"status"`
+}
+
+type UserPatch struct {
+    Email  string `json:"email,omitempty"`
+    Status int    `json:"status,omitempty"`
+}
+
+repo := model.Repo[User, UserFilter, UserCreate, UserPatch](store)
+users, err := repo.Find(UserFilter{Status: 1})
+id, err := repo.Insert(UserCreate{Username: "john", Email: "john@example.com", Status: 1})
+_, err = repo.Update(UserFilter{Status: 1}, UserPatch{Status: 2})
+pageData, err := repo.Query().Where("status", 1).Pages(1, 20)
+```
+
+需要使用 `Eq/Or/ID` 等 QueryFilter 构建时，可将 F 指定为 `model.QueryFilter`，或直接使用 `store.Repository()` 返回的 Map Repository。
+
+### 泛型查询函数
+
+```go
+store := mod.MustGetStore("user")
+schema := store.Schema()
+
+user, err := model.FindOne[User](store, model.Q(UserFilter{Status: 1}))
+page, err := model.Pages[User](schema, 1, 20, model.Q(UserFilter{}))
+ages, err := model.FindCols[int](store, "age", model.Q(UserFilter{Status: 1}))
+age, ok, err := model.FindCol[int](store, "age", model.Q(UserFilter{Status: 1}))
+```
+
 ### QueryFilter 构建函数
 
-提供类型安全的条件构建：
+提供类型安全的条件构建（支持 Map/Struct 输入）：
 
 | 函数        | 说明         | 示例                                    |
 | ----------- | ------------ | --------------------------------------- |
-| `Q(map)`    | 原始 Map     | `Q(ztype.Map{"status": 1})`             |
+| `Q(any)`    | 原始条件     | `Q(UserFilter{Status: 1})`              |
 | `ID(v)`     | 主键匹配     | `ID(1)`                                 |
 | `Eq(f, v)`  | 等于         | `Eq("name", "john")`                    |
 | `Ne(f, v)`  | 不等于       | `Ne("status", 0)`                       |
@@ -316,12 +408,12 @@ schema := repo.Schema()  // 获取 *Schema
 | `Between`   | 区间         | `Between("age", 18, 60)`                |
 | `IsNull`    | 为空         | `IsNull("deleted_at")`                  |
 | `IsNotNull` | 不为空       | `IsNotNull("email")`                    |
-| `And(...)`  | 条件组合 AND | `And(Eq("a", 1), Gt("b", 2))`           |
-| `Or(...)`   | 条件组合 OR  | `Or(Eq("status", 1), Eq("status", 2))` |
+| `And(...)`  | 条件组合 AND | `And(Q(UserFilter{Status: 1}), Gt("b", 2))` |
+| `Or(...)`   | 条件组合 OR  | `Or(Eq("status", 1), Eq("status", 2))`  |
 
 ## Query Builder（链式查询）
 
-`Query[T]` 提供流畅的链式 API 构建复杂查询：
+`Query[T, F, C, U]` 提供流畅的链式 API 构建复杂查询：
 
 ```go
 repo := model.NewMapRepository(store)
@@ -368,7 +460,7 @@ affected, err := repo.Query().
 | 方法                        | 说明                       |
 | --------------------------- | -------------------------- |
 | `Where(field, value)`       | 等值条件                   |
-| `WhereFilter(filter)`       | 自定义 QueryFilter         |
+| `WhereFilter(filter)`       | 自定义过滤结构 F           |
 | `WhereID(id)`               | 主键条件                   |
 | `WhereIn(field, values)`    | IN 条件                    |
 | `WhereNot(field, value)`    | 不等于                     |
@@ -376,7 +468,7 @@ affected, err := repo.Query().
 | `WhereLike(field, pattern)` | 模糊匹配                   |
 | `WhereBetween(field, a, b)` | 区间条件                   |
 | `WhereNull/WhereNotNull`    | 空值判断                   |
-| `OrWhere(filters...)`       | OR 条件组                  |
+| `OrWhere(filters...)`       | OR 条件组（F）             |
 | `Select(fields...)`         | 指定返回字段               |
 | `OrderBy(field, dir)`       | 排序（默认 ASC）           |
 | `OrderByDesc(field)`        | 降序排序                   |
@@ -392,7 +484,7 @@ affected, err := repo.Query().
 
 ## 批量操作
 
-`Repository[T]` 提供批量操作方法，适用于大数据量场景：
+`Repository[T, F, C, U]` 提供批量操作方法，适用于大数据量场景：
 
 ```go
 repo := model.NewMapRepository(store)
@@ -419,8 +511,8 @@ affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
 
 | 方法                         | 说明                              |
 | ---------------------------- | --------------------------------- |
-| `BatchInsert(data, opts...)`   | 分批插入，返回所有插入的 ID       |
-| `BatchInsertTx(data, opts...)` | 事务内分批插入，失败时全部回滚    |
+| `BatchInsert(data []C, opts...)`   | 分批插入，返回所有插入的 ID       |
+| `BatchInsertTx(data []C, opts...)` | 事务内分批插入，失败时全部回滚    |
 | `BatchUpdate(filter, data, opts...)` | 分批更新匹配的记录          |
 | `BatchDelete(filter, opts...)` | 分批删除匹配的记录                |
 
@@ -428,17 +520,17 @@ affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
 
 ## 查询与过滤器
 
-过滤条件使用 `model.Filter`（`type Filter ztype.Map`）或任意 `ztype.Map`：
+当 F 为 `QueryFilter` 时可直接使用 QueryFilter 构建条件，结构体/Map 需通过 `Q(...)` 或 `Filter` 转换：
 
 | 语法         | 示例                                                                                                 | 说明               |
 | ------------ | ---------------------------------------------------------------------------------------------------- | ------------------ |
-| 等值         | `{"status": 1}`                                                                                      | 字段等于某值       |
-| 范围         | `{"age >": 18, "age <=": 60}`                                                                        | 自动生成比较表达式 |
-| IN/NOT IN    | `{"id": []int{1,2}}`、`{"id IN": []any{1,2}}`、`{"id NOT IN": []int{3}}`                             | 集合匹配           |
-| LIKE         | `{"name LIKE": "%john%"}`                                                                            | 模糊查询           |
-| NULL         | `{"deleted_at": nil}`, `{"deleted_at IS NOT NULL": true}`                                            | 空值判断           |
-| BETWEEN      | `{"created_at BETWEEN": []string{"2024-01-01", "2024-12-31"}}`                                       | 区间               |
-| 逻辑组合     | `{"$OR": ztype.Map{"status":1, "name LIKE":"%a%"}}`、`{"$AND": ...}`                                 | 嵌套 AND / OR      |
+| 等值         | `Filter{"status": 1}`                                                                                | 字段等于某值       |
+| 范围         | `Filter{"age >": 18, "age <=": 60}`                                                                  | 自动生成比较表达式 |
+| IN/NOT IN    | `Filter{"id": []int{1,2}}`、`Filter{"id IN": []any{1,2}}`、`Filter{"id NOT IN": []int{3}}`           | 集合匹配           |
+| LIKE         | `Filter{"name LIKE": "%john%"}`                                                                      | 模糊查询           |
+| NULL         | `Filter{"deleted_at": nil}`, `Filter{"deleted_at IS NOT NULL": true}`                                | 空值判断           |
+| BETWEEN      | `Filter{"created_at BETWEEN": []string{"2024-01-01", "2024-12-31"}}`                                 | 区间               |
+| 逻辑组合     | `Filter{"$OR": ztype.Map{"status":1, "name LIKE":"%a%"}}`、`Filter{"$AND": ...}`                     | 嵌套 AND / OR      |
 | 自定义表达式 | `Filter{}.Cond(func(c *builder.BuildCond) string { return c.Expr("JSON_CONTAINS(tags, '"foo"')") })` | 直接注入 SQL 片段  |
 
 其他特性：
@@ -494,7 +586,7 @@ affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
 ```go
 repo := model.NewMapRepository(store)
 
-err := repo.Tx(func(txRepo *model.Repository[ztype.Map]) error {
+err := repo.Tx(func(txRepo *model.Repository[ztype.Map, model.QueryFilter, ztype.Map, ztype.Map]) error {
     id, err := txRepo.Insert(ztype.Map{"username": "john"})
     if err != nil {
         return err

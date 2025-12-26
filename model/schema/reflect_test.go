@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -154,6 +155,31 @@ type NoJsonTag struct {
 	UserName string `field:"size:50"`
 }
 
+type MetaUser struct {
+	Meta   `name:"meta_user" table:"meta_users" comment:"Meta Users" options:"timestamps,soft_deletes,crypt_id" crypt_len:"16" low_fields:"secret|password" fields_sort:"id|name"`
+	ID     uint   `json:"id"`
+	Status int    `json:"status" field:"enum:1=active|2=disabled,unique:status_u,index:status_i"`
+	Score  int    `json:"score" field:"valid:min=1|max=10"`
+	Secret string `json:"secret" field:"disable_migration"`
+}
+
+type RelProfile struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
+type RelRole struct {
+	ID uint `json:"id"`
+}
+
+type RelUser struct {
+	Meta      `name:"rel_user"`
+	ID        uint        `json:"id"`
+	ProfileID uint        `json:"profile_id"`
+	Profile   *RelProfile `relation:"type:single,schema:profiles,foreign:profile_id,fields:id|name"`
+	Roles     []RelRole   `relation:"type:many_to_many,schema:roles,pivot_foreign:user_id,pivot_related:role_id"`
+}
+
 func TestFieldsFromStruct_NoJsonTag(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
@@ -161,8 +187,8 @@ func TestFieldsFromStruct_NoJsonTag(t *testing.T) {
 
 	tt.Equal(2, len(fields))
 	tt.Equal(Uint, fields["id"].Type)
-	tt.Equal(String, fields["username"].Type)
-	tt.Equal(uint64(50), fields["username"].Size)
+	tt.Equal(String, fields["user_name"].Type)
+	tt.Equal(uint64(50), fields["user_name"].Size)
 }
 
 func TestFieldsFromStruct_Pointer(t *testing.T) {
@@ -177,4 +203,88 @@ func TestFieldsFromStruct_NonStruct(t *testing.T) {
 	if fields != nil {
 		t.Error("expected nil for non-struct type")
 	}
+}
+
+func TestNewFromStruct(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	s := NewFromStruct[SimpleUser]("user", "users")
+	tt.Equal("user", s.Name)
+	tt.Equal("users", s.Table.Name)
+	tt.Equal(4, len(s.Fields))
+	tt.Equal(String, s.Fields["name"].Type)
+}
+
+func TestNewFromStructValue(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	s := NewFromStructValue("user", SimpleUser{}, "users")
+	tt.Equal("user", s.Name)
+	tt.Equal("users", s.Table.Name)
+	tt.Equal(4, len(s.Fields))
+	tt.Equal(String, s.Fields["name"].Type)
+}
+
+func TestNewFromStructType(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	s := NewFromStructType("user", reflect.TypeOf(SimpleUser{}), "users")
+	tt.Equal("user", s.Name)
+	tt.Equal("users", s.Table.Name)
+	tt.Equal(4, len(s.Fields))
+	tt.Equal(String, s.Fields["name"].Type)
+}
+
+func TestNewFromStruct_MetaAndTags(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	s := NewFromStruct[MetaUser]("", "")
+	tt.Equal("meta_user", s.Name)
+	tt.Equal("meta_users", s.Table.Name)
+	tt.Equal("Meta Users", s.Table.Comment)
+
+	tt.Equal(true, s.Options.Timestamps != nil && *s.Options.Timestamps)
+	tt.Equal(true, s.Options.SoftDeletes != nil && *s.Options.SoftDeletes)
+	tt.Equal(true, s.Options.CryptID != nil && *s.Options.CryptID)
+	tt.Equal(16, s.Options.CryptLen)
+	tt.Equal([]string{"secret", "password"}, s.Options.LowFields)
+	tt.Equal([]string{"id", "name"}, s.Options.FieldsSort)
+
+	status := s.Fields["status"]
+	tt.Equal("status_u", status.Unique)
+	tt.Equal("status_i", status.Index)
+	tt.Equal(2, len(status.Options.Enum))
+	tt.Equal("1", status.Options.Enum[0].Value)
+	tt.Equal("active", status.Options.Enum[0].Label)
+
+	score := s.Fields["score"]
+	tt.Equal(2, len(score.Validations))
+	tt.Equal("min", score.Validations[0].Method)
+	tt.Equal("1", score.Validations[0].Args)
+
+	secret := s.Fields["secret"]
+	tt.Equal(true, secret.Options.DisableMigration)
+}
+
+func TestNewFromStruct_RelationTags(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	s := NewFromStruct[RelUser]("", "")
+
+	profile, ok := s.Relations["profile"]
+	tt.Equal(true, ok)
+	tt.Equal(RelationSingle, profile.Type)
+	tt.Equal("profiles", profile.Schema)
+	tt.Equal([]string{"profile_id"}, profile.ForeignKey)
+	tt.Equal([]string{"id"}, profile.SchemaKey)
+	tt.Equal([]string{"id", "name"}, profile.Fields)
+
+	_, hasProfileField := s.Fields["profile"]
+	tt.Equal(false, hasProfileField)
+
+	roles, ok := s.Relations["roles"]
+	tt.Equal(true, ok)
+	tt.Equal(RelationManyToMany, roles.Type)
+	tt.Equal([]string{"user_id"}, roles.PivotKeys.Foreign)
+	tt.Equal([]string{"role_id"}, roles.PivotKeys.Related)
 }

@@ -150,11 +150,10 @@ func (h *UserServer) login(c *znet.Context) (data any, err error) {
 		"account": account,
 	})
 	if err != nil {
+		if errors.Is(err, model.ErrNoRecord) {
+			return nil, zerror.InvalidInput.Text("用户不存在")
+		}
 		return nil, zerror.InvalidInput.Text(err.Error())
-	}
-
-	if user.IsEmpty() {
-		return nil, zerror.InvalidInput.Text("用户不存在")
 	}
 
 	err = bcrypt.CompareHashAndPassword(user.Get("password").Bytes(), zstring.String2Bytes(password))

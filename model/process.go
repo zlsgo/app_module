@@ -53,10 +53,11 @@ func jsonMarshalProcess(isArray bool) func(s interface{}) (string, error) {
 	}
 }
 
-func jsonUnmarshalProcess(isArray bool) func(s string) (interface{}, error) {
-	return func(s string) (interface{}, error) {
-		j := zjson.Parse(s)
-		if s == "" {
+func jsonUnmarshalProcess(isArray bool) func(s interface{}) (interface{}, error) {
+	return func(s interface{}) (interface{}, error) {
+		raw := ztype.ToString(s)
+		j := zjson.Parse(raw)
+		if raw == "" {
 			if isArray {
 				return ztype.Maps{}, nil
 			}
@@ -76,7 +77,7 @@ func boolMarshalProcess(s interface{}) (string, error) {
 	return strconv.Itoa(ztype.ToInt(s)), nil
 }
 
-func boolUnmarshalProcess(s string) (interface{}, error) {
+func boolUnmarshalProcess(s interface{}) (interface{}, error) {
 	return ztype.ToBool(s), nil
 }
 
@@ -103,18 +104,19 @@ func dateMarshalProcess(format string) func(v interface{}) (string, error) {
 	}
 }
 
-func dateUnmarshalProcess(format string) func(v string) (interface{}, error) {
-	return func(v string) (interface{}, error) {
-		if v == "" {
+func dateUnmarshalProcess(format string) func(v interface{}) (interface{}, error) {
+	return func(v interface{}) (interface{}, error) {
+		raw := ztype.ToString(v)
+		if raw == "" {
 			return "", nil
 		}
-		timestamp, err := strconv.Atoi(v)
+		timestamp, err := strconv.Atoi(raw)
 
 		if err == nil {
 			return ztime.FormatTimestamp(int64(timestamp), format), nil
 		}
 
-		t, err := ztime.Parse(v)
+		t, err := ztime.Parse(raw)
 		if err != nil {
 			return "", err
 		}

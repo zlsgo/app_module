@@ -35,13 +35,27 @@ func (p *PageData) Map(fn func(index int, item ztype.Map) ztype.Map, parallel ..
 }
 
 // Pages 分页查询（公开 API）
-func Pages[T filter](
+func Pages[R any](
 	m *Schema,
 	page, pagesize int,
-	filter T,
+	filter QueryFilter,
 	fn ...func(*CondOptions),
-) (*PageData, error) {
-	return pages(m, page, pagesize, getFilter(m, filter), true, fn...)
+) (*RepositoryPageData[R], error) {
+	pageData, err := pages(m, page, pagesize, getFilter(m, filter), true, fn...)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := mapRows[R](pageData.Items)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RepositoryPageData[R]{
+		Items:    items,
+		Page:     pageData.Page,
+		pagesize: pageData.pagesize,
+	}, nil
 }
 
 // pages 分页查询内部实现
@@ -58,14 +72,13 @@ func pages(
 	}
 
 	var (
-		childRelationson map[string][]string
+		childRelationson nestedRelationMap
 		foreignKeys      []string
 		data             = &PageData{pagesize: uint(pagesize)}
 	)
 
 	rows, pages, err := m.Storage.Pages(
 		m.GetTableName(),
-		m.GetFields(),
 		page,
 		pagesize,
 		filter,
@@ -103,12 +116,17 @@ func pages(
 	for i := range data.Items {
 		row := &data.Items[i]
 		for k, v := range afterProcess {
-			if _, ok := (*row)[k]; ok {
-				(*row)[k], err = v[0](row.Get(k).String())
+			val, ok := (*row)[k]
+			if !ok {
+				continue
+			}
+			for j := range v {
+				val, err = v[j](val)
 				if err != nil {
 					return data, err
 				}
 			}
+			(*row)[k] = val
 		}
 
 		if cryptId && *m.define.Options.CryptID {

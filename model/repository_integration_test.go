@@ -19,6 +19,23 @@ type TestUser struct {
 	Status int8   `json:"status"`
 }
 
+type TestUserCreate struct {
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Age    int    `json:"age"`
+	Status int8   `json:"status"`
+}
+
+type TestUserPatch struct {
+	Name string `json:"name,omitempty"`
+	Age  int    `json:"age,omitempty"`
+}
+
+type TestUserFilter struct {
+	Name   string `json:"name,omitempty"`
+	Status int8   `json:"status,omitempty"`
+}
+
 func newTestDB(t *testing.T, tableName string) (*zdb.DB, *Schema) {
 	db, err := zdb.New(&sqlite3.Config{
 		File:       ":memory:",
@@ -69,7 +86,7 @@ func newTestDB(t *testing.T, tableName string) (*zdb.DB, *Schema) {
 		t.Fatalf("failed to register schema: %v", err)
 	}
 
-	err = m.Migration().Auto(dealOldColumnNone)
+	err = m.Migration().Auto(DealOldColumnNone)
 	if err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
@@ -118,13 +135,13 @@ func TestRepositoryStructCRUD(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 	_, m := newTestDB(t, "crud_struct")
 
-	repo := Repo[TestUser](m.Model())
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
 
-	id, err := repo.Insert(ztype.Map{
-		"name":   "Bob",
-		"email":  "bob@example.com",
-		"age":    30,
-		"status": 1,
+	id, err := repo.Insert(TestUserCreate{
+		Name:   "Bob",
+		Email:  "bob@example.com",
+		Age:    30,
+		Status: 1,
 	})
 	tt.NoError(err)
 	tt.Log("Insert ID:", id)
@@ -135,7 +152,7 @@ func TestRepositoryStructCRUD(t *testing.T) {
 	tt.Equal("bob@example.com", user.Email)
 	tt.Equal(30, user.Age)
 
-	count, err := repo.Update(ID(id), ztype.Map{"name": "Bobby", "age": 31})
+	count, err := repo.UpdateByID(id, TestUserPatch{Name: "Bobby", Age: 31})
 	tt.NoError(err)
 	tt.Equal(int64(1), count)
 
@@ -313,12 +330,12 @@ func TestRepositoryStructQuery(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 	_, m := newTestDB(t, "query_struct")
 
-	repo := Repo[TestUser](m.Model())
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
 
-	testData := []ztype.Map{
-		{"name": "StructUser1", "email": "struct1@test.com", "age": 22, "status": 1},
-		{"name": "StructUser2", "email": "struct2@test.com", "age": 28, "status": 2},
-		{"name": "StructUser3", "email": "struct3@test.com", "age": 33, "status": 1},
+	testData := []TestUserCreate{
+		{Name: "StructUser1", Email: "struct1@test.com", Age: 22, Status: 1},
+		{Name: "StructUser2", Email: "struct2@test.com", Age: 28, Status: 2},
+		{Name: "StructUser3", Email: "struct3@test.com", Age: 33, Status: 1},
 	}
 	for _, data := range testData {
 		_, err := repo.Insert(data)
@@ -344,13 +361,77 @@ func TestRepositoryStructQuery(t *testing.T) {
 	tt.Equal(int8(2), user.Status)
 }
 
+func TestRepositoryStructFilter(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	_, m := newTestDB(t, "struct_filter")
+
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
+
+	_, err := repo.Insert(TestUserCreate{
+		Name:   "FilterUser1",
+		Email:  "f1@test.com",
+		Age:    20,
+		Status: 1,
+	})
+	tt.NoError(err)
+
+	_, err = repo.Insert(TestUserCreate{
+		Name:   "FilterUser2",
+		Email:  "f2@test.com",
+		Age:    25,
+		Status: 2,
+	})
+	tt.NoError(err)
+
+	users, err := repo.Find(TestUserFilter{Status: 1})
+	tt.NoError(err)
+	tt.Equal(1, len(users))
+
+	users, err = repo.Query().WhereFilter(TestUserFilter{Name: "FilterUser2"}).Find()
+	tt.NoError(err)
+	tt.Equal(1, len(users))
+	tt.Equal("FilterUser2", users[0].Name)
+}
+
+func TestRepositoryGeneric(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	_, m := newTestDB(t, "typed_repo")
+
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
+
+	id, err := repo.Insert(TestUserCreate{
+		Name:   "TypedUser",
+		Email:  "typed@test.com",
+		Age:    26,
+		Status: 1,
+	})
+	tt.NoError(err)
+	tt.Equal(true, id != nil)
+
+	users, err := repo.Find(TestUserFilter{Status: 1})
+	tt.NoError(err)
+	tt.Equal(1, len(users))
+
+	count, err := repo.Update(TestUserFilter{Name: "TypedUser"}, TestUserPatch{Age: 27})
+	tt.NoError(err)
+	tt.Equal(int64(1), count)
+
+	pageData, err := repo.Pages(1, 10, TestUserFilter{Status: 1})
+	tt.NoError(err)
+	tt.Equal(1, len(pageData.Items))
+
+	users, err = repo.Query().WhereFilter(TestUserFilter{Status: 1}).Find()
+	tt.NoError(err)
+	tt.Equal(1, len(users))
+}
+
 func TestRepositoryTransaction(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 	_, m := newTestDB(t, "tx_test")
 
 	repo := m.Model().Repository()
 
-	err := repo.Tx(func(txRepo *Repository[ztype.Map]) error {
+	err := repo.Tx(func(txRepo *Repository[ztype.Map, QueryFilter, ztype.Map, ztype.Map]) error {
 		_, err := txRepo.Insert(ztype.Map{
 			"name":   "TxUser1",
 			"email":  "tx1@test.com",
@@ -390,7 +471,7 @@ func TestRepositoryTransactionRollback(t *testing.T) {
 	})
 	tt.NoError(err)
 
-	err = repo.Tx(func(txRepo *Repository[ztype.Map]) error {
+	err = repo.Tx(func(txRepo *Repository[ztype.Map, QueryFilter, ztype.Map, ztype.Map]) error {
 		_, err := txRepo.Insert(ztype.Map{
 			"name":   "TxUser",
 			"email":  "tx@test.com",
@@ -463,13 +544,13 @@ func TestRepositoryRepoFunc(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 	_, m := newTestDB(t, "repo_func")
 
-	repo := Repo[TestUser](m.Model())
+	repo := Repo[TestUser, TestUserFilter, TestUserCreate, TestUserPatch](m.Model())
 
-	_, err := repo.Insert(ztype.Map{
-		"name":   "RepoUser",
-		"email":  "repo@test.com",
-		"age":    25,
-		"status": 1,
+	_, err := repo.Insert(TestUserCreate{
+		Name:   "RepoUser",
+		Email:  "repo@test.com",
+		Age:    25,
+		Status: 1,
 	})
 	tt.NoError(err)
 

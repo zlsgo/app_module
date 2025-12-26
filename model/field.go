@@ -2,8 +2,8 @@ package model
 
 import (
 	"errors"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zjson"
@@ -16,6 +16,7 @@ import (
 	"github.com/zlsgo/zdb/schema"
 )
 
+// filterFields 过滤有效字段
 func (m *Schema) filterFields(fields []string) []string {
 	hasAllFields := zarray.Contains(fields, allFields[0])
 	return zarray.Filter(fields, func(_ int, f string) bool {
@@ -28,7 +29,12 @@ func (m *Schema) filterFields(fields []string) []string {
 			return true
 		}
 
-		ok := zarray.Contains(m.fullFields, f)
+		ok := false
+		if m.fullFieldsMap != nil {
+			_, ok = m.fullFieldsMap[f]
+		} else {
+			ok = zarray.Contains(m.fullFields, f)
+		}
 		if hasAllFields && ok {
 			return false
 		}
@@ -37,6 +43,7 @@ func (m *Schema) filterFields(fields []string) []string {
 	})
 }
 
+// GetField 获取指定字段定义
 func (m *Schema) GetField(name string) (mSchema.Field, bool) {
 	f, ok := m.getField(name)
 	if !ok {
@@ -45,12 +52,10 @@ func (m *Schema) GetField(name string) (mSchema.Field, bool) {
 	return *f, true
 }
 
+// getField 获取字段定义（包含内置字段）
 func (m *Schema) getField(name string) (*mSchema.Field, bool) {
-	for fname := range m.define.Fields {
-		if name == fname {
-			field := m.define.Fields[fname]
-			return &field, true
-		}
+	if field, ok := m.define.Fields[name]; ok {
+		return &field, true
 	}
 
 	if name == idKey {
@@ -85,7 +90,7 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 
 	if *m.define.Options.SoftDeletes {
 		if name == DeletedAtKey {
-			if InsideOption.softDeleteIsTime {
+			if *m.define.Options.SoftDeleteIsTime {
 				return &mSchema.Field{
 					Type:     schema.Time,
 					Nullable: true,
@@ -120,11 +125,17 @@ func (m *Schema) getField(name string) (*mSchema.Field, bool) {
 	return nil, false
 }
 
+// GetDefineFields 获取定义的字段集合
 func (m *Schema) GetDefineFields() mSchema.Fields {
 	return m.define.Fields
 }
 
+// isInlayField 检查是否为内置字段
 func (m *Schema) isInlayField(field string) bool {
+	if m.inlayFieldsMap != nil {
+		_, ok := m.inlayFieldsMap[field]
+		return ok
+	}
 	inlayFields := []string{idKey}
 	if *m.define.Options.Timestamps {
 		inlayFields = append(inlayFields, CreatedAtKey, UpdatedAtKey)
@@ -138,6 +149,7 @@ func (m *Schema) isInlayField(field string) bool {
 	return zarray.Contains(inlayFields, field)
 }
 
+// perfectField 完善字段定义
 func perfectField(m *Schema) ([]string, error) {
 	fields := make([]string, 0, len(m.define.Fields))
 	if len(m.JSON) > 0 {
@@ -217,7 +229,7 @@ func parseField(m *Schema, name string, f *mSchema.Field) error {
 	}
 
 	if len(f.After) > 0 {
-		ps, err := m.GetAfterProcess(f.Before)
+		ps, err := m.GetAfterProcess(f.After)
 		if err != nil {
 			return err
 		}
@@ -229,6 +241,7 @@ func parseField(m *Schema, name string, f *mSchema.Field) error {
 	return nil
 }
 
+// parseFieldModelOptions 解析字段模型选项
 func parseFieldModelOptions(_ string, c *mSchema.Field) {
 	if len(c.Options.Enum) > 0 {
 		c.Options.Enum = zarray.Map(
@@ -249,6 +262,7 @@ func parseFieldModelOptions(_ string, c *mSchema.Field) {
 	}
 }
 
+// parseFieldValidRule 解析字段验证规则
 func parseFieldValidRule(name string, c *mSchema.Field) {
 	label := c.Label
 	rule := zvalid.New().SetAlias(label)
@@ -275,11 +289,22 @@ func parseFieldValidRule(name string, c *mSchema.Field) {
 		case schema.Float:
 			rule = rule.MaxFloat(float64(c.Size))
 		case schema.Time:
-			rule.Customize(func(rawValue string, err error) (newValue string, newErr error) {
+			rule = rule.Customize(func(rawValue string, err error) (newValue string, newErr error) {
 				if err != nil {
 					return "", err
 				}
-				if ztime.Unix(int64(c.Size)).After(time.Now()) {
+				if rawValue == "" {
+					return rawValue, nil
+				}
+				t, parseErr := ztime.Parse(rawValue)
+				if parseErr != nil {
+					if ts, err2 := strconv.ParseInt(rawValue, 10, 64); err2 == nil {
+						t = ztime.Unix(ts)
+					} else {
+						return rawValue, errors.New(label + ": 时间格式错误")
+					}
+				}
+				if t.After(ztime.Unix(int64(c.Size))) {
 					return rawValue, errors.New(label + "时间不能大于指定时间")
 				}
 				return
@@ -340,6 +365,9 @@ func perfectOptions(m *Schema, o *SchemaOptions) error {
 	if m.define.Options.SoftDeletes == nil {
 		m.define.Options.SoftDeletes = &o.SoftDeletes
 	}
+	if m.define.Options.SoftDeleteIsTime == nil {
+		m.define.Options.SoftDeleteIsTime = &o.SoftDeleteIsTime
+	}
 	if m.define.Options.Timestamps == nil {
 		m.define.Options.Timestamps = &o.Timestamps
 	}
@@ -350,14 +378,11 @@ func perfectOptions(m *Schema, o *SchemaOptions) error {
 	return nil
 }
 
+// isDisableMigratioField 检查字段是否禁用迁移
 func isDisableMigratioField(m *Schema, name string) bool {
-	for n := range m.define.Fields {
-		if name != n {
-			continue
-		}
-		if m.define.Fields[n].Options.DisableMigration {
-			return true
-		}
+	field, ok := m.define.Fields[name]
+	if !ok {
+		return false
 	}
-	return false
+	return field.Options.DisableMigration
 }

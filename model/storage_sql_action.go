@@ -155,12 +155,12 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 	return exprs, nil
 }
 
-func (s *SQL) Insert(table string, fields []string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
+func (s *SQL) Insert(table string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
 	o := zutil.Optional(InsertOptions{}, fn...)
 	return s.db.Insert(table, data, o.Options)
 }
 
-func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error) {
+func (s *SQL) InsertMany(table string, data ztype.Maps, fn ...func(*InsertOptions)) (lastIds []interface{}, err error) {
 	o := zutil.Optional(InsertOptions{}, fn...)
 	ids, err := s.db.BatchInsert(table, data, o.Options)
 	if err != nil {
@@ -174,7 +174,7 @@ func (s *SQL) InsertMany(table string, fields []string, data ztype.Maps, fn ...f
 	return
 }
 
-func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
+func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := acquireCondOptions()
 	defer releaseCondOptions(o)
 	for _, f := range fn {
@@ -209,8 +209,8 @@ func (s *SQL) Delete(table string, fields []string, filter ztype.Map, fn ...func
 	})
 }
 
-func (s *SQL) First(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
-	rows, err := s.Find(table, fields, filter, func(so *CondOptions) {
+func (s *SQL) First(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Map, error) {
+	rows, err := s.Find(table, filter, func(so *CondOptions) {
 		so.Limit = 1
 		so.Offset = 0
 		if len(fn) > 0 {
@@ -225,7 +225,7 @@ func (s *SQL) First(table string, fields []string, filter ztype.Map, fn ...func(
 	return ztype.Map{}, err
 }
 
-func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func (s *SQL) Find(table string, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	o := acquireCondOptions()
 	defer releaseCondOptions(o)
 	for _, f := range fn {
@@ -283,7 +283,7 @@ func (s *SQL) Find(table string, fields []string, filter ztype.Map, fn ...func(*
 	return items, nil
 }
 
-func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
+func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...func(*CondOptions)) (ztype.Maps, PageInfo, error) {
 	o := acquireCondOptions()
 	defer releaseCondOptions(o)
 	for _, f := range fn {
@@ -344,7 +344,7 @@ func (s *SQL) Pages(table string, fields []string, page, pagesize int, filter zt
 	}, nil
 }
 
-func (s *SQL) Update(table string, fields []string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
+func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
 	o := acquireCondOptions()
 	defer releaseCondOptions(o)
 	for _, f := range fn {

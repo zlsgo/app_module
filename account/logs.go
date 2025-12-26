@@ -10,8 +10,6 @@ import (
 	"github.com/zlsgo/app_module/model"
 )
 
-var noLogIP = false
-
 // GetLogs 操作日志
 func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 	m, ok := h.module.mods.Get(logsName)
@@ -29,7 +27,7 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return model.Pages(m, page, pagesize, ztype.Map{
+	return model.Pages[ztype.Map](m, page, pagesize, model.Filter{
 		"account": account,
 	}, func(co *model.CondOptions) {
 		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
@@ -37,7 +35,7 @@ func (h *Index) GetLogs(c *znet.Context) (data any, err error) {
 }
 
 // 记录日志
-func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
+func (m *Module) logRequest(c *znet.Context, logModel *model.Schema, u ztype.Map) {
 	msg, ok := c.Value(ctxWithLog)
 	if !ok {
 		return
@@ -53,7 +51,7 @@ func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
 	}
 
 	ip := ""
-	if !noLogIP {
+	if !m.noLogIP {
 		ip = c.GetClientIP()
 	}
 	method := c.Request.Method
@@ -61,7 +59,7 @@ func logRequest(c *znet.Context, m *model.Schema, u ztype.Map) {
 	params := c.Request.URL.Query().Encode()
 
 	go func() {
-		_, _ = insertLog(m, account, ip, method, path, status, msgStr, params, remark)
+		_, _ = insertLog(logModel, account, ip, method, path, status, msgStr, params, remark)
 	}()
 }
 

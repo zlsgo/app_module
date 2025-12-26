@@ -68,7 +68,11 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				co.Fields = []string{"member_id"}
 			})
 			if err != nil {
-				return "", err
+				if errors.Is(err, model.ErrNoRecord) {
+					provider = ztype.Map{}
+				} else {
+					return "", err
+				}
 			}
 
 			if provider.IsEmpty() {
@@ -77,7 +81,7 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 				password := zstring.Rand(16)
 				err = h.module.schemas.Storage().Transaction(func(s model.Storageer) (err error) {
 					memberSchema := h.memberModel.Schema(s)
-					_, exists, _ := model.FindCol(memberSchema.Model(), "account", ztype.Map{"account": account})
+					_, exists, _ := model.FindCol[string](memberSchema.Model(), "account", model.Filter{"account": account})
 					if exists {
 						return errors.New("账号已存在，无法自动注册")
 					}

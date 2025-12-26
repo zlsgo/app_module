@@ -65,6 +65,9 @@ func parseSchema(dir string) ([]schema.Schema, error) {
 			return err
 		}
 		if !d.IsDir() {
+			if strings.ToLower(filepath.Ext(path)) != ".json" {
+				return nil
+			}
 			files = append(files, path)
 		}
 		return nil
@@ -77,12 +80,12 @@ func parseSchema(dir string) ([]schema.Schema, error) {
 	for _, filePath := range files {
 		text, err := zfile.ReadFile(filePath)
 		if err != nil {
-			continue
+			return nil, zerror.With(err, "read schema file: "+filePath)
 		}
 
 		var d schema.Schema
 		if err := zjson.Unmarshal(text, &d); err != nil {
-			continue
+			return nil, zerror.With(err, "invalid schema file: "+filePath)
 		}
 
 		d.SchemaPath = filePath
@@ -125,9 +128,16 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 		storageer = NewSQL(db, opt.Prefix)
 	}
 
-	m.schemas = NewSchemas(di.(zdi.Injector), storageer, opt.SchemaOptions)
+	injector, ok := di.(zdi.Injector)
+	if !ok {
+		return errors.New("di injector not supported")
+	}
+	mapper, ok := di.(zdi.TypeMapper)
+	if !ok {
+		return errors.New("di type mapper not supported")
+	}
 
-	mapper := di.(zdi.TypeMapper)
+	m.schemas = NewSchemas(injector, storageer, opt.SchemaOptions)
 	m.stores = &Stores{items: zarray.NewHashMap[string, *Store]()}
 
 	if opt.SchemaDir != "" {

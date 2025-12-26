@@ -1,6 +1,7 @@
 package hashid
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
@@ -37,4 +38,27 @@ func TestSetGet(t *testing.T) {
 	h, ok := Get("test")
 	tt.Equal(true, ok)
 	tt.EqualTrue(h != nil)
+}
+
+func TestNilHashID(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	_, err := EncryptID(nil, 1)
+	tt.Equal(true, err != nil)
+
+	_, err = DecryptID(nil, "x")
+	tt.Equal(true, err != nil)
+}
+
+func TestHashIDErrorPropagation(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	expected := errors.New("init failed")
+	h := &HashID{err: expected}
+
+	_, err := EncryptID(h, 1)
+	tt.Equal(expected, err)
+
+	_, err = DecryptID(h, "x")
+	tt.Equal(expected, err)
 }

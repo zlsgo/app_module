@@ -134,6 +134,18 @@ func TestMapFilter(t *testing.T) {
 	}
 }
 
+func TestStructFilter(t *testing.T) {
+	type StatusFilter struct {
+		Status int `json:"status"`
+	}
+
+	f := Q(StatusFilter{Status: 1})
+	m := f.ToMap()
+	if m["status"] != 1 {
+		t.Errorf("Struct filter mismatch: %v", m)
+	}
+}
+
 func TestBetweenFilter(t *testing.T) {
 	f := Between("age", 18, 65)
 	m := f.ToMap()

@@ -130,3 +130,16 @@ PostgreSQL 驱动文件带有构建标签：
 ### delete_column 字段
 
 配置项 `mode.delete_column` 会映射到 `database.Options.Mode.DelteColumn`（结构体字段名存在拼写，但 JSON key 为 `delete_column`，配置不受影响）。
+
+### driver 选择规则
+
+当未指定 `driver` 且同时配置多个数据库类型时，会直接报错并要求显式指定 `driver`。
+
+
+### SQLite 连接策略
+
+SQLite 仅使用单连接（`MaxOpenConns=1`），避免多连接导致的锁竞争问题。
+
+### 默认方言
+
+`builder.DefaultDriver` 会被最近一次初始化的数据库方言更新。

@@ -2,12 +2,12 @@ package model
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/zlsgo/app_module/database/hashid"
 	"github.com/zlsgo/app_module/model/schema"
 
 	"github.com/sohaha/zlsgo/zarray"
-	"github.com/sohaha/zlsgo/zstring"
 )
 
 // perfect is perfect
@@ -21,7 +21,6 @@ func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 	s.Hashid = hashid.New(s.define.Options.Salt, cryptLen)
 
 	s.readOnlyKeys = make([]string, 0, 4)
-	s.relationsKeys = make([]string, 0, len(s.define.Relations))
 	s.cryptKeys = make(map[string]CryptProcess, 2)
 	s.afterProcess = make(map[string][]afterProcess, 4)
 	s.beforeProcess = make(map[string][]beforeProcess, 4)
@@ -85,27 +84,62 @@ func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 		}
 
 		s.lowFields = s.define.Options.LowFields
+		s.refreshFieldsSet()
 	} else {
 		b := true
 		s.define.Options.DisabledMigrator = &b
 	}
 
 	if len(s.define.Relations) > 0 {
-		for k := range s.define.Relations {
-			v := s.define.Relations[k]
-			if len(v.ForeignKey) != len(v.SchemaKey) {
-				return errors.New("ForeignKey and SchemaKey must be the same length")
-			}
-
+		storageType := StorageType(0)
+		if s.Storage != nil {
+			storageType = s.Storage.GetStorageType()
 		}
 
 		newRelations := make(map[string]schema.Relation, len(s.define.Relations))
 		for k := range s.define.Relations {
 			v := s.define.Relations[k]
-			newRelations[zstring.CamelCaseToSnakeCase(k)] = v
+			if v.Type == schema.RelationManyToMany {
+				if s.Storage != nil && storageType != SQLStorage {
+					return errors.New("many_to_many relation requires sql storage")
+				}
+				parentKeys := v.ForeignKey
+				if len(parentKeys) == 0 {
+					parentKeys = []string{idKey}
+				}
+				relatedKeys := v.SchemaKey
+				if len(relatedKeys) == 0 {
+					relatedKeys = []string{idKey}
+				}
+				if len(v.PivotKeys.Foreign) != len(parentKeys) {
+					return errors.New("Pivot foreign key length mismatch")
+				}
+				if len(v.PivotKeys.Related) != len(relatedKeys) {
+					return errors.New("Pivot related key length mismatch")
+				}
+			} else {
+				if len(v.ForeignKey) == 0 {
+					return errors.New("relation foreign_key required")
+				}
+				if len(v.SchemaKey) == 0 {
+					if len(v.ForeignKey) == 1 {
+						v.SchemaKey = []string{idKey}
+					} else {
+						return errors.New("relation schema_key required for composite foreign_key")
+					}
+				}
+				if len(v.ForeignKey) != len(v.SchemaKey) {
+					return errors.New("ForeignKey and SchemaKey must be the same length")
+				}
+			}
+
+			normalized := camelToSnake(k)
+			if _, exists := newRelations[normalized]; exists {
+				return errors.New("relation " + normalized + " already exists after normalization")
+			}
+			newRelations[normalized] = v
 		}
 		s.define.Relations = newRelations
-		s.relationsKeys = zarray.Keys(s.define.Relations)
 	} else {
 		s.define.Relations = make(map[string]schema.Relation)
 	}
@@ -125,4 +159,35 @@ func perfect(alias string, s *Schema, o *SchemaOptions) (err error) {
 
 	s.views = parseViews(s)
 	return
+}
+
+func camelToSnake(name string) string {
+	if name == "" {
+		return ""
+	}
+	var b strings.Builder
+	b.Grow(len(name) + len(name)/2)
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if c == '_' {
+			b.WriteByte(c)
+			continue
+		}
+		if c >= 'A' && c <= 'Z' {
+			if i > 0 {
+				prev := name[i-1]
+				nextLower := i+1 < len(name) && name[i+1] >= 'a' && name[i+1] <= 'z'
+				prevLower := prev >= 'a' && prev <= 'z'
+				prevDigit := prev >= '0' && prev <= '9'
+				prevUpper := prev >= 'A' && prev <= 'Z'
+				if prevLower || prevDigit || (prevUpper && nextLower) {
+					b.WriteByte('_')
+				}
+			}
+			b.WriteByte(c + 'a' - 'A')
+			continue
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
 }

@@ -2,16 +2,37 @@ package database
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/zlsgo/zdb/driver"
 )
 
-var drivers = map[string]func(Options) (driver.IfeConfig, error){}
+// drivers 保存已注册驱动工厂
+var (
+	drivers   = map[string]func(Options) (driver.IfeConfig, error){}
+	driversMu sync.RWMutex
+)
 
-func Register(name string, driver func(Options) (driver.IfeConfig, error)) (err error) {
+// Register 注册驱动工厂
+func Register(name string, driver func(Options) (driver.IfeConfig, error)) error {
+	if name == "" {
+		return errors.New("数据库驱动名为空")
+	}
+	driversMu.Lock()
+	defer driversMu.Unlock()
 	if _, ok := drivers[name]; ok {
-		err = errors.New("数据库驱动[" + name + "]已注册")
+		return errors.New("数据库驱动[" + name + "]已注册")
 	}
 	drivers[name] = driver
-	return
+	return nil
+}
+
+func getDriver(name string) (func(Options) (driver.IfeConfig, error), bool) {
+	if name == "" {
+		return nil, false
+	}
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+	dri, ok := drivers[name]
+	return dri, ok
 }

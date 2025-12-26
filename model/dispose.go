@@ -37,15 +37,6 @@ func (m *Schema) GetBeforeProcess(p []string) (fn []beforeProcess, err error) {
 
 func (m *Schema) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
 	var err error
-	for k := range m.cryptKeys {
-		if _, ok := data[k]; ok {
-			data[k], err = m.cryptKeys[k](data.Get(k).String())
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	for name, fns := range m.beforeProcess {
 		val := data.Get(name)
 		if !val.Exists() {
@@ -64,7 +55,20 @@ func (m *Schema) valuesBeforeProcess(data ztype.Map) (ztype.Map, error) {
 	return data, nil
 }
 
-type afterProcess func(string) (interface{}, error)
+func (m *Schema) valuesCryptProcess(data ztype.Map) (ztype.Map, error) {
+	var err error
+	for k := range m.cryptKeys {
+		if _, ok := data[k]; ok {
+			data[k], err = m.cryptKeys[k](data.Get(k).String())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return data, nil
+}
+
+type afterProcess func(interface{}) (interface{}, error)
 
 func (m *Schema) GetAfterProcess(p []string) (fn []afterProcess, err error) {
 	for _, v := range p {

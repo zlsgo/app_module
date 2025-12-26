@@ -20,7 +20,7 @@ type Permission struct {
 var _ = reflect.TypeOf(&Permission{})
 
 func (h *Permission) Init(r *znet.Engine) error {
-	return UsePermisMiddleware(r, nil)
+	return h.module.UsePermisMiddleware(r, nil)
 }
 
 // Get 规则列表
@@ -39,8 +39,7 @@ func (h *Permission) Get(c *znet.Context) (data *model.PageData, err error) {
 // Post 新增规则
 func (h *Permission) Post(c *znet.Context) (interface{}, error) {
 	var (
-		alias      string
-		permission []int
+		alias string
 	)
 
 	resp, err := restapi.Insert(c, h.module.index.permModel.Model(), func(data ztype.Map) (ztype.Map, error) {
@@ -59,18 +58,10 @@ func (h *Permission) Post(c *znet.Context) (interface{}, error) {
 			return nil, zerror.InvalidInput.Text("别名已存在")
 		}
 
-		permission = data.Get("permission").SliceInt()
 		return data, nil
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	if alias != "" {
-		h.module.setPermission(h.module.permission, ztype.Map{
-			"alias":      alias,
-			"permission": permission,
-		})
 	}
 
 	return resp, nil
@@ -85,6 +76,10 @@ func (h *Permission) PIDPATCH(c *znet.Context) (resp interface{}, err error) {
 		return data, nil
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	if err = h.module.rebuildRBAC(); err != nil {
 		return nil, err
 	}
 
@@ -104,5 +99,9 @@ func (h *Permission) PIDDELETE(c *znet.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	return resp, err
+	if err = h.module.rebuildRBAC(); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

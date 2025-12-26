@@ -14,11 +14,11 @@ func findMaps(m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)
 	}
 
 	var (
-		childRelationson map[string][]string
+		childRelationson nestedRelationMap
 		foreignKeys      []string
 	)
 
-	resp, err = m.schema.Storage.Find(m.schema.GetTableName(), m.schema.GetFields(), filter, func(so *CondOptions) {
+	resp, err = m.schema.Storage.Find(m.schema.GetTableName(), filter, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
@@ -46,12 +46,17 @@ func findMaps(m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)
 		for i := range resp {
 			row := &resp[i]
 			for k, v := range m.schema.afterProcess {
-				if _, ok := (*row)[k]; ok {
-					(*row)[k], err = v[0](row.Get(k).String())
+				val, ok := (*row)[k]
+				if !ok {
+					continue
+				}
+				for j := range v {
+					val, err = v[j](val)
 					if err != nil {
 						return
 					}
 				}
+				(*row)[k] = val
 			}
 			if cryptId && *m.schema.define.Options.CryptID {
 				m.schema.EnCrypt(row)
@@ -63,59 +68,50 @@ func findMaps(m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)
 }
 
 // find 泛型查询函数（支持结构体映射）
-func find[R any | ztype.Map](m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (rows []R, err error) {
+func find[R any](m *Store, filter ztype.Map, cryptId bool, fn ...func(*CondOptions)) (rows []R, err error) {
 	resp, err := findMaps(m, filter, cryptId, fn...)
 	if err != nil {
 		return nil, err
 	}
 
-	var r R
-	if _, ok := any(r).(ztype.Map); ok {
-		rows = make([]R, len(resp))
-		for i := range resp {
-			rows[i] = any(resp[i]).(R)
-		}
-		return rows, nil
-	}
-
-	err = ztype.To(resp, &rows)
-	return rows, err
+	return mapRows[R](resp)
 }
 
 // Find 查询多条记录（公开 API）
-func Find[R any | ztype.Map, T filter | any](m *Store, filter T, fn ...func(*CondOptions)) ([]R, error) {
+func Find[R any](m *Store, filter QueryFilter, fn ...func(*CondOptions)) ([]R, error) {
 	return find[R](m, getFilter(m.schema, filter), true, fn...)
 }
 
 // FindMaps 查询多条记录（返回 ztype.Maps）
-func FindMaps[T filter | any](m *Store, filter T, fn ...func(*CondOptions)) (ztype.Maps, error) {
+func FindMaps(m *Store, filter QueryFilter, fn ...func(*CondOptions)) (ztype.Maps, error) {
 	return Find[ztype.Map](m, filter, fn...)
 }
 
 // FindOne 查询单条记录
-func FindOne[T filter | any](m *Store, filter T, fn ...func(*CondOptions)) (ztype.Map, error) {
-	rows, err := findMaps(m, getFilter(m.schema, filter), true, func(so *CondOptions) {
+func FindOne[R any](m *Store, filter QueryFilter, fn ...func(*CondOptions)) (R, error) {
+	var zero R
+	rows, err := find[R](m, getFilter(m.schema, filter), true, func(so *CondOptions) {
 		for i := range fn {
 			if fn[i] == nil {
 				continue
 			}
 			fn[i](so)
 		}
-
 		so.Limit = 1
 	})
 	if err != nil {
-		return ztype.Map{}, err
+		return zero, err
 	}
-
-	return rows.Index(0), nil
+	if len(rows) == 0 {
+		return zero, ErrNoRecord
+	}
+	return rows[0], nil
 }
 
-// FindCols 查询指定列的值（返回数组）
-func FindCols[T filter](
+func findColsRaw(
 	m *Store,
 	field string,
-	filter T,
+	filter QueryFilter,
 	fn ...func(*CondOptions),
 ) (ztype.SliceType, error) {
 	rows, err := findMaps(m, getFilter(m.schema, filter), true, func(so *CondOptions) {
@@ -137,23 +133,37 @@ func FindCols[T filter](
 	return data, nil
 }
 
+// FindCols 查询指定列的值（返回数组）
+func FindCols[T any](m *Store, field string, filter QueryFilter, fn ...func(*CondOptions)) ([]T, error) {
+	values, err := findColsRaw(m, field, filter, fn...)
+	if err != nil {
+		return nil, err
+	}
+	return mapValues[T](values)
+}
+
 // FindCol 查询单个字段的单个值
-func FindCol[T filter](
+func FindCol[T any](
 	m *Store,
 	field string,
-	filter T,
+	filter QueryFilter,
 	fn ...func(*CondOptions),
-) (ztype.Type, bool, error) {
-	values, err := FindCols(m, field, filter, fn...)
+) (T, bool, error) {
+	var zero T
+	values, err := findColsRaw(m, field, filter, fn...)
 	if err != nil || values.Len() == 0 {
-		return ztype.Type{}, false, err
+		return zero, false, err
 	}
-	return values.First(), true, nil
+	value, err := mapValue[T](values.First())
+	if err != nil {
+		return zero, true, err
+	}
+	return value, true, nil
 }
 
 // Count 统计记录数量
-func Count[T Filter](m *Store, filter T, fn ...func(*CondOptions)) (uint64, error) {
-	data, err := FindCols(m, "count(*) as count", filter, func(co *CondOptions) {
+func Count(m *Store, filter QueryFilter, fn ...func(*CondOptions)) (uint64, error) {
+	data, err := FindCols[uint64](m, "count(*) as count", filter, func(co *CondOptions) {
 		for i := range fn {
 			fn[i](co)
 		}
@@ -162,5 +172,64 @@ func Count[T Filter](m *Store, filter T, fn ...func(*CondOptions)) (uint64, erro
 	if err != nil {
 		return 0, err
 	}
-	return data.First().Uint64(), nil
+	if len(data) == 0 {
+		return 0, nil
+	}
+	return data[0], nil
+}
+
+func mapRows[R any](resp ztype.Maps) ([]R, error) {
+	var rows []R
+	var r R
+	if _, ok := any(r).(ztype.Map); ok {
+		rows = make([]R, len(resp))
+		for i := range resp {
+			rows[i] = any(resp[i]).(R)
+		}
+		return rows, nil
+	}
+
+	err := ztype.To(resp, &rows)
+	return rows, err
+}
+
+func mapValues[T any](values ztype.SliceType) ([]T, error) {
+	if values.Len() == 0 {
+		return []T{}, nil
+	}
+
+	var zero T
+	switch any(zero).(type) {
+	case ztype.Type:
+		result := make([]T, values.Len())
+		for i := range values {
+			result[i] = any(values[i]).(T)
+		}
+		return result, nil
+	}
+
+	raw := values.Value()
+	if len(raw) == 0 {
+		return []T{}, nil
+	}
+
+	var result []T
+	err := ztype.To(raw, &result)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return []T{}, nil
+	}
+	return result, nil
+}
+
+func mapValue[T any](value ztype.Type) (T, error) {
+	var out T
+	switch any(out).(type) {
+	case ztype.Type:
+		return any(value).(T), nil
+	}
+	err := ztype.To(value.Value(), &out)
+	return out, err
 }

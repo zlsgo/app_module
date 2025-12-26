@@ -10,6 +10,7 @@ import (
 	"github.com/zlsgo/zdb/driver/postgres"
 )
 
+// init 注册 postgres 驱动工厂
 func init() {
 	options.Postgres = &Postgres{
 		Host:     "127.0.0.1",
@@ -19,7 +20,7 @@ func init() {
 		DBName:   "zls",
 	}
 
-	drivers["postgres"] = func(db Options) (dbConf driver.IfeConfig, err error) {
+	if err := Register("postgres", func(db Options) (dbConf driver.IfeConfig, err error) {
 		if db.Postgres == nil {
 			return nil, errors.New("初始化数据库失败: postgres 未配置")
 		}
@@ -32,5 +33,7 @@ func init() {
 			SSLMode:  db.Postgres.SSLMode,
 		}
 		return
+	}); err != nil {
+		panic(err)
 	}
 }

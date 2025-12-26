@@ -13,9 +13,10 @@ const (
 var condOptionsPool = sync.Pool{
 	New: func() any {
 		return &CondOptions{
-			Fields:  make([]string, 0, defaultFieldsCap),
-			OrderBy: make([]OrderByItem, 0, defaultOrderByCap),
-			GroupBy: make([]string, 0, defaultGroupByCap),
+			Fields:    make([]string, 0, defaultFieldsCap),
+			Relations: make([]string, 0, defaultFieldsCap),
+			OrderBy:   make([]OrderByItem, 0, defaultOrderByCap),
+			GroupBy:   make([]string, 0, defaultGroupByCap),
 		}
 	},
 }
@@ -26,6 +27,7 @@ func acquireCondOptions() *CondOptions {
 
 func releaseCondOptions(opts *CondOptions) {
 	opts.Fields = opts.Fields[:0]
+	opts.Relations = opts.Relations[:0]
 	opts.OrderBy = opts.OrderBy[:0]
 	opts.GroupBy = opts.GroupBy[:0]
 	opts.Join = nil

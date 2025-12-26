@@ -14,13 +14,13 @@ func Test_fixUserData(t *testing.T) {
 		"administrator": true,
 		"inlay":         true,
 		"role":          "admin",
-		"password":      123,
+		"password":      "Aa123456",
 	}
 	g := &inside{}
 	err := g.fixUserData(&data)
 	tt.NoError(err)
 	tt.Equal(false, data.Get("administrator").Exists())
-	tt.Equal("123", data.Get("password").String())
+	tt.Equal("Aa123456", data.Get("password").String())
 	tt.Equal([]string{"admin"}, data.Get("role").SliceString())
 	tt.Log(data)
 
@@ -28,12 +28,12 @@ func Test_fixUserData(t *testing.T) {
 		"administrator": true,
 		"inlay":         true,
 		"role":          []string{"admin"},
-		"password":      123,
+		"password":      "Aa123456",
 	}
 	err = g.fixUserData(&data)
 	tt.NoError(err)
 	tt.Equal(false, data.Get("administrator").Exists())
-	tt.Equal("123", data.Get("password").String())
+	tt.Equal("Aa123456", data.Get("password").String())
 	tt.Equal([]string{"admin"}, data.Get("role").SliceString())
 	tt.Log(data)
 }
