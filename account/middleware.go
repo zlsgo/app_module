@@ -86,6 +86,7 @@ func (m *Module) initMiddleware() error {
 		m.verifyPermissions = append(m.verifyPermissions, s)
 	}
 
+	unauthorized := zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
 	m.verifyPermissions = append(m.verifyPermissions, func(c *znet.Context) error {
 		var ignorePerm bool
 		if b, ok := c.Value(ctxWithIgnorePerm); ok && b.(bool) {
@@ -105,9 +106,14 @@ func (m *Module) initMiddleware() error {
 					return nil
 				}
 
-				authErr := zerror.WrapTag(zerror.Unauthorized)(errors.New("无法访问，请先登录"))
+				authErr := unauthorized
 				if b, ok := c.Value(ctxWithPermCheck); ok && b != nil {
-					authErr = b.(func(c *znet.Context, err error) error)(c, authErr)
+					r, ok := b.(func(c *znet.Context, err error) error)
+					if ok && r != nil {
+						authErr = zerror.TryCatch(func() error {
+							return r(c, authErr)
+						})
+					}
 				}
 
 				return authErr
