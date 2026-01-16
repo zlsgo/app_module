@@ -1226,9 +1226,9 @@ data-* 全局属性形成一类称为自定义数据属性的属性，允许脚�
 
 https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/data-*
 */
-func Data(name, value string) *Attribute { return Attr("data-"+name, value) }
-func Datetime(value string) *Attribute   { return Attr("datetime", value) }
-func Default(value string) *Attribute    { return Attr("default", value) }
+func Data[T AttrValue](name string, value T) *Attribute { return Attr("data-"+name, value) }
+func Datetime(value string) *Attribute                  { return Attr("datetime", value) }
+func Default(value string) *Attribute                   { return Attr("default", value) }
 
 var Defer = Attr("defer", "")
 

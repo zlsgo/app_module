@@ -105,14 +105,14 @@ func (h invokerError) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerZ func(c *znet.Context, x *ZHTML) *el.Element
+	invokerZ func(c *znet.Context, x *ZViewJS) *el.Element
 )
 
 var invokerZValue zdi.PreInvoker = (invokerZ)(nil)
 
 func (h invokerZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 	c := v[0].(*znet.Context)
-	z := v[1].(*ZHTML)
+	z := v[1].(*ZViewJS)
 	resp := h(c, z)
 	if resp == nil {
 		return []reflect.Value{}, nil
@@ -137,14 +137,14 @@ func (h invokerZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerCodeZ func(c *znet.Context, x *ZHTML) (int, *el.Element)
+	invokerCodeZ func(c *znet.Context, x *ZViewJS) (int, *el.Element)
 )
 
 var invokerCodeZValue zdi.PreInvoker = (invokerCodeZ)(nil)
 
 func (h invokerCodeZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 	c := v[0].(*znet.Context)
-	z := v[1].(*ZHTML)
+	z := v[1].(*ZViewJS)
 	code, resp := h(c, z)
 	if resp == nil {
 		return []reflect.Value{}, nil

@@ -5,8 +5,10 @@ HTML 模块提供基于 Go 语言的 HTML 组件化 DSL，与 `znet` 路由和 `
 ## 功能特性
 
 - **声明式组件 DSL**: 借助 `pkg/app_module/html/el/` 提供的大量元素与属性构造器，在 Go 代码中声明 DOM 结构。
+- **增强的属性系统**: `Attr` 和 `Data` 函数支持多种类型（string、Map、bool），自动处理 JSON 序列化和转义。
 - **模块化接入**: `Module` 实现 `service.ModuleLifeCycle`，注册后自动绑定渲染器与依赖注入。
-- **多返回模式**: 支持直接返回 `*el.Element`、状态码与元素组合，以及注入 `html.ZHTML` 的高级用法。
+- **多返回模式**: 支持直接返回 `*el.Element`、状态码与元素组合，以及注入 `html.ZViewJS` 的高级用法。
+- **ZView.js 集成**: 前后端协同的增强交互能力，支持局部更新、重定向、历史记录管理等。
 - **错误兜底**: 通过 `Options.ErrorPage` 指定备用页面，渲染失败时自动回退，提升稳健性。
 
 ## 模块结构
@@ -138,3 +140,116 @@ if err != nil {
 1. **封装常用结构**: 将重复出现的元素组合提炼为函数，保持代码可读性。
 2. **规划错误回退**: 为 `ErrorPage` 提供明确提示，避免渲染异常导致空白页面。
 3. **结合其他模块**: 与 `account`、`restapi` 等模块协同，实现纯后端页面与接口的统一管理。
+
+## 增强的属性系统
+
+### 泛型属性支持
+
+`Attr` 和 `Data` 函数现在支持多种类型，自动处理类型转换和序列化：
+
+```go
+// 字符串属性（传统方式）
+el.DIV(el.Attr("title", "提示文本"))
+
+// Map 属性（自动 JSON 序列化并转义）
+config := ztype.Map{
+    "timeout": 3000,
+    "retries": 3,
+    "endpoint": "/api/data",
+}
+el.DIV(el.Data("config", config))
+// 输出: <div data-config="{&quot;timeout&quot;:3000,&quot;retries&quot;:3,&quot;endpoint&quot;:&quot;/api/data&quot;}"></div>
+
+// 布尔属性
+el.INPUT(
+    el.Attr("disabled", true),
+    el.Attr("checked", false),
+)
+```
+
+**类型约束**: `AttrValue` 接口限定为 `string | ztype.Map | bool`
+
+**自动处理**:
+- `string`: 直接使用
+- `bool`: 转换为字符串 `"true"` 或 `"false"`
+- `ztype.Map`: JSON 序列化并 HTML 转义，失败时使用 `"{}"`
+
+## ZView.js 增强交互
+
+### 注入 ZViewJS 对象
+
+在高级模式下，可注入 `*html.ZViewJS` 来实现前后端协同交互：
+
+```go
+r.GET("/partial", func(c *znet.Context, z *html.ZViewJS) *el.Element {
+    // 检查是否为 ZView.js 请求
+    if z.Is() {
+        // 设置页面标题
+        z.SetTitle("更新后的标题")
+
+        // 返回局部内容
+        return el.DIV(el.Text("局部更新内容"))
+    }
+
+    // 完整页面
+    return el.HTML(
+        el.HEAD(el.TITLE(el.Text("完整页面"))),
+        el.BODY(el.DIV(el.Text("完整内容"))),
+    )
+})
+```
+
+### ZViewJS API 方法
+
+| 方法 | 说明 | 示例 |
+|------|------|------|
+| `Is()` | 判断是否为 ZView.js 请求 | `if z.Is() { ... }` |
+| `IsPartial()` | 判断是否为局部更新请求 | `if z.IsPartial() { ... }` |
+| `SetTitle(title)` | 设置页面标题（响应头 `Z-Title`） | `z.SetTitle("新标题")` |
+| `Redirect(url)` | 重定向（ZView.js 请求发送 `Z-Redirect` 头，否则标准重定向） | `z.Redirect("/login")` |
+| `Location(url)` | 发送 `Z-Location` 头进行客户端导航 | `z.Location("/dashboard")` |
+| `History(url)` | 发送 `Z-History` 头更新浏览器历史 | `z.History("/new-url")` |
+| `Swap(value)` | 控制内容替换策略 | `z.Swap("innerHTML")` |
+| `SwapPush(value)` | 控制内容替换策略并推送历史 | `z.SwapPush("outerHTML")` |
+
+### 响应头规范
+
+所有 ZView.js 相关的响应头统一使用大写格式：
+
+- `Z-Title`: 页面标题
+- `Z-Redirect`: 重定向 URL
+- `Z-Location`: 客户端导航 URL
+- `Z-Origin`: 请求来源
+- `Z-Target`: 目标元素选择器
+- `Z-History`: 历史记录 URL
+- `Z-Swap`: 内容替换策略
+- `Z-Swap-Push`: 替换策略 + 历史推送
+
+### 实际应用示例
+
+```go
+// 表单提交后的处理
+r.POST("/submit", func(c *znet.Context, z *html.ZViewJS) (int, *el.Element) {
+    // 处理表单数据
+    if err := processForm(c); err != nil {
+        return 400, el.DIV(
+            el.Class("error"),
+            el.Text("提交失败: " + err.Error()),
+        )
+    }
+
+    // ZView.js 请求 - 局部更新
+    if z.Is() {
+        z.SetTitle("提交成功")
+        z.History("/success")
+        return 200, el.DIV(
+            el.Class("success"),
+            el.Text("提交成功！"),
+        )
+    }
+
+    // 标准请求 - 重定向
+    z.Redirect("/success")
+    return 302, nil
+})
+```

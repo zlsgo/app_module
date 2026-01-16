@@ -12,6 +12,10 @@ import (
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/sohaha/zlsgo/zjson"
+	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/ztype"
 )
 
 // Item 接口是任意可用作节点或属性项的占位抽象。
@@ -137,9 +141,27 @@ func DeferredAttr(key string, fn func(context.Context) string) *DeferredAttribut
 	return &DeferredAttribute{key: key, fn: fn}
 }
 
-// Attr 根据键值创建 Attribute，便于快速设置元素属性。
-func Attr(key string, value string) *Attribute {
-	return &Attribute{Key: key, Value: value}
+type AttrValue interface {
+	string | ztype.Map | bool
+}
+
+// Attr 创建属性节点，支持字符串、Map、布尔值。
+func Attr[T AttrValue](key string, value T) *Attribute {
+	var valueStr string
+	switch v := any(value).(type) {
+	case string:
+		valueStr = v
+	case bool:
+		valueStr = ztype.ToString(v)
+	case ztype.Map:
+		b, err := zjson.Marshal(v)
+		if err != nil {
+			valueStr = "{}"
+		} else {
+			valueStr = html.EscapeString(zstring.Bytes2String(b))
+		}
+	}
+	return &Attribute{Key: key, Value: valueStr}
 }
 
 // Component 表示延迟渲染的组件函数，可在执行阶段生成节点。

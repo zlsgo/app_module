@@ -63,6 +63,8 @@ github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6g
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
 github.com/sohaha/zlsgo v1.7.21-0.20251216093936-9cce40f416c4 h1:cSh7bsPEzu9DxltX3iHHiaRrnfiHAzsJJ3ABqnlZST4=
 github.com/sohaha/zlsgo v1.7.21-0.20251216093936-9cce40f416c4/go.mod h1:7LViqB5ll09RnlU5V5AW0oBnqFg260/q+B/SGDNNdmQ=
+github.com/sohaha/zlsgo v1.7.21-0.20260114090020-2e2f0d9e0bc9 h1:R4/39bLEUrH1vNC4IuseKh2bpDsIomwhneQhYW+0GWU=
+github.com/sohaha/zlsgo v1.7.21-0.20260114090020-2e2f0d9e0bc9/go.mod h1:BRZA+WXWyVeLtuPdM5NwFN/ZtCRUYBA+UvrqCMfxOGY=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/speps/go-hashids/v2 v2.0.1 h1:ViWOEqWES/pdOSq+C1SLVa8/Tnsd52XC34RY7lt7m4g=

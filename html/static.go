@@ -9,7 +9,7 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 )
 
-type ZHTML struct {
+type ZViewJS struct {
 	accept string
 	Url    string
 	Origin string
@@ -17,40 +17,51 @@ type ZHTML struct {
 	c      *znet.Context
 }
 
-func (z *ZHTML) String() string {
+func (z *ZViewJS) String() string {
 	return fmt.Sprintf("accept: %s, url: %s, origin: %s, target: %s", z.accept, z.Url, z.Origin, z.Target)
 }
 
-func (z *ZHTML) IsPartial() bool {
+func (z *ZViewJS) Is() bool {
+	return z.Url != ""
+}
+
+func (z *ZViewJS) IsPartial() bool {
 	return z.accept == "text/html+partial"
 }
 
-func (z *ZHTML) SetTitle(title string) {
-	z.c.SetHeader("z-title", title)
+func (z *ZViewJS) SetTitle(title string) {
+	z.c.SetHeader("Z-Title", title)
 }
 
-func (z *ZHTML) Redirect(location string) {
-	z.c.SetHeader("z-location", location)
+func (z *ZViewJS) Redirect(location string) {
+	z.c.SetHeader("Z-Redirect", location)
+	if !z.Is() {
+		z.c.Redirect(location)
+	}
 }
 
-func (z *ZHTML) History(url string) {
-	z.c.SetHeader("z-history", url)
+func (z *ZViewJS) Location(url string) {
+	z.c.SetHeader("Z-Location", url)
 }
 
-func (z *ZHTML) Swap(value string) {
-	z.c.SetHeader("z-swap", value)
+func (z *ZViewJS) History(url string) {
+	z.c.SetHeader("Z-History", url)
 }
 
-func (z *ZHTML) SwapPush(value string) {
-	z.c.SetHeader("z-swap-push", value)
+func (z *ZViewJS) Swap(value string) {
+	z.c.SetHeader("Z-Swap", value)
 }
 
-func newZHTML(c *znet.Context) *ZHTML {
-	return &ZHTML{
+func (z *ZViewJS) SwapPush(value string) {
+	z.c.SetHeader("Z-Swap-Push", value)
+}
+
+func newZHTML(c *znet.Context) *ZViewJS {
+	return &ZViewJS{
 		accept: c.GetHeader("Accept"),
-		Url:    c.GetHeader("z-url"),
-		Origin: c.GetHeader("z-origin"),
-		Target: c.GetHeader("z-target"),
+		Url:    c.GetHeader("Z-Url"),
+		Origin: c.GetHeader("Z-Origin"),
+		Target: c.GetHeader("Z-Target"),
 		c:      c,
 	}
 }
