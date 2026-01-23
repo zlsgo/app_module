@@ -2,76 +2,19 @@ package html
 
 import (
 	"embed"
-	"fmt"
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/zlsgo/app_module/html/zview"
 )
-
-type ZViewJS struct {
-	accept string
-	Url    string
-	Origin string
-	Target string
-	c      *znet.Context
-}
-
-func (z *ZViewJS) String() string {
-	return fmt.Sprintf("accept: %s, url: %s, origin: %s, target: %s", z.accept, z.Url, z.Origin, z.Target)
-}
-
-func (z *ZViewJS) Is() bool {
-	return z.Url != ""
-}
-
-func (z *ZViewJS) IsPartial() bool {
-	return z.accept == "text/html+partial"
-}
-
-func (z *ZViewJS) SetTitle(title string) {
-	z.c.SetHeader("Z-Title", title)
-}
-
-func (z *ZViewJS) Redirect(location string) {
-	z.c.SetHeader("Z-Redirect", location)
-	if !z.Is() {
-		z.c.Redirect(location)
-	}
-}
-
-func (z *ZViewJS) Location(url string) {
-	z.c.SetHeader("Z-Location", url)
-}
-
-func (z *ZViewJS) History(url string) {
-	z.c.SetHeader("Z-History", url)
-}
-
-func (z *ZViewJS) Swap(value string) {
-	z.c.SetHeader("Z-Swap", value)
-}
-
-func (z *ZViewJS) SwapPush(value string) {
-	z.c.SetHeader("Z-Swap-Push", value)
-}
-
-func newZHTML(c *znet.Context) *ZViewJS {
-	return &ZViewJS{
-		accept: c.GetHeader("Accept"),
-		Url:    c.GetHeader("Z-Url"),
-		Origin: c.GetHeader("Z-Origin"),
-		Target: c.GetHeader("Z-Target"),
-		c:      c,
-	}
-}
 
 //go:embed static
 var static embed.FS
 
 func registerStatic(r *znet.Engine) error {
 	r.Use(func(c *znet.Context) {
-		c.Injector().Map(newZHTML(c))
+		c.Injector().Map(zview.New(c))
 		c.Next()
 	})
 

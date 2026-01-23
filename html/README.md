@@ -205,12 +205,16 @@ r.GET("/partial", func(c *znet.Context, z *html.ZViewJS) *el.Element {
 |------|------|------|
 | `Is()` | 判断是否为 ZView.js 请求 | `if z.Is() { ... }` |
 | `IsPartial()` | 判断是否为局部更新请求 | `if z.IsPartial() { ... }` |
+| `GetUrl(fallback...)` | 读取 `Z-Url`，可选回退值 | `path := z.GetUrl("/")` |
+| `GetOrigin()` | 读取 `Z-Origin` 请求来源 | `origin := z.GetOrigin()` |
+| `GetTarget()` | 读取 `Z-Target` 目标选择器 | `target := z.GetTarget()` |
 | `SetTitle(title)` | 设置页面标题（响应头 `Z-Title`） | `z.SetTitle("新标题")` |
-| `Redirect(url)` | 重定向（ZView.js 请求发送 `Z-Redirect` 头，否则标准重定向） | `z.Redirect("/login")` |
-| `Location(url)` | 发送 `Z-Location` 头进行客户端导航 | `z.Location("/dashboard")` |
-| `History(url)` | 发送 `Z-History` 头更新浏览器历史 | `z.History("/new-url")` |
-| `Swap(value)` | 控制内容替换策略 | `z.Swap("innerHTML")` |
-| `SwapPush(value)` | 控制内容替换策略并推送历史 | `z.SwapPush("outerHTML")` |
+| `SetRedirect(url)` | 发送 `Z-Redirect` 头；非 ZView 请求会执行标准重定向 | `z.SetRedirect("/login")` |
+| `SetLocation(url)` | 发送 `Z-Location` 头进行客户端导航 | `z.SetLocation("/dashboard")` |
+| `SetHistory(url)` | 发送 `Z-History` 头更新浏览器历史 | `z.SetHistory("/new-url")` |
+| `SetHistoryReplace(url)` | 发送 `Z-History-Replace` 头替换当前历史 | `z.SetHistoryReplace("/current")` |
+| `SetSwap(value)` | 控制内容替换策略 | `z.SetSwap("inner")` |
+| `SetTarget(value)` | 指定目标选择器（响应头 `Z-Target`） | `z.SetTarget("#panel")` |
 
 ### 响应头规范
 
@@ -222,8 +226,8 @@ r.GET("/partial", func(c *znet.Context, z *html.ZViewJS) *el.Element {
 - `Z-Origin`: 请求来源
 - `Z-Target`: 目标元素选择器
 - `Z-History`: 历史记录 URL
+- `Z-History-Replace`: 替换当前历史的 URL
 - `Z-Swap`: 内容替换策略
-- `Z-Swap-Push`: 替换策略 + 历史推送
 
 ### 实际应用示例
 
@@ -241,7 +245,7 @@ r.POST("/submit", func(c *znet.Context, z *html.ZViewJS) (int, *el.Element) {
     // ZView.js 请求 - 局部更新
     if z.Is() {
         z.SetTitle("提交成功")
-        z.History("/success")
+        z.SetHistory("/success")
         return 200, el.DIV(
             el.Class("success"),
             el.Text("提交成功！"),
@@ -249,7 +253,7 @@ r.POST("/submit", func(c *znet.Context, z *html.ZViewJS) (int, *el.Element) {
     }
 
     // 标准请求 - 重定向
-    z.Redirect("/success")
+    z.SetRedirect("/success")
     return 302, nil
 })
 ```

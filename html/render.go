@@ -7,6 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/zlsgo/app_module/html/el"
+	"github.com/zlsgo/app_module/html/zview"
 )
 
 type (
@@ -105,14 +106,14 @@ func (h invokerError) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerZ func(c *znet.Context, x *ZViewJS) *el.Element
+	invokerZ func(c *znet.Context, x *zview.Context) *el.Element
 )
 
 var invokerZValue zdi.PreInvoker = (invokerZ)(nil)
 
 func (h invokerZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 	c := v[0].(*znet.Context)
-	z := v[1].(*ZViewJS)
+	z := v[1].(*zview.Context)
 	resp := h(c, z)
 	if resp == nil {
 		return []reflect.Value{}, nil
@@ -137,14 +138,14 @@ func (h invokerZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 }
 
 type (
-	invokerCodeZ func(c *znet.Context, x *ZViewJS) (int, *el.Element)
+	invokerCodeZ func(c *znet.Context, x *zview.Context) (int, *el.Element)
 )
 
 var invokerCodeZValue zdi.PreInvoker = (invokerCodeZ)(nil)
 
 func (h invokerCodeZ) Invoke(v []interface{}) ([]reflect.Value, error) {
 	c := v[0].(*znet.Context)
-	z := v[1].(*ZViewJS)
+	z := v[1].(*zview.Context)
 	code, resp := h(c, z)
 	if resp == nil {
 		return []reflect.Value{}, nil
