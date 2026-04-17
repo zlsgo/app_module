@@ -29,13 +29,20 @@ type StructMapper[T any] struct{}
 // MapOne 映射单条记录为结构体
 func (m StructMapper[T]) MapOne(row ztype.Map) (T, error) {
 	var result T
-	err := ztype.To(row, &result)
+	err := ztype.ToStruct(row, &result)
 	return result, err
 }
 
 // MapMany 映射多条记录为结构体数组
 func (m StructMapper[T]) MapMany(rows ztype.Maps) ([]T, error) {
-	var result []T
-	err := ztype.To(rows, &result)
-	return result, err
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	result := make([]T, len(rows))
+	for i := range rows {
+		if err := ztype.ToStruct(rows[i], &result[i]); err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }
