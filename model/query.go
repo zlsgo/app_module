@@ -43,82 +43,97 @@ func (r *Repository[T, F, C, U]) Query() *Query[T, F, C, U] {
 	}
 }
 
+func (q *Query[T, F, C, U]) appendFilter(filter QueryFilter) *Query[T, F, C, U] {
+	if isEmptyQueryFilter(filter) {
+		return q
+	}
+	if isEmptyQueryFilter(q.filter) {
+		q.filter = filter
+		return q
+	}
+	if existing, ok := q.filter.(andFilter); ok {
+		if nested, ok := filter.(andFilter); ok {
+			existing.filters = append(existing.filters, nested.filters...)
+		} else {
+			existing.filters = append(existing.filters, filter)
+		}
+		q.filter = existing
+		return q
+	}
+	filters := make([]QueryFilter, 0, 2)
+	filters = append(filters, q.filter)
+	if nested, ok := filter.(andFilter); ok {
+		filters = append(filters, nested.filters...)
+	} else {
+		filters = append(filters, filter)
+	}
+	q.filter = andFilter{filters: filters}
+	return q
+}
+
 // Where 添加 WHERE 条件
 func (q *Query[T, F, C, U]) Where(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Eq(field, value))
-	return q
+	return q.appendFilter(Eq(field, value))
 }
 
 // WhereFilter 添加过滤器条件
 func (q *Query[T, F, C, U]) WhereFilter(filter F) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Q(filter))
-	return q
+	return q.appendFilter(Q(filter))
 }
 
 // WhereID 添加 ID 条件
 func (q *Query[T, F, C, U]) WhereID(id any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, ID(id))
-	return q
+	return q.appendFilter(ID(id))
 }
 
 // WhereIn 添加 IN 条件
 func (q *Query[T, F, C, U]) WhereIn(field string, values any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, In(field, values))
-	return q
+	return q.appendFilter(In(field, values))
 }
 
 // WhereNot 添加 NOT 条件
 func (q *Query[T, F, C, U]) WhereNot(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Ne(field, value))
-	return q
+	return q.appendFilter(Ne(field, value))
 }
 
 // WhereGt 添加大于条件
 func (q *Query[T, F, C, U]) WhereGt(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Gt(field, value))
-	return q
+	return q.appendFilter(Gt(field, value))
 }
 
 // WhereGe 添加大于等于条件
 func (q *Query[T, F, C, U]) WhereGe(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Ge(field, value))
-	return q
+	return q.appendFilter(Ge(field, value))
 }
 
 // WhereLt 添加小于条件
 func (q *Query[T, F, C, U]) WhereLt(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Lt(field, value))
-	return q
+	return q.appendFilter(Lt(field, value))
 }
 
 // WhereLe 添加小于等于条件
 func (q *Query[T, F, C, U]) WhereLe(field string, value any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Le(field, value))
-	return q
+	return q.appendFilter(Le(field, value))
 }
 
 // WhereLike 添加 LIKE 条件
 func (q *Query[T, F, C, U]) WhereLike(field string, pattern string) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Like(field, pattern))
-	return q
+	return q.appendFilter(Like(field, pattern))
 }
 
 // WhereBetween 添加 BETWEEN 条件
 func (q *Query[T, F, C, U]) WhereBetween(field string, start, end any) *Query[T, F, C, U] {
-	q.filter = And(q.filter, Between(field, start, end))
-	return q
+	return q.appendFilter(Between(field, start, end))
 }
 
 // WhereNull 添加 IS NULL 条件
 func (q *Query[T, F, C, U]) WhereNull(field string) *Query[T, F, C, U] {
-	q.filter = And(q.filter, IsNull(field))
-	return q
+	return q.appendFilter(IsNull(field))
 }
 
 // WhereNotNull 添加 IS NOT NULL 条件
 func (q *Query[T, F, C, U]) WhereNotNull(field string) *Query[T, F, C, U] {
-	q.filter = And(q.filter, IsNotNull(field))
-	return q
+	return q.appendFilter(IsNotNull(field))
 }
 
 // OrWhere adds an OR condition that groups the provided filters.
@@ -132,8 +147,7 @@ func (q *Query[T, F, C, U]) OrWhere(filters ...F) *Query[T, F, C, U] {
 	for _, filter := range filters {
 		orFilters = append(orFilters, Q(filter))
 	}
-	q.filter = And(q.filter, Or(orFilters...))
-	return q
+	return q.appendFilter(Or(orFilters...))
 }
 
 // Select 设置查询字段

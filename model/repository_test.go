@@ -126,6 +126,36 @@ func TestQueryFilterComplex(t *testing.T) {
 	}
 }
 
+func TestQueryFilterNestedAnd(t *testing.T) {
+	f := And(
+		Filter{},
+		Eq("status", "active"),
+		And(Gt("age", 18), Ge("level", 3)),
+	)
+	m := f.ToMap()
+	if len(m) != 3 {
+		t.Errorf("Nested And filter length mismatch: %d", len(m))
+	}
+	if m["status"] != "active" || m["age >"] != 18 || m["level >="] != 3 {
+		t.Errorf("Nested And filter mismatch: %v", m)
+	}
+}
+
+func TestQueryFilterNestedOr(t *testing.T) {
+	f := Or(
+		Eq("status", "active"),
+		Or(Eq("role", "admin"), Eq("role", "editor")),
+	)
+	m := f.ToMap()
+	orFilters, ok := m[placeHolderOR].([]ztype.Map)
+	if !ok {
+		t.Errorf("Nested Or filter type mismatch: %v", m)
+	}
+	if len(orFilters) != 3 {
+		t.Errorf("Nested Or filter length mismatch: %d", len(orFilters))
+	}
+}
+
 func TestMapFilter(t *testing.T) {
 	f := Q(ztype.Map{"status": "active", "age >": 18})
 	m := f.ToMap()

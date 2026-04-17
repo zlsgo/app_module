@@ -8,12 +8,24 @@ type QueryFilter interface {
 	ToMap() ztype.Map
 }
 
+type filterMapAppender interface {
+	appendToMap(dst ztype.Map) ztype.Map
+}
+
 type IDQueryFilter struct {
 	ID any
 }
 
 func (f IDQueryFilter) ToMap() ztype.Map {
-	return ztype.Map{idKey: f.ID}
+	return f.appendToMap(make(ztype.Map, 1))
+}
+
+func (f IDQueryFilter) appendToMap(dst ztype.Map) ztype.Map {
+	if dst == nil {
+		dst = make(ztype.Map, 1)
+	}
+	dst[idKey] = f.ID
+	return dst
 }
 
 type conditionFilter struct {
@@ -23,11 +35,19 @@ type conditionFilter struct {
 }
 
 func (f conditionFilter) ToMap() ztype.Map {
+	return f.appendToMap(make(ztype.Map, 1))
+}
+
+func (f conditionFilter) appendToMap(dst ztype.Map) ztype.Map {
 	key := f.field
 	if f.op != "" {
 		key = f.field + " " + f.op
 	}
-	return ztype.Map{key: f.value}
+	if dst == nil {
+		dst = make(ztype.Map, 1)
+	}
+	dst[key] = f.value
+	return dst
 }
 
 type andFilter struct {
@@ -35,13 +55,14 @@ type andFilter struct {
 }
 
 func (f andFilter) ToMap() ztype.Map {
-	result := make(ztype.Map)
+	return f.appendToMap(make(ztype.Map, estimateFilterMapSize(f.filters)))
+}
+
+func (f andFilter) appendToMap(dst ztype.Map) ztype.Map {
 	for _, filter := range f.filters {
-		for k, v := range filter.ToMap() {
-			result[k] = v
-		}
+		dst = appendFilterMap(dst, filter)
 	}
-	return result
+	return dst
 }
 
 type orFilter struct {
@@ -49,9 +70,9 @@ type orFilter struct {
 }
 
 func (f orFilter) ToMap() ztype.Map {
-	subFilters := make([]ztype.Map, len(f.filters))
-	for i, filter := range f.filters {
-		subFilters[i] = filter.ToMap()
+	subFilters := make([]ztype.Map, 0, len(f.filters))
+	for _, filter := range f.filters {
+		subFilters = append(subFilters, filterToMapEntry(filter))
 	}
 	return ztype.Map{placeHolderOR: subFilters}
 }
@@ -119,23 +140,123 @@ func IsNotNull(field string) QueryFilter {
 }
 
 func And(filters ...QueryFilter) QueryFilter {
-	return andFilter{filters: compactFilters(filters...)}
+	compact := compactAndFilters(filters...)
+	switch len(compact) {
+	case 0:
+		return Filter{}
+	case 1:
+		return compact[0]
+	default:
+		return andFilter{filters: compact}
+	}
 }
 
 func Or(filters ...QueryFilter) QueryFilter {
-	return orFilter{filters: compactFilters(filters...)}
+	compact := compactOrFilters(filters...)
+	switch len(compact) {
+	case 0:
+		return Filter{}
+	case 1:
+		return compact[0]
+	default:
+		return orFilter{filters: compact}
+	}
 }
 
-func compactFilters(filters ...QueryFilter) []QueryFilter {
+func compactAndFilters(filters ...QueryFilter) []QueryFilter {
 	if len(filters) == 0 {
 		return nil
 	}
 	result := make([]QueryFilter, 0, len(filters))
 	for _, filter := range filters {
-		if filter == nil {
+		if isEmptyQueryFilter(filter) {
+			continue
+		}
+		if nested, ok := filter.(andFilter); ok {
+			result = append(result, nested.filters...)
 			continue
 		}
 		result = append(result, filter)
 	}
 	return result
+}
+
+func compactOrFilters(filters ...QueryFilter) []QueryFilter {
+	if len(filters) == 0 {
+		return nil
+	}
+	result := make([]QueryFilter, 0, len(filters))
+	for _, filter := range filters {
+		if isEmptyQueryFilter(filter) {
+			continue
+		}
+		if nested, ok := filter.(orFilter); ok {
+			result = append(result, nested.filters...)
+			continue
+		}
+		result = append(result, filter)
+	}
+	return result
+}
+
+func appendFilterMap(dst ztype.Map, filter QueryFilter) ztype.Map {
+	if isEmptyQueryFilter(filter) {
+		return dst
+	}
+	if dst == nil {
+		dst = make(ztype.Map)
+	}
+	if appender, ok := filter.(filterMapAppender); ok {
+		return appender.appendToMap(dst)
+	}
+	for k, v := range filter.ToMap() {
+		dst[k] = v
+	}
+	return dst
+}
+
+func filterToMapEntry(filter QueryFilter) ztype.Map {
+	if isEmptyQueryFilter(filter) {
+		return ztype.Map{}
+	}
+	if appender, ok := filter.(filterMapAppender); ok {
+		return appender.appendToMap(make(ztype.Map, estimateFilterMapSize([]QueryFilter{filter})))
+	}
+	return filter.ToMap()
+}
+
+func estimateFilterMapSize(filters []QueryFilter) int {
+	size := 0
+	for _, filter := range filters {
+		switch v := filter.(type) {
+		case nil:
+			continue
+		case andFilter:
+			size += estimateFilterMapSize(v.filters)
+		case Filter:
+			size += len(v)
+		default:
+			size++
+		}
+	}
+	if size == 0 {
+		return 1
+	}
+	return size
+}
+
+func isEmptyQueryFilter(filter QueryFilter) bool {
+	if filter == nil {
+		return true
+	}
+	switch v := filter.(type) {
+	case Filter:
+		return len(v) == 0
+	case andFilter:
+		return len(v.filters) == 0
+	case orFilter:
+		return len(v.filters) == 0
+	default:
+		return false
+	}
 }
