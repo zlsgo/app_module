@@ -203,6 +203,7 @@ func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+			b.LimitBy(idKey)
 		}
 
 		return nil
@@ -370,6 +371,7 @@ func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+			b.LimitBy(idKey)
 		}
 
 		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)
