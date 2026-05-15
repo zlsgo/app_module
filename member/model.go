@@ -50,20 +50,6 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		},
 	})
 
-	s.AddField("salt", mSchema.Field{
-		Type:     schema.String,
-		Size:     4,
-		Nullable: true,
-		Label:    "盐",
-	})
-
-	s.AddField("login_at", mSchema.Field{
-		Type:     schema.Time,
-		Nullable: true,
-		Options:  mSchema.FieldOption{},
-		Label:    "登录时间",
-	})
-
 	s.AddField("remark", mSchema.Field{
 		Type:     schema.String,
 		Size:     100,
@@ -79,105 +65,13 @@ var modelDefine = zutil.Once(func() mSchema.Schema {
 		Label:    "扩展信息",
 	})
 
-	s.AddField("account", mSchema.Field{
-		Label:   "账号",
-		Type:    schema.String,
-		Unique:  true,
-		Comment: "登录账号，必须唯一。约定__开头为自动创建的",
-		Validations: []mSchema.Validations{
-			{
-				Method: "minLength",
-				Args:   3,
-			},
-			{
-				Method: "maxLength",
-				Args:   120,
-			},
-		},
-		Options: mSchema.FieldOption{
-			ReadOnly: true,
-		},
-	})
-
-	s.AddField("password", mSchema.Field{
-		Label:    "密码",
+	s.AddField("auth_user_id", mSchema.Field{
+		Label:    "Auth用户ID",
 		Type:     schema.String,
-		Nullable: true,
-		Options: mSchema.FieldOption{
-			Crypt: "PASSWORD",
-		},
-		Validations: []mSchema.Validations{
-			{
-				Method: "minLength",
-				Args:   3,
-			},
-			{
-				Method: "maxLength",
-				Args:   250,
-			},
-		},
-	})
-
-	return s
-})
-
-const modelProviderName = "member_provider"
-
-var modelProviderDefine = zutil.Once(func() mSchema.Schema {
-	s := mSchema.New(modelProviderName)
-	s.SetOptions().SetTimestamps(true)
-
-	s.AddField("status", mSchema.Field{
-		Type:    schema.Int8,
-		Size:    9,
-		Label:   "状态",
-		Default: 1,
-		Options: mSchema.FieldOption{
-			Enum: []mSchema.FieldEnum{
-				{Value: "1", Label: "正常"},
-				{Value: "0", Label: "禁用"},
-			},
-		},
-	})
-
-	s.AddField("member_id", mSchema.Field{
-		Type: schema.Int,
-	})
-
-	s.AddField("provider_extension", mSchema.Field{
-		Type:     schema.JSON,
-		Default:  "{}",
-		Nullable: true,
-		Label:    "第三方扩展信息",
-	})
-
-	s.AddField("provider", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Index:    true,
-		Label:    "第三方登录",
-	})
-
-	s.AddField("provider_id", mSchema.Field{
-		Type:    schema.String,
-		Default: "",
-		Index:   true,
-		Label:   "第三方ID",
-	})
-
-	s.AddField("provider_avatar", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Label:    "第三方头像",
-	})
-
-	s.AddField("provider_username", mSchema.Field{
-		Type:     schema.String,
-		Default:  "",
-		Nullable: true,
-		Label:    "第三方用户名",
+		Size:     64,
+		Unique:   true,
+		Nullable: false,
+		Comment:  "auth 模块用户主键，作为 member profile 的显式身份关联",
 	})
 
 	return s

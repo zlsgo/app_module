@@ -7,11 +7,9 @@ import (
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
-	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/app_core/service"
-	"github.com/zlsgo/app_module/account/auth"
+	authmodule "github.com/zlsgo/app_module/auth"
 	"github.com/zlsgo/app_module/model"
 	mSchema "github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
@@ -22,8 +20,8 @@ type Module struct {
 	db          *zdb.DB
 	schemas     *model.Schemas
 	models      *model.Stores
-	jwtParse    func(c *znet.Context) (string, error)
 	instance    *Instance
+	authModule  *authmodule.Module
 	controllers []service.Controller
 	Options     Options
 }
@@ -38,15 +36,9 @@ func (m *Module) Name() string {
 }
 
 type Options struct {
-	InitDB           func() (*zdb.DB, error) `z:"-"`
-	ApiPrefix        string                  `z:"prefix"`
-	key              string                  `z:"-"`
-	Providers        []auth.AuthProvider     `z:"-"`
-	EnabledProviders []string                `z:"enabled_providers"`
-	Expire           int                     `z:"expire"`
-	ModelPrefix      string                  `z:"model_prefix"`
-	EnableRegister   bool                    `z:"enable_register"`
-	Only             bool                    `z:"only"`
+	InitDB      func() (*zdb.DB, error) `z:"-"`
+	ApiPrefix   string                  `z:"prefix"`
+	ModelPrefix string                  `z:"model_prefix"`
 }
 
 func (o Options) ConfKey() string {
@@ -57,9 +49,9 @@ func (o Options) DisableWrite() bool {
 	return true
 }
 
-func New(key string, opt ...func(o *Options)) *Module {
+func New(opt ...func(o *Options)) *Module {
 	m := &Module{
-		Options: zutil.Optional(Options{key: key, ApiPrefix: "/member"}, opt...),
+		Options: zutil.Optional(Options{ApiPrefix: "/member"}, opt...),
 	}
 
 	service.DefaultConf = append(service.DefaultConf, &m.Options)
@@ -73,25 +65,20 @@ func (m *Module) Tasks() []service.Task {
 
 func (m *Module) Load(di zdi.Invoker) (any, error) {
 	return nil, di.InvokeWithErrorOnly(func(c *service.Conf) error {
-		if m.Options.key == "" {
-			return errors.New("not set key")
-		}
 		m.Options.ApiPrefix = strings.TrimSuffix(m.Options.ApiPrefix, "/")
-
-		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
 
 		injector := di.(zdi.Injector)
 
 		if err := initInstance(m); err != nil {
 			return err
 		}
+		if err := di.Resolve(&m.authModule); err != nil {
+			return errors.New("member module requires auth module")
+		}
 
 		_ = injector.Map(m.instance)
 
 		m.controllers = []service.Controller{
-			&Auth{
-				Path: m.Options.ApiPrefix + "/auth",
-			},
 			&UserServer{
 				Path: m.Options.ApiPrefix,
 			},
@@ -114,8 +101,7 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	}), model.SchemaOptions{})
 
 	for modelName, modelDefine := range map[string]func() mSchema.Schema{
-		modelName:         modelDefine,
-		modelProviderName: modelProviderDefine,
+		modelName: modelDefine,
 	} {
 		_, err := m.schemas.Reg(modelName, modelDefine(), false)
 		if err != nil {
