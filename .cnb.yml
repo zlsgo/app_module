@@ -12,3 +12,4 @@ $:
     sync_github:
       env:
           GIT_USER: zlsgo
+          BRANCHS: master,develop

@@ -10,6 +10,15 @@ go get github.com/zlsgo/app_module
 
 ## 模块列表
 
+### [Auth](./auth/README.md) - 通用认证模块
+提供面向业务站点的认证基础设施，使用服务端 session + cookie 管理登录态，并支持密码找回与 OAuth 绑定。
+
+- 🍪 服务端会话与显式失效
+- 📝 邮箱注册、登录、登出、当前用户
+- 🔐 修改密码、找回密码、reset token
+- 🌐 OAuth 登录、自动建号、绑定解绑
+- 🚦 登录与找回密码限流
+
 ### [Account](./account/README.md) - 账户管理模块
 提供完整的用户认证、授权和权限管理功能，支持基于角色的访问控制（RBAC）。
 
@@ -39,16 +48,13 @@ go get github.com/zlsgo/app_module
 - 多返回模式
 - 错误兜底
 
-### [Member](./member/README.md) - 会员模块
-提供完整的会员注册、登录和第三方认证功能，支持多种认证提供商和灵活的用户管理。
+### [Member](./member/README.md) - 会员资料模块
+提供依赖 `auth` 登录态的会员资料接口；长期定位是业务 profile 层，而不是认证模块。
 
-- 📝 用户注册和登录
-- 🔑 JWT 认证机制
-- 🌐 第三方登录支持（微信小程序等）
-- 🛡️ 安全中间件
-- 📊 用户信息管理
-- 🔒 访问限制
-- 🔄 刷新Token机制
+- 📊 会员资料管理
+- 🍪 依赖 `auth` 会话态
+- 🔗 `auth user -> member profile` 显式映射
+- 🛡️ 认证中间件与访问限制
 
 ### [Model](./model/README.md) - 模型模块
 提供数据建模与访问层，围绕 Schema 驱动的模型定义，统一处理字段校验、自动迁移、关联装载、查询过滤与数据前后处理。
@@ -73,6 +79,7 @@ go get github.com/zlsgo/app_module
 
 ```
 app_module/
+├── auth/         # 通用认证模块
 ├── account/      # 账户管理模块
 ├── database/     # 数据库模块
 ├── member/       # 会员模块
@@ -90,6 +97,7 @@ app_module/
 package main
 
 import (
+    authmodule "github.com/zlsgo/app_module/auth"
     "github.com/zlsgo/app_module/account"
     "github.com/zlsgo/app_module/database"
     "github.com/zlsgo/app_module/model"
@@ -103,6 +111,7 @@ func main() {
     // 注册模块
     dbMod := database.New()
     modelMod := model.New()
+    authMod := authmodule.New()
     accMod := account.New("your-secret-key", func(o *account.Options) {
         o.ApiPrefix = "/api"
         o.EnableRegister = true
@@ -112,7 +121,7 @@ func main() {
     })
 
     // 初始化所有模块
-    err := service.InitModule([]service.Module{dbMod, modelMod, accMod, restApiMod}, app)
+    err := service.InitModule([]service.Module{dbMod, modelMod, authMod, accMod, restApiMod}, app)
     if err != nil {
         panic(err)
     }
