@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/wechat"
 )
 
@@ -26,6 +27,10 @@ func (w *Weapp) Init(r *znet.Engine) error {
 }
 
 func (w *Weapp) Login(c *znet.Context) error {
+	c.JSON(200, ztype.Map{
+		"provider": w.Name(),
+		"state":    c.Request.URL.Query().Get("state"),
+	})
 	return nil
 }
 
