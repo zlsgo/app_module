@@ -101,6 +101,8 @@ github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f h1:okQlee9bEH9kXNsJSs
 github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f/go.mod h1:J5nnP1/WwSqO7QelvHN9mUaw5HOwgGHITy4DRHVufs8=
 github.com/zlsgo/zdb v0.0.0-20251218114753-5a6961398339 h1:zGGLoAlZtKITtk5d0fIk8LMyvlfi+DyG9d4rxUO9Fag=
 github.com/zlsgo/zdb v0.0.0-20251218114753-5a6961398339/go.mod h1:2VsJZHZnHr5fjEqaRKodC3kq14uHFCnyZGYxwscNRLU=
+github.com/zlsgo/zdb v0.0.0-20260515051601-e13883217278 h1:R283EdEtmwiq/3Eyhm51AVHYBQnXQLleiq+E9MZWq1c=
+github.com/zlsgo/zdb v0.0.0-20260515051601-e13883217278/go.mod h1:UANZTjPFeIDn8Gbone80RMjXgnSV/3XTqgcNTO7v0lg=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/multierr v1.9.0 h1:7fIwc/ZtS0q++VgcfqFDxSBZVv/Xo49/SYnDFupUwlI=
