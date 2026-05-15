@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"strings"
 	"sync"
 
 	"github.com/zlsgo/zdb/driver"
@@ -15,6 +16,7 @@ var (
 
 // Register 注册驱动工厂
 func Register(name string, driver func(Options) (driver.IfeConfig, error)) error {
+	name = normalizeDriverName(name)
 	if name == "" {
 		return errors.New("数据库驱动名为空")
 	}
@@ -28,6 +30,7 @@ func Register(name string, driver func(Options) (driver.IfeConfig, error)) error
 }
 
 func getDriver(name string) (func(Options) (driver.IfeConfig, error), bool) {
+	name = normalizeDriverName(name)
 	if name == "" {
 		return nil, false
 	}
@@ -35,4 +38,8 @@ func getDriver(name string) (func(Options) (driver.IfeConfig, error), bool) {
 	defer driversMu.RUnlock()
 	dri, ok := drivers[name]
 	return dri, ok
+}
+
+func normalizeDriverName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
 }

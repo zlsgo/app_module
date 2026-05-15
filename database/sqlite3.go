@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/zlsgo/zdb/driver"
@@ -28,6 +29,12 @@ func init() {
 			File:       db.Sqlite.Path,
 			Parameters: db.Sqlite.Parameters,
 		}
+
+		if strings.HasPrefix(db.Sqlite.Path, ":") {
+			dbConf.(*sqlite3.Config).Memory = true
+			return
+		}
+
 		dir := filepath.Dir(db.Sqlite.Path)
 		if dir != "." && dir != "" {
 			if err := os.MkdirAll(dir, 0o755); err != nil {
