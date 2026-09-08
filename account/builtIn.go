@@ -17,10 +17,6 @@ func (g *inside) CreateUser(data ztype.Map) (resp ztype.Map, err error) {
 		return nil, zerror.InvalidInput.Text(err.Error())
 	}
 
-	// DEV: 需要校验角色是否存在
-	roles := data.Get("role").SliceString()
-	_ = roles
-
 	account := data.Get("account").String()
 	if account == "" {
 		return nil, zerror.InvalidInput.Text("账号不能为空")

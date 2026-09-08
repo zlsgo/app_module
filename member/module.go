@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
@@ -25,6 +26,7 @@ type Module struct {
 	jwtParse    func(c *znet.Context) (string, error)
 	instance    *Instance
 	controllers []service.Controller
+	userCache   *zcache.FastCache
 	Options     Options
 }
 
@@ -81,6 +83,7 @@ func (m *Module) Load(di zdi.Invoker) (any, error) {
 		m.Options.key = zstring.Pad(m.Options.key, 32, "0", zstring.PadRight)
 
 		injector := di.(zdi.Injector)
+		m.userCache = zcache.NewFast()
 
 		if err := initInstance(m); err != nil {
 			return err
@@ -121,10 +124,6 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 		if err != nil {
 			return err
 		}
-
-		// di.(zdi.Injector).Map(&Model{
-		// 	Model: *schema.Model(),
-		// })
 	}
 
 	m.models = m.schemas.Models()

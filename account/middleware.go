@@ -44,12 +44,12 @@ func (m *Module) initMiddleware() error {
 
 	userModel, ok := m.mods.Get(accountName)
 	if !ok {
-		return errors.New(accountName + " accoutModel not found")
+		return errors.New("user account model not found")
 	}
 
 	logModel, ok := m.mods.Get(logsName)
 	if !ok {
-		return errors.New(logsName + " logsName not found")
+		return errors.New("operation log model not found")
 	}
 
 	// 无需角色权限校验的接口
@@ -121,7 +121,7 @@ func (m *Module) initMiddleware() error {
 		}
 
 		if userModel == nil {
-			return errors.New(accountName + " accoutModel not found")
+			return errors.New("user account model not found")
 		}
 
 		uid, err := m.getJWTForCache(userModel, token, m.Options.key)

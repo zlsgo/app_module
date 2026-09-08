@@ -103,14 +103,14 @@ func (h *Auth) Init(r *znet.Engine) (err error) {
 					}
 
 					mid = ztype.ToString(id)
-					account, err := memberSchema.DeCryptID(mid)
+					memberID, err := memberSchema.DeCryptID(mid)
 					if err != nil {
 						return zerror.With(err, "用户信息解析失败")
 					}
 
 					data := ztype.Map{
 						"provider":          p.Provider,
-						"member_id":         account,
+						"member_id":         memberID,
 						"provider_id":       p.ProviderID,
 						"provider_username": p.ProviderUsername,
 						"provider_avatar":   p.ProviderAvatar,

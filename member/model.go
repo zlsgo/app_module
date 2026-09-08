@@ -6,10 +6,6 @@ import (
 	"github.com/zlsgo/zdb/schema"
 )
 
-// type Model struct {
-// 	model.Model
-// }
-
 const modelName = "member"
 
 var modelDefine = zutil.Once(func() mSchema.Schema {

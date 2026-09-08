@@ -111,6 +111,21 @@ func (h *UserServer) register(c *znet.Context) (any, error) {
 	if password == "" {
 		return nil, zerror.InvalidInput.Text("密码不能为空")
 	}
+	if len(password) < 8 {
+		return nil, zerror.InvalidInput.Text("密码长度不能少于8位")
+	}
+	hasLetter := false
+	hasNumber := false
+	for _, ch := range password {
+		if ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') {
+			hasLetter = true
+		} else if '0' <= ch && ch <= '9' {
+			hasNumber = true
+		}
+	}
+	if !hasLetter || !hasNumber {
+		return nil, zerror.InvalidInput.Text("密码必须同时包含字母和数字")
+	}
 
 	data := ztype.Map{
 		"nickname": nickname,

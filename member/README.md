@@ -21,7 +21,6 @@ member/
 ├── model.go             # 数据模型
 ├── instance.go          # 实例管理
 ├── user.go              # 用户实体
-├── action.go            # 操作定义
 ├── module.go            # 模块定义
 └── README.md            # 基础说明
 ```
@@ -76,25 +75,22 @@ func main() {
 
 ### 配置文件
 
+以下配置项可通过配置文件注入（字段 tag 对应的 `z` key 如下）：
+
 ```yaml
 member:
-  key: "your-secret-key"              # 加密密钥（模块内部会自动补齐到32位）
-  prefix: "/member"                   # API 前缀
-  model_prefix: "mem_"                # 数据表前缀
-  enable_register: true               # 允许注册
-  only: false                         # 仅模式
-  expire: 7200                        # token 过期时间（秒）
-
-  # 第三方登录提供商
-  providers:
-    - provider: "weapp"
-      app_id: "wx55a57ece33099d66"
-      app_secret: "your-app-secret"
-
-  # 启用的提供商
+  prefix: "/member"       # API 前缀
+  model_prefix: "mem_"    # 数据表前缀（可留空）
+  enable_register: true   # 允许注册
+  only: false             # 仅模式
+  expire: 7200            # token 过期时间（秒）
   enabled_providers:
-    - "weapp"
+    - "weapp"             # 启用的提供商（默认全部启用）
 ```
+
+> ⚠️ 注意：`key` 与 `Providers` 字段的配置 tag 为 `z:"-"`，**无法通过配置文件注入**，
+> 必须在代码中调用 `member.New("your-secret-key", func(o *member.Options){ o.Providers = ... })` 传入
+> （见上文「快速开始」）。若未在代码中配置提供商，则第三方登录不可用。
 
 ## API 接口
 
@@ -123,15 +119,17 @@ member:
 ```bash
 curl -X POST http://127.0.0.1:8080/member/register \
   -H 'Content-Type: application/json' \
-  -d '{"account":"demo","password":"demo123","nickname":"demo"}'
+  -d '{"account":"demo","password":"demo1234","nickname":"demo"}'
 ```
+
+> 密码强度要求：长度至少 8 位，且必须同时包含字母和数字。
 
 ### 用户登录
 
 ```bash
 curl -X POST http://127.0.0.1:8080/member/login \
   -H 'Content-Type: application/json' \
-  -d '{"account":"demo","password":"demo123"}'
+  -d '{"account":"demo","password":"demo1234"}'
 ```
 
 登录成功返回：
@@ -230,4 +228,4 @@ memberModule := member.New("your-secret-key", func(o *member.Options) {
 模块在 `UserServer.Init` 中会为除 `POST /register`、`POST /login` 外的路由启用鉴权中间件：
 
 - 未携带 token 时返回 `401 Unauthorized`
-- token 校验逻辑位于 `pkg/app_module/member/instance.go`（内部调用 `account/jwt.Parse`）
+- token 校验逻辑位于本模块 `instance.go`（内部调用 `account/jwt.Parse`）

@@ -66,7 +66,6 @@ func initInstance(m *Module) error {
 					return zerror.Unauthorized.Text(err.Error())
 				}
 
-				// salt := info.Info[:saltLen]
 				uid := info.Info[saltLen:]
 
 				user, err := m.UserById(uid)

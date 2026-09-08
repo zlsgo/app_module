@@ -14,7 +14,7 @@ func TestGetUserForCacheSanitized(t *testing.T) {
 	uid, err := mod.accountModel.Schema().EnCryptID("1")
 	tt.NoError(err)
 
-	info, err := mod.getUserForCache(mod.index.accoutModel, uid)
+	info, err := mod.getUserForCache(mod.index.accountModel, uid)
 	tt.NoError(err)
 	tt.Equal(false, info.Has("password"))
 	tt.Equal(false, info.Has("salt"))

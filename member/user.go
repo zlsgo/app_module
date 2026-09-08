@@ -16,8 +16,6 @@ type User struct {
 
 const saltLen = 4
 
-var userCache = zcache.NewFast()
-
 func (m *Module) UserModel() (*model.Store, bool) {
 	mod, ok := m.models.Get(modelName)
 	if !ok {
@@ -32,7 +30,10 @@ func (m *Module) UserById(id any) (u *User, err error) {
 		return nil, errors.New("not found model")
 	}
 
-	info, ok := userCache.ProvideGet(ztype.ToString(id), func() (interface{}, bool) {
+	if m.userCache == nil {
+		m.userCache = zcache.NewFast()
+	}
+	info, ok := m.userCache.ProvideGet(ztype.ToString(id), func() (interface{}, bool) {
 		info, err := mod.FindOneByID(id)
 		if err != nil {
 			return nil, false
