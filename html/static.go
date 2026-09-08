@@ -1,7 +1,13 @@
+//go:build !nostatic
+// +build !nostatic
+
+// 静态资源由脚本生成：go generate ./html
+//go:generate go run gen.go
+
 package html
 
 import (
-	"embed"
+	"strings"
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
@@ -9,31 +15,32 @@ import (
 	"github.com/zlsgo/app_module/html/zview"
 )
 
-//go:embed static
-var static embed.FS
-
-func registerStatic(r *znet.Engine) error {
+// registerStatic 注册 zview.Context 依赖注入，并通过 znet 直接输出由
+// html/gen.go 生成的静态资源（zcss.js / zview.js），前缀路由可通过
+// Options.StaticPrefix 自定义（默认 /__static_html）。
+//
+// 使用 `-tags nostatic` 构建可完全剔除这些静态资源（参见 static_disabled.go）。
+func registerStatic(r *znet.Engine, prefix string) error {
 	r.Use(func(c *znet.Context) {
 		c.Injector().Map(zview.New(c))
 		c.Next()
 	})
 
+	if prefix == "" {
+		prefix = defaultStaticPrefix
+	}
+	prefix = "/" + strings.Trim(prefix, "/") + "/"
+
 	now := time.Now()
-	r.GET("/__static_html/*", func(c *znet.Context) {
-		path := c.GetParam("*")
-		f, err := static.ReadFile("static/" + path)
-		if err != nil {
-			c.String(404, "Not Found")
-			return
-		}
-
-		if !znet.Utils.IsModified(c, now) {
-			return
-		}
-
-		ctype := zfile.GetMimeType(path, f)
-		c.SetContentType(ctype)
-		c.Byte(200, f)
-	})
+	for i := range staticFiles {
+		file := &staticFiles[i]
+		r.GET(prefix+file.Name, func(c *znet.Context) {
+			if !znet.Utils.IsModified(c, now) {
+				return
+			}
+			c.SetContentType(zfile.GetMimeType(file.Name, file.Data))
+			c.Byte(200, file.Data)
+		})
+	}
 	return nil
 }

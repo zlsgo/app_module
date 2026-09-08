@@ -15,10 +15,14 @@ HTML 模块提供基于 Go 语言的 HTML 组件化 DSL，与 `znet` 路由和 `
 
 ```
 html/
-├── el/          # HTML 元素 DSL 与渲染引擎
-├── module.go    # 模块生命周期定义
-├── options.go   # Options 配置
-├── render.go    # 渲染器注册与实现
+├── el/            # HTML 元素 DSL 与渲染引擎
+├── module.go      # 模块生命周期定义
+├── options.go     # Options 配置
+├── render.go      # 渲染器注册与实现
+├── static/        # 静态资源源文件（zcss.js / zview.js）
+├── gen.go         # 静态资源生成脚本（go generate）
+├── static_data.go # 由脚本生成的静态资源 Go 文件（勿手改）
+└── static.go      # 静态资源路由注册（znet 直接输出）
 ```
 
 ## 快速开始
@@ -73,9 +77,10 @@ func main() {
 
 `pkg/app_module/html/options.go` 定义了可选项：
 
-| 字段        | 类型          | 说明                     | 默认值 |
-| ----------- | ------------- | ------------------------ | ------ |
-| `ErrorPage` | `*el.Element` | 渲染失败时返回的兜底页面 | `nil`  |
+| 字段           | 类型          | 说明                                          | 默认值          |
+| -------------- | ------------- | --------------------------------------------- | --------------- |
+| `ErrorPage`    | `*el.Element` | 渲染失败时返回的兜底页面                      | `nil`           |
+| `StaticPrefix` | `string`      | zcss/zview 静态资源的路由前缀（空则用默认值） | `/__static_html` |
 
 > `Options.DisableWrite()` 返回 `true`，该模块不会将配置写入文件，可直接在模块注册时通过代码注入。
 
@@ -257,3 +262,45 @@ r.POST("/submit", func(c *znet.Context, z *html.ZViewJS) (int, *el.Element) {
     return 302, nil
 })
 ```
+
+## 静态资源（zcss / zview）
+
+HTML 模块的前端交互依赖 `zcss.js` 与 `zview.js` 两个静态脚本。
+它们通过脚本直接转换成 Go 源文件引入（不使用 `//go:embed` 内嵌方式），并由 znet 直接输出，方便自定义路由前缀或按需裁剪。
+
+### 脚本生成
+
+源码存放于 `html/static/`（`zcss.js`、`zview.js`），生成器为 `html/gen.go`：
+
+```bash
+go generate ./html
+```
+
+运行后生成 `html/static_data.go`，内含两份资源的名称与内容字节，无需再读取磁盘或 embed 目录。
+
+> 变更 `html/static/*.js` 后请重新执行 `go generate ./html` 同步产物。
+
+### 自定义前缀路由
+
+默认路由前缀为 `/__static_html`，对应地址：
+
+- `/__static_html/zcss.js`
+- `/__static_html/zview.js`
+
+如需自定义前缀，通过 `Options.StaticPrefix` 配置：
+
+```go
+htmlMod := html.New(func(o *html.Options) {
+    o.StaticPrefix = "/assets" // 前端引用地址需同步
+})
+```
+
+### go tag 控制是否引入
+
+默认构建会包含这两份静态资源。若无需内置（例如由外部 CDN 加载、或追求最小体积），使用构建标签 `nostatic` 即可完全剔除生成的数据文件与对应静态路由：
+
+```bash
+go build -tags nostatic ./...
+```
+
+> 使用 `-tags nostatic` 构建后，`zcss.js` / `zview.js` 的资源字节与静态路由均不会进入产物，仅保留 zview.Context 依赖注入等渲染能力。
