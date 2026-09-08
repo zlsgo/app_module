@@ -4,12 +4,18 @@ import (
 	"errors"
 
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 )
 
 // getSite 系统信息
 func (h *Index) getSite(c *znet.Context) (data ztype.Map, err error) {
-	return ztype.Map{}, err
+	return ztype.Map{
+		"name":     h.module.Name(),
+		"prefix":   h.module.Options.ApiPrefix,
+		"register": h.module.Options.EnableRegister,
+		"time":     ztime.Now("2006-01-02 15:04:05"),
+	}, nil
 }
 
 // GetMessage 站内消息

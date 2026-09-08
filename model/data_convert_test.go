@@ -99,8 +99,35 @@ func TestGetFilterSoftDeletes(t *testing.T) {
 	_, schemas := newTestSchemas(t, soft)
 	m := schemas.MustGet("soft_users")
 	f := getFilter(m, Filter{})
-	_, ok := f[DeletedAtKey]
+	_, ok := f[DeletedAtKey+" IS NULL"]
 	tt.Equal(true, ok)
+}
+
+func TestGetFilterSoftDeletesTimestamp(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	b := true
+	soft := schema.Schema{
+		Name: "soft_users_ts",
+		Table: schema.Table{
+			Name: "soft_users_ts",
+		},
+		Options: schema.Options{
+			SoftDeletes: &b,
+		},
+		Fields: map[string]schema.Field{
+			"name": {Type: "string", Label: "Name"},
+		},
+	}
+
+	sf := false
+	soft.Options.SoftDeleteIsTime = &sf
+	_, schemas := newTestSchemas(t, soft)
+	m := schemas.MustGet("soft_users_ts")
+	f := getFilter(m, Filter{})
+	v, ok := f[DeletedAtKey]
+	tt.Equal(true, ok)
+	tt.Equal(int(0), v)
 }
 
 func TestGetFilterSoftDeletesOverride(t *testing.T) {
@@ -128,6 +155,8 @@ func TestGetFilterSoftDeletesOverride(t *testing.T) {
 	f := getFilter(m, Filter{DeletedAtKey + " IS NOT NULL": true})
 	_, hasDefault := f[DeletedAtKey]
 	tt.Equal(false, hasDefault)
+	_, hasIsNull := f[DeletedAtKey+" IS NULL"]
+	tt.Equal(false, hasIsNull)
 	_, hasExplicit := f[DeletedAtKey+" IS NOT NULL"]
 	tt.Equal(true, hasExplicit)
 }
@@ -155,7 +184,7 @@ func TestGetFilterSoftDeletesQualifiedDoesNotOverride(t *testing.T) {
 	m := schemas.MustGet("soft_users_qualified")
 
 	f := getFilter(m, Filter{"other.deleted_at IS NOT NULL": true})
-	_, hasDefault := f[DeletedAtKey]
+	_, hasDefault := f[DeletedAtKey+" IS NULL"]
 	tt.Equal(true, hasDefault)
 	_, hasQualified := f["other.deleted_at IS NOT NULL"]
 	tt.Equal(true, hasQualified)

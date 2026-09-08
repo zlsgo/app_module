@@ -12,3 +12,5 @@ $:
     sync_github:
       env:
           GIT_USER: zlsgo
+          BRANCHS: master,develop
+          FORCE_PUSH: true

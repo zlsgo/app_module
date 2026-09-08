@@ -196,7 +196,11 @@ func (m *Schema) DeCryptID(nid string) (id string, err error) {
 }
 
 func decryptFilterMap(row ztype.Map, crypter IDCrypter) bool {
-	if len(row) == 0 {
+	return decryptFilterMapDepth(row, crypter, 0)
+}
+
+func decryptFilterMapDepth(row ztype.Map, crypter IDCrypter, depth int) bool {
+	if len(row) == 0 || depth >= maxParseDepth {
 		return true
 	}
 
@@ -212,7 +216,7 @@ func decryptFilterMap(row ztype.Map, crypter IDCrypter) bool {
 
 		upperKey := strings.ToUpper(trimmedKey)
 		if upperKey == placeHolderOR || upperKey == placeHolderAND {
-			if !decryptNestedFilters(v, crypter) {
+			if !decryptNestedFiltersDepth(v, crypter, depth+1) {
 				success = false
 			}
 			continue
@@ -249,15 +253,22 @@ func decryptFilterMap(row ztype.Map, crypter IDCrypter) bool {
 }
 
 func decryptNestedFilters(value any, crypter IDCrypter) bool {
+	return decryptNestedFiltersDepth(value, crypter, 0)
+}
+
+func decryptNestedFiltersDepth(value any, crypter IDCrypter, depth int) bool {
+	if depth >= maxParseDepth {
+		return true
+	}
 	switch v := value.(type) {
 	case ztype.Map:
-		return decryptFilterMap(v, crypter)
+		return decryptFilterMapDepth(v, crypter, depth)
 	case map[string]interface{}:
-		return decryptFilterMap(ztype.Map(v), crypter)
+		return decryptFilterMapDepth(ztype.Map(v), crypter, depth)
 	case ztype.Maps:
 		ok := true
 		for i := range v {
-			if !decryptFilterMap(v[i], crypter) {
+			if !decryptFilterMapDepth(v[i], crypter, depth) {
 				ok = false
 			}
 		}
@@ -265,7 +276,7 @@ func decryptNestedFilters(value any, crypter IDCrypter) bool {
 	case []ztype.Map:
 		ok := true
 		for i := range v {
-			if !decryptFilterMap(v[i], crypter) {
+			if !decryptFilterMapDepth(v[i], crypter, depth) {
 				ok = false
 			}
 		}
@@ -273,7 +284,7 @@ func decryptNestedFilters(value any, crypter IDCrypter) bool {
 	case []map[string]interface{}:
 		ok := true
 		for i := range v {
-			if !decryptFilterMap(ztype.Map(v[i]), crypter) {
+			if !decryptFilterMapDepth(ztype.Map(v[i]), crypter, depth) {
 				ok = false
 			}
 		}
@@ -283,11 +294,11 @@ func decryptNestedFilters(value any, crypter IDCrypter) bool {
 		for i := range v {
 			switch vv := v[i].(type) {
 			case ztype.Map:
-				if !decryptFilterMap(vv, crypter) {
+				if !decryptFilterMapDepth(vv, crypter, depth) {
 					ok = false
 				}
 			case map[string]interface{}:
-				if !decryptFilterMap(ztype.Map(vv), crypter) {
+				if !decryptFilterMapDepth(ztype.Map(vv), crypter, depth) {
 					ok = false
 				}
 			}
@@ -298,7 +309,7 @@ func decryptNestedFilters(value any, crypter IDCrypter) bool {
 		if len(m) == 0 {
 			return true
 		}
-		return decryptFilterMap(m, crypter)
+		return decryptFilterMapDepth(m, crypter, depth+1)
 	}
 }
 

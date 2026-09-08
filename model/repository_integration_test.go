@@ -678,3 +678,35 @@ func TestRepositoryDeleteByIDs(t *testing.T) {
 	tt.NoError(err)
 	tt.Equal(0, len(users))
 }
+
+func TestSQLiteLimitByUpdateDelete(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	_, m := newTestDB(t, "limitby_safety")
+
+	schema := m
+
+	id, err := Insert(schema, ztype.Map{
+		"name":   "LimitUser",
+		"email":  "limit@test.com",
+		"age":    20,
+		"status": 1,
+	})
+	tt.NoError(err)
+
+	// model.Update uses Limit=1 internally, must work on SQLite
+	total, err := Update(schema, ID(id), ztype.Map{"age": 21})
+	tt.NoError(err)
+	tt.Equal(int64(1), total)
+
+	row, err := FindOne[ztype.Map](schema.Model(), ID(id))
+	tt.NoError(err)
+	tt.Equal(21, row.Get("age").Int())
+
+	// model.Delete uses Limit=1 internally, must work on SQLite
+	total, err = Delete(schema, ID(id))
+	tt.NoError(err)
+	tt.Equal(int64(1), total)
+
+	_, err = FindOne[ztype.Map](schema.Model(), ID(id))
+	tt.Equal(true, errors.Is(err, ErrNoRecord))
+}

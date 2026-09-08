@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"strings"
 	"sync"
 
 	"github.com/zlsgo/zdb/driver"
@@ -13,10 +14,19 @@ var (
 	driversMu sync.RWMutex
 )
 
+// normalizeName 对驱动名做规范化处理（去首尾空白 + 转小写），保证注册与查询一致。
+func normalizeName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
 // Register 注册驱动工厂
 func Register(name string, driver func(Options) (driver.IfeConfig, error)) error {
+	name = normalizeName(name)
 	if name == "" {
 		return errors.New("数据库驱动名为空")
+	}
+	if driver == nil {
+		return errors.New("数据库驱动不能为空")
 	}
 	driversMu.Lock()
 	defer driversMu.Unlock()
@@ -28,6 +38,7 @@ func Register(name string, driver func(Options) (driver.IfeConfig, error)) error
 }
 
 func getDriver(name string) (func(Options) (driver.IfeConfig, error), bool) {
+	name = normalizeName(name)
 	if name == "" {
 		return nil, false
 	}

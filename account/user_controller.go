@@ -43,11 +43,6 @@ func (h *User) Get(c *znet.Context) (data *model.PageData, err error) {
 		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 		co.Fields = h.module.accountModel.m.GetFields("password", "salt")
 	})
-	// data.Items.ForEach(func(i int, item ztype.Map) bool {
-	// 	id, _ := GetAccountModel().Schema().DeCryptID(item.Get(model.IDKey()).String())
-	// 	_ = item.Set("uid", id)
-	// 	return true
-	// })
 	return
 }
 

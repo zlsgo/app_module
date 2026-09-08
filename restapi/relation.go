@@ -1,55 +1,22 @@
 package restapi
 
 import (
-	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_module/model"
 )
 
+// Relation 描述一个关联关系：operation 为关联目标模型。
+//
+// Deprecated: 关联数据请通过查询参数 with/relations 配合 Options.AllowRelations
+// 装载，restapi 会在路由内部将关联写入 CondOptions.Relations。
 type Relation struct {
 	Operation *model.Store
 }
 
-func HanderPageRelation(c *znet.Context, oper *model.Store, filter model.Filter, relations map[string]Relation) (*model.PageData, error) {
-	data, err := Page(c, oper, filter, nil)
-	return data, err
-}
-
-func HanderPageRelation2(data *model.PageData, relations map[string]Relation) (*model.PageData, error) {
-	// relations := map[string]any{}
-
-	// size := len(data.Items)
-	// relationOper := oper.Operation()
-	// relationKey := "attachment"
-	// relationName := relationKey + "_relation"
-	// relationName = relationKey
-	// relationField := "id"
-	// relationValues := make([]any, 0, size)
-
-	data.Items = zarray.Map(data.Items, func(_ int, v ztype.Map) ztype.Map {
-		// zlog.Debug(v)
-		// zlog.Error(v.Get(relationKey).Value())
-		// relationValues = append(relationValues, v.Get(relationKey).Value())
-		// relationValue := v.Get(relationKey).Value()
-		// relationFilter := ztype.Map{
-		// 	relationField: relationValue,
-		// }
-		// relationFields := []string{"id", "path", "size"}
-		// v[relationName], _ = relationOper.Find(relationFilter, func(co *model.CondOptions) {
-		// 	co.Fields = relationFields
-		// })
-
-		return v
-	}, 100)
-	// relations
-
-	// zlog.Dump(relationValue)
-	// rows, err := relationOper.Find(ztype.Map{
-	// 	relationField: relationValue,
-	// })
-	// zlog.Debug(relationValue)
-	// zlog.Debug(rows, err)
-
-	return data, nil
+// HanderPageRelation 基于请求上下文对指定 Store 执行分页查询并返回结果。
+//
+// 说明：该 helper 仅负责分页，不做关联装载；需装载关联时请走通配路由
+// （with/relations 参数），关联逻辑由路由内部实现。
+func HanderPageRelation(c *znet.Context, oper *model.Store, filter model.Filter, _ map[string]Relation) (*model.PageData, error) {
+	return Page(c, oper, filter, nil)
 }

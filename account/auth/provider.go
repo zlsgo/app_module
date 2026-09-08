@@ -6,11 +6,13 @@ import (
 )
 
 type Provider struct {
-	Provider          string    `json:"provider,omitempty"`
-	ProviderID        string    `json:"provider_id,omitempty"`
-	ProviderUsername  string    `json:"provider_username,omitempty"`
-	ProviderAvatar    string    `json:"provider_avatar,omitempty"`
-	ProviderExtension ztype.Map `json:"provider_extension,omitempty"`
+	Provider              string    `json:"provider,omitempty"`
+	ProviderID            string    `json:"provider_id,omitempty"`
+	ProviderEmail         string    `json:"provider_email,omitempty"`
+	ProviderEmailVerified bool      `json:"provider_email_verified,omitempty"`
+	ProviderUsername      string    `json:"provider_username,omitempty"`
+	ProviderAvatar        string    `json:"provider_avatar,omitempty"`
+	ProviderExtension     ztype.Map `json:"provider_extension,omitempty"`
 }
 
 type AuthProvider interface {

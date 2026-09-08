@@ -42,6 +42,13 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 			continue
 		}
 
+		// 与 getFilter/sanitize 一致：占位键与字段键先规整首尾空白，
+		// 否则 `" $OR"`、`"$AND "` 这类键会因判定不一致在净化后仍被误解析。
+		k = zstring.TrimSpace(k)
+		if k == "" {
+			continue
+		}
+
 		upperKey := strings.ToUpper(k)
 		isPlaceHolderOR := upperKey == placeHolderOR
 		isPlaceHolderAND := upperKey == placeHolderAND
@@ -58,11 +65,27 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 		v := ztype.New(value)
 
 		if isPlaceHolder {
-			m := v.Map()
 			var cexprs []string
-			cexprs, err = s.parseExprsWithDepth(d, m, depth+1)
-			if err != nil {
-				return nil, err
+			if items, ok := groupFilterItems(value); ok {
+				// 数组形式：每个元素是独立子条件组，组间按占位符语义组合
+				// （$OR → 组间 OR、$AND → 组间 AND），元素内部保持 AND。
+				// 不能对整组套 v.Map() 后拍平，否则 $AND 会被误解析成 OR、
+				// 多条件元素也会丢失组内 AND。
+				for _, item := range items {
+					sub, serr := s.parseExprsWithDepth(d, item, depth+1)
+					if serr != nil {
+						return nil, serr
+					}
+					if len(sub) > 0 {
+						cexprs = append(cexprs, d.And(sub...))
+					}
+				}
+			} else {
+				var serr error
+				cexprs, serr = s.parseExprsWithDepth(d, v.Map(), depth+1)
+				if serr != nil {
+					return nil, serr
+				}
 			}
 
 			if len(cexprs) > 0 {
@@ -75,12 +98,13 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 			continue
 		}
 
-		trimmedKey := k
-		if strings.ContainsAny(k, " \t\n\r") {
-			trimmedKey = zstring.TrimSpace(k)
+		// 统一按空白切分「字段 操作符」键（与 getFilter 白名单 / hasFieldInFilter 规则一致，
+		// 兼容 tab、多空格与换行分隔；若切分不一致，合法条件会被静默丢弃或整串被当作列名）。
+		fieldName, operator := splitFilterKey(k)
+		f := []string{fieldName}
+		if operator != "" {
+			f = append(f, operator)
 		}
-
-		f := strings.SplitN(trimmedKey, " ", 2)
 
 		if len(f) != 2 {
 			switch val := v.Value().(type) {
@@ -103,18 +127,18 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 				if valuesLen == 0 {
 					continue
 				} else if valuesLen == 1 {
-					exprs = append(exprs, d.EQ(f[0], values[0]))
+					exprs = append(exprs, eqCond(d, f[0], values[0]))
 				} else {
 					exprs = append(exprs, d.In(f[0], values...))
 				}
 			default:
-				exprs = append(exprs, d.EQ(f[0], val))
+				exprs = append(exprs, eqCond(d, f[0], val))
 			}
 		} else {
 			operator := strings.ToUpper(f[1])
 			switch operator {
 			case "=":
-				exprs = append(exprs, d.EQ(f[0], v.Value()))
+				exprs = append(exprs, eqCond(d, f[0], v.Value()))
 			case ">":
 				exprs = append(exprs, d.GT(f[0], v.Value()))
 			case ">=":
@@ -124,11 +148,17 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 			case "<=":
 				exprs = append(exprs, d.LE(f[0], v.Value()))
 			case "!=", "<>":
-				values := ztype.ToSlice(v.Value()).Value()
-				if len(values) == 1 {
-					exprs = append(exprs, d.NE(f[0], values[0]))
+				// nil 值需先判断：ToSlice(nil) 会得到空切片，
+				// 落入 NotIn 空 = `1 = 1`（匹配全部）而非预期的 IS NOT NULL。
+				if v.Value() == nil {
+					exprs = append(exprs, d.IsNotNull(f[0]))
 				} else {
-					exprs = append(exprs, d.NotIn(f[0], values...))
+					values := ztype.ToSlice(v.Value()).Value()
+					if len(values) == 1 {
+						exprs = append(exprs, neCond(d, f[0], values[0]))
+					} else {
+						exprs = append(exprs, d.NotIn(f[0], values...))
+					}
 				}
 			case "LIKE":
 				exprs = append(exprs, d.Like(f[0], v.Value()))
@@ -153,6 +183,58 @@ func (s *SQL) parseExprsWithDepth(d *builder.BuildCond, filter ztype.Map, depth 
 	}
 
 	return exprs, nil
+}
+
+// eqCond 构造相等条件；值为 nil 时生成 IS NULL（SQL 中 `= NULL` 恒不成立）。
+func eqCond(d *builder.BuildCond, field string, value any) string {
+	if value == nil {
+		return d.IsNull(field)
+	}
+	return d.EQ(field, value)
+}
+
+// neCond 构造不等条件；值为 nil 时生成 IS NOT NULL（SQL 中 `<> NULL` 恒不成立）。
+func neCond(d *builder.BuildCond, field string, value any) string {
+	if value == nil {
+		return d.IsNotNull(field)
+	}
+	return d.NE(field, value)
+}
+
+// groupFilterItems 提取 $OR/$AND 分组值中的子条件组列表（数组形式）。
+// 非数组值（单个 map 条件组、标量等）返回 ok=false，按单个条件组解析。
+func groupFilterItems(value any) ([]ztype.Map, bool) {	switch v := value.(type) {
+	case ztype.Maps:
+		return v, true
+	case []ztype.Map:
+		return v, true
+	case []map[string]interface{}:
+		if len(v) == 0 {
+			return nil, false
+		}
+		items := make([]ztype.Map, len(v))
+		for i := range v {
+			items[i] = ztype.Map(v[i])
+		}
+		return items, true
+	case []interface{}:
+		if len(v) == 0 {
+			return nil, false
+		}
+		items := make([]ztype.Map, 0, len(v))
+		for i := range v {
+			m := ztype.ToMap(v[i])
+			if len(m) == 0 {
+				continue
+			}
+			items = append(items, m)
+		}
+		if len(items) == 0 {
+			return nil, false
+		}
+		return items, true
+	}
+	return nil, false
 }
 
 func (s *SQL) Insert(table string, data ztype.Map, fn ...func(*InsertOptions)) (lastId interface{}, err error) {
@@ -203,6 +285,7 @@ func (s *SQL) Delete(table string, filter ztype.Map, fn ...func(*CondOptions)) (
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+			b.LimitBy(idKey)
 		}
 
 		return nil
@@ -370,6 +453,7 @@ func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(
 
 		if o.Limit > 0 {
 			b.Limit(o.Limit)
+			b.LimitBy(idKey)
 		}
 
 		b.OrderBy(sqlOrderBy(o.OrderBy, fieldPrefix)...)

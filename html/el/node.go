@@ -91,6 +91,7 @@ type Proper interface {
 }
 
 // Attribute 表示元素的键值属性对，可直接应用到 Element。
+// Value 中存放原始值，渲染输出时才统一进行 HTML 转义。
 type Attribute struct {
 	Key   string
 	Value string
@@ -130,7 +131,7 @@ func (a *DeferredAttribute) Apply(ctx context.Context, w io.Writer) error {
 	rhs := ""
 	value := a.fn(ctx)
 	if len(value) > 0 {
-		rhs = "=" + "\"" + value + "\""
+		rhs = "=" + "\"" + html.EscapeString(value) + "\""
 	}
 	_, err := fmt.Fprintf(w, " %s%s", a.key, rhs)
 	return err
@@ -146,6 +147,8 @@ type AttrValue interface {
 }
 
 // Attr 创建属性节点，支持字符串、Map、布尔值。
+// Attribute.Value 保存未经转义的原始值，转义在渲染阶段统一进行（见 Element.Render），
+// 因此字符串或 JSON 文本中包含双引号也不会破坏最终 HTML 的属性边界。
 func Attr[T AttrValue](key string, value T) *Attribute {
 	var valueStr string
 	switch v := any(value).(type) {
@@ -158,7 +161,7 @@ func Attr[T AttrValue](key string, value T) *Attribute {
 		if err != nil {
 			valueStr = "{}"
 		} else {
-			valueStr = html.EscapeString(zstring.Bytes2String(b))
+			valueStr = zstring.Bytes2String(b)
 		}
 	}
 	return &Attribute{Key: key, Value: valueStr}
@@ -176,15 +179,27 @@ func (Component) Release() {
 }
 
 // Render 将组件转为动态 Chunk，在执行时渲染组件生成的节点。
+//
+// 组件子树通过独立的 ChunkWriter 渲染后再一次性写入目标 io.Writer，
+// 避免将子树 Chunk 回流到外层缓冲，从而杜绝嵌套组件时因 teecw 层层
+// 回写导致的重复输出（旧实现对每个 Chunk 既写入 w 又追加回外层 cw，
+// 嵌套 Component 时内容会被渲染两次）。
 func (c Component) Render(cw ChunkWriter) {
 	cw.Write(DynamicChunk(func(ctx context.Context, w io.Writer) error {
-		writer := &teecw{ChunkWriter: cw, fn: func(c Chunk) error {
-			if err := RenderChunk(c, ctx, w); err != nil {
+		node := c(ctx)
+		if node == nil {
+			return nil
+		}
+		defer node.Release()
+
+		inner := NewChunkWriter()
+		node.Render(inner)
+		chunks := inner.Chunks() // 快照并自动归还内部缓冲
+		for _, chunk := range chunks {
+			if err := RenderChunk(chunk, ctx, w); err != nil {
 				return err
 			}
-			return nil
-		}}
-		c(ctx).Render(writer)
+		}
 		return nil
 	}))
 }
@@ -283,6 +298,21 @@ func (e *Element) Release() {
 	elpool.Put(e)
 }
 
+// reset 清理对象池复用元素的旧状态，避免上一次使用残留的子节点、属性与元数据
+// 污染下一次构造。sync.Pool 复用不保证 LIFO，未重置的元素可能带回历史内容。
+func (e *Element) reset() {
+	if e.nodes != nil {
+		e.nodes = e.nodes[:0]
+	}
+	if e.properties != nil {
+		e.properties = e.properties[:0]
+	}
+	if e.attributelist != nil {
+		e.attributelist = e.attributelist[:0]
+	}
+	clear(e.meta)
+}
+
 var voidelements = []string{"!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
 // Render 顺序输出标签、属性、子节点，并处理延迟属性与自闭合标签。
@@ -307,7 +337,7 @@ func (e *Element) Render(w ChunkWriter) {
 	for _, attr := range e.attributelist {
 		var rhs string
 		if len(attr.Value) != 0 {
-			rhs = "=" + "\"" + attr.Value + "\""
+			rhs = "=" + "\"" + html.EscapeString(attr.Value) + "\""
 		}
 		w.Write(StaticChunk(fmt.Appendf(nil, " %s%s", attr.Key, rhs)))
 	}
@@ -361,6 +391,7 @@ var elpool = sync.Pool{
 // El 根据标签名和可变参数构造元素，自动区分节点与属性并按生命周期应用。
 func El(name string, items ...Item) *Element {
 	el := elpool.New().(*Element)
+	el.reset()
 	el.name = name
 
 	immediate := propspool.New().(*[]Proper)

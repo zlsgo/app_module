@@ -19,7 +19,7 @@ restapi/
 ├── methods.go        # CRUD 方法
 ├── module.go         # 模块定义
 ├── options.go        # 配置选项
-├── relation.go       # 关联关系处理
+├── relation.go       # 关联分页 helper（Deprecated，关联请用 with/relations）
 ├── restapi.go        # REST API 接口
 └── upload.go         # 文件上传功能
 ```
@@ -172,4 +172,18 @@ filter={"name":{"$like":"%foo%"},"age":{"$gte":18},"$or":[{"status":"active"},{"
 
 ### 关联关系
 
-当前 `HanderPageRelation(...)` 仅包装了 `Page(...)` 并原样返回分页结果，关系装载逻辑尚未在该模块内实现。
+**通过查询参数装载（推荐）**
+
+GET 请求可通过 `with`（或 `relations`）携带逗号分隔的关联路径（如 `profile` / `profile.nickname`），
+restapi 会将其写入 `CondOptions.Relations` 并在 `model` 层完成关系装载。关联路径需与
+`Options.AllowRelations` 白名单一致（支持根关联名或完整路径），且 `with` 与 `relations` 互斥，不能同时传。
+
+```text
+GET /api/v1/user?with=profile,orders
+```
+
+**辅助函数**
+
+`HanderPageRelation(c, store, filter, relations)` 是基于当前上下文的 legacy 分页 helper，
+仅包装 `Page(...)` 返回分页结果，不做额外关系装载。新代码请直接使用
+`with`/`relations` 查询参数以启用关联装载；该函数标记为 Deprecated。

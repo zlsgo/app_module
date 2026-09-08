@@ -312,6 +312,15 @@ func TestSpecialAttributes(t *testing.T) {
 		}.Assert(tt)
 	})
 
+	t.Run("Required", func(t *testing.T) {
+		// 回归：Required 旧实现误拼为 rel，导致 required 属性无法正确输出。
+		node := INPUT(Type("text"), Required)
+		ChunkTest{
+			Node:     node,
+			Rendered: `<input type="text" required>`,
+		}.Assert(tt)
+	})
+
 	t.Run("Defer", func(t *testing.T) {
 		node := SCRIPT(Defer)
 		ChunkTest{

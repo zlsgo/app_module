@@ -31,6 +31,13 @@ func fillFilterTablePrefix(f ztype.Map, table string) ztype.Map {
 			continue
 		}
 
+		// 占位键（$OR/$AND/$N 条件注入等）不是列名，不能被加表前缀；
+		// 否则会被 parseExprs 误判为普通字段并试图 buildCond。
+		if strings.Contains(strings.TrimSpace(k), placeHolder) {
+			result[k] = v
+			continue
+		}
+
 		if !strings.ContainsRune(k, '.') {
 			result[table+k] = v
 		} else {

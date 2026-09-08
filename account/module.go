@@ -204,15 +204,15 @@ func (m *Module) Start(di zdi.Invoker) (err error) {
 	m.mods = model.NewSchemas(di.(zdi.Injector), model.NewSQL(m.db, m.Options.ModelPrefix), model.SchemaOptions{})
 
 	if err = initModel(m); err != nil {
-		return zerror.With(err, "init accoutModel error")
+		return zerror.With(err, "init accountModel error")
 	}
 
 	mod, ok := m.mods.Get(accountName)
 	if !ok {
-		return errors.New("account accoutModel not found")
+		return errors.New("user account model not found")
 	}
 
-	m.index.accoutModel = mod
+	m.index.accountModel = mod
 	m.index.permModel, _ = m.mods.Get(permName)
 	m.index.roleModel, _ = m.mods.Get(roleName)
 

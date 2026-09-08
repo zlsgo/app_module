@@ -114,6 +114,9 @@ account:
 | POST  | `{prefix}/base/avatar`        | 上传当前用户头像       | 认证 |
 
 > `register` 接口仅当 `Options.EnableRegister` 为 `true` 时可访问。
+>
+> `GET {prefix}/base/site`（公开）返回系统信息，字段包括：`name`（模块名）、`prefix`（API 前缀）、
+> `register`（是否开放注册）、`time`（服务器当前时间）。
 
 ### 消息通知
 

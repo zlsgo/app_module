@@ -1588,7 +1588,7 @@ range 与 color 类型具有默认值，因此不支持 required。color 默认 
 
 https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/required
 */
-var Required = Attr("rel", "")
+var Required = Attr("required", "")
 
 /*
 # SVG 属性：width

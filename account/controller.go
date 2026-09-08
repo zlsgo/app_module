@@ -28,11 +28,11 @@ import (
 
 type Index struct {
 	service.App
-	accoutModel *model.Schema
-	permModel   *model.Schema
-	roleModel   *model.Schema
-	module      *Module
-	Path        string
+	accountModel *model.Schema
+	permModel    *model.Schema
+	roleModel    *model.Schema
+	module       *Module
+	Path         string
 }
 
 var _ = reflect.TypeOf(&Index{})
@@ -77,12 +77,6 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 		refreshToken = c.GetJSON("refresh_token").String()
 	}
 
-	// _, err := jwt.Parse(token, h.module.Options.key)
-	// err = jwt.ParseError(err)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	info, err := jwt.Parse(refreshToken, h.module.Options.key)
 	if err != nil || !info.IsRefresh {
 		return nil, zerror.InvalidInput.Text("refresh_token 无效")
@@ -90,13 +84,13 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
-	f, err := model.FindCols[string](h.accoutModel.Model(), "salt", model.ID(uid))
+	f, err := model.FindCols[string](h.accountModel.Model(), "salt", model.ID(uid))
 	if err != nil || len(f) == 0 || f[0] != salt {
 		return nil, zerror.InvalidInput.Text("refresh_token 已失效")
 	}
 
 	salt = zstring.Rand(saltLen)
-	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accountModel, uid, ztype.Map{
 		"salt": salt,
 	})
 	if err != nil {
@@ -120,11 +114,11 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 func (h *Index) GetInfo(c *znet.Context) (interface{}, error) {
 	// 使用缓存获取用户信息
 	uid := h.module.Request.UID(c)
-	userInfo, err := h.module.getUserForCache(h.accoutModel, uid)
+	userInfo, err := h.module.getUserForCache(h.accountModel, uid)
 	if err != nil {
 		// 如果缓存失败，直接查询数据库
-		info, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.ID(uid), func(so *model.CondOptions) {
-			so.Fields = h.accoutModel.GetFields("password", "salt")
+		info, err := model.FindOne[ztype.Map](h.accountModel.Model(), model.ID(uid), func(so *model.CondOptions) {
+			so.Fields = h.accountModel.GetFields("password", "salt")
 		})
 		if err != nil {
 			if errors.Is(err, model.ErrNoRecord) {
@@ -201,7 +195,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 		return
 	}
 
-	user, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.Filter{
+	user, err := model.FindOne[ztype.Map](h.accountModel.Model(), model.Filter{
 		"account": account,
 	})
 	if err != nil {
@@ -240,7 +234,7 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	}
 
 	uid := user.Get(model.IDKey()).String()
-	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accountModel, uid, ztype.Map{
 		"salt":     salt,
 		"login_at": ztime.Now(),
 	})
@@ -285,7 +279,7 @@ func (h *Index) AnyLogout(c *znet.Context) (any, error) {
 		return nil, zerror.WrapTag(zerror.Unauthorized)(errors.New("请先登录"))
 	}
 
-	err := h.module.updateUser(h.accoutModel, uid, ztype.Map{
+	err := h.module.updateUser(h.accountModel, uid, ztype.Map{
 		"salt": "",
 	})
 
@@ -329,7 +323,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	uid := h.module.Request.UID(c)
-	user, err := model.FindOne[ztype.Map](h.accoutModel.Model(), model.ID(uid), func(so *model.CondOptions) {
+	user, err := model.FindOne[ztype.Map](h.accountModel.Model(), model.ID(uid), func(so *model.CondOptions) {
 		so.Fields = []string{model.IDKey(), "password", "salt"}
 	})
 	if err != nil {
@@ -348,7 +342,7 @@ func (h *Index) AnyPassword(c *znet.Context) (data any, err error) {
 	}
 
 	salt := zstring.Rand(saltLen)
-	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accountModel, uid, ztype.Map{
 		"salt":     salt,
 		"password": password,
 	})
@@ -387,7 +381,7 @@ func (h *Index) PatchMe(c *znet.Context) (any, error) {
 		}
 		update[k] = v
 	}
-	err := h.module.updateUser(h.accoutModel, uid, update)
+	err := h.module.updateUser(h.accountModel, uid, update)
 	return nil, err
 }
 
@@ -408,7 +402,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 	baseName := strings.TrimSuffix(basePath, ext)
 	newAvatarPath := strings.Replace(avatarPath, baseName, uid, -1)
 
-	info, _ := h.module.getUserForCache(h.accoutModel, uid)
+	info, _ := h.module.getUserForCache(h.accountModel, uid)
 	oldAvatarPath := info.Get("avatar").String()
 	if oldAvatarPath != "" {
 		_ = zfile.Remove("." + oldAvatarPath)
@@ -418,7 +412,7 @@ func (h *Index) POSTAvatar(c *znet.Context) (any, error) {
 		return nil, errors.New("头像保存失败")
 	}
 
-	err = h.module.updateUser(h.accoutModel, uid, ztype.Map{
+	err = h.module.updateUser(h.accountModel, uid, ztype.Map{
 		"avatar": newAvatarPath,
 	})
 

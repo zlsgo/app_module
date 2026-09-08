@@ -63,8 +63,6 @@ github.com/sagikazarmark/locafero v0.4.0/go.mod h1:Pe1W6UlPYUk/+wc/6KFhbORCfqzgY
 github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
 github.com/sohaha/zlsgo v1.7.21-0.20251216093936-9cce40f416c4/go.mod h1:7LViqB5ll09RnlU5V5AW0oBnqFg260/q+B/SGDNNdmQ=
-github.com/sohaha/zlsgo v1.7.21-0.20260114090020-2e2f0d9e0bc9 h1:R4/39bLEUrH1vNC4IuseKh2bpDsIomwhneQhYW+0GWU=
-github.com/sohaha/zlsgo v1.7.21-0.20260114090020-2e2f0d9e0bc9/go.mod h1:BRZA+WXWyVeLtuPdM5NwFN/ZtCRUYBA+UvrqCMfxOGY=
 github.com/sohaha/zlsgo v1.7.21-0.20260120110311-515b12153146 h1:rK/USC1SWxYWrFndd+QKxXmm8450jN69o+KoTZ7IJ60=
 github.com/sohaha/zlsgo v1.7.21-0.20260120110311-515b12153146/go.mod h1:BRZA+WXWyVeLtuPdM5NwFN/ZtCRUYBA+UvrqCMfxOGY=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
@@ -99,8 +97,8 @@ github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159 h1:haE+XlgESBx+QRZ5sk3ro
 github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159/go.mod h1:36fp7C6uivaIij2sVyVdE5LoSfpE1d+vYOOsNhmq/3I=
 github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f h1:okQlee9bEH9kXNsJSsl61ZCzuC/8572ZK7uiqdmsKfw=
 github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f/go.mod h1:J5nnP1/WwSqO7QelvHN9mUaw5HOwgGHITy4DRHVufs8=
-github.com/zlsgo/zdb v0.0.0-20251218114753-5a6961398339 h1:zGGLoAlZtKITtk5d0fIk8LMyvlfi+DyG9d4rxUO9Fag=
-github.com/zlsgo/zdb v0.0.0-20251218114753-5a6961398339/go.mod h1:2VsJZHZnHr5fjEqaRKodC3kq14uHFCnyZGYxwscNRLU=
+github.com/zlsgo/zdb v0.0.0-20260515051601-e13883217278 h1:R283EdEtmwiq/3Eyhm51AVHYBQnXQLleiq+E9MZWq1c=
+github.com/zlsgo/zdb v0.0.0-20260515051601-e13883217278/go.mod h1:UANZTjPFeIDn8Gbone80RMjXgnSV/3XTqgcNTO7v0lg=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/multierr v1.9.0 h1:7fIwc/ZtS0q++VgcfqFDxSBZVv/Xo49/SYnDFupUwlI=

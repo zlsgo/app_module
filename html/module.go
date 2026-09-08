@@ -27,7 +27,7 @@ func New(opt ...func(*Options)) (m *Module) {
 		ModuleLifeCycle: service.ModuleLifeCycle{
 			OnStart: func(di zdi.Invoker) error {
 				return di.InvokeWithErrorOnly(func(r *znet.Engine, conf *service.Conf) error {
-					return registerStatic(r)
+					return registerStatic(r, options.StaticPrefix)
 				})
 			},
 			OnDone: func(di zdi.Invoker) error {

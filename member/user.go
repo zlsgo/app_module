@@ -14,8 +14,6 @@ type User struct {
 	RawId string    `json:"-"`
 }
 
-const saltLen = 4
-
 var userCache = zcache.NewFast()
 
 func (m *Module) UserModel() (*model.Store, bool) {

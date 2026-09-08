@@ -428,3 +428,33 @@ func TestComponentNode(t *testing.T) {
 		Impure:   true,
 	}.Assert(tt)
 }
+
+// TestComponentNestingNoDuplication 回归验证嵌套 Component 不会把内容重复渲染两次。
+// 旧实现因 teecw 层层回写外层缓冲，任意组件嵌套组件时内容会被输出两次。
+func TestComponentNestingNoDuplication(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	twoLevel := Component(func(ctx context.Context) Node {
+		return DIV(Component(func(ctx context.Context) Node {
+			return SPAN(Text("leaf"))
+		}))
+	})
+	ChunkTest{
+		Node:     DIV(twoLevel),
+		Rendered: "<div><div><span>leaf</span></div></div>",
+		Impure:   true,
+	}.Assert(tt)
+
+	threeLevel := Component(func(ctx context.Context) Node {
+		return DIV(Component(func(ctx context.Context) Node {
+			return SPAN(Component(func(ctx context.Context) Node {
+				return Text("deep")
+			}))
+		}))
+	})
+	ChunkTest{
+		Node:     DIV(threeLevel),
+		Rendered: "<div><div><span>deep</span></div></div>",
+		Impure:   true,
+	}.Assert(tt)
+}

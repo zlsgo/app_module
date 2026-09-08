@@ -150,13 +150,44 @@ o.Schemas.Append(user)
 `FieldOption` 支持：
 
 - `Crypt`：对写入值执行加密处理，内置 `"md5"` 与 `"password"`（bcrypt，大小写不敏感）。
-- `Enum`：`[]FieldEnum{Value, Label}`，生成下拉枚举并在查询结果中附加 `<field>_label`。
+- `Enum`：`[]FieldEnum{Value, Label}`，生成下拉枚举并在查询结果中附加 `<field>_label`（运行时通过 `Schema.ParseLables(rows)` 完成标签映射，支持字符串/整型/浮点枚举值）。
 - `FormatTime`：时间格式化模板（`date|Y-m-d H:i:s` 等）。
 - `IsArray`：针对 JSON 字段控制数组/对象期望格式。
 - `ReadOnly`：更新操作会自动过滤此字段。
 - `DisableMigration`：字段不会参与自动迁移。
 
 字段在解析时会为 JSON、布尔、时间类型自动挂载 Before/After 处理器，实现写入前转换与读取后反序列化。
+
+#### 时间字段示例
+
+时间类型字段可通过 `FormatTime` 指定存读格式（默认 `date|Y-m-d H:i:s`）。写入 `time.Time` / 时间戳 / 字符串时会先转换为目标格式字符串入库，读取时自动解析回同一格式：
+
+```go
+post := schema.New("post", "posts")
+_ = post.AddField("title", schema.Field{Label: "标题", Type: schema.String, Size: 200})
+_ = post.AddField("published_at", schema.Field{
+    Label:   "发布时间",
+    Type:    schema.Time,
+    Options: schema.FieldOption{FormatTime: "date|Y-m-d H:i:s"},
+})
+o.Schemas.Append(post)
+
+postStore := mod.MustGetStore("post")
+_, err := postStore.Insert(ztype.Map{
+    "title":        "你好，时间字段",
+    "published_at": time.Now(), // 写 time.Time，内部自动格式化为 "2026-01-02 15:04:05"
+})
+// 读取时 published_at 会作为格式化字符串返回，可直接用于前端展示
+
+// 对时间字段做范围/区间过滤（同格式字符串按字典序比较，范围正确）
+paged, err := postStore.Pages(1, 20, model.Filter{
+    "published_at >=": "2026-01-01 00:00:00",
+    "published_at <=": "2026-12-31 23:59:59",
+})
+_ = paged
+```
+
+> 时间范围推荐使用 `>=`/`<=` 组合或 `BETWEEN`，并让起止格式与字段 `FormatTime` 保持一致。
 
 ### 校验规则
 
@@ -216,6 +247,8 @@ o.Schemas.Append(user)
 - `title`：视图标题。
 
 运行时可通过 `Schema.GetViews()`、`Schema.GetViewFields(view)` 获取解析结果。结果会自动补齐主键及必要字段，并针对加密 ID 调整字段类型。
+
+`views` 未声明 `lists`/`info` 或字段缺省时，`GetViewFields` 回退到模型全字段（含主键）；声明 `disabled: true` 的视图返回空字段。
 
 ### 初始数据 Values
 
@@ -541,6 +574,48 @@ affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
 - CryptID 启用时，传入/返回的 `id` 会在查询前后自动解密/加密。
 - `Filter.Set()`/`Filter.Get()` 辅助构建条件。
 
+### Filter 递归组合示例
+
+`Filter` 与构建函数支持任意层级递归嵌套。单个 Map 内用 `$AND` / `$OR` 组合字段条件，多个 `QueryFilter` 用 `And(...)` / `Or(...)` 组装：
+
+```go
+store := mod.MustGetStore("user")
+
+// 1) Map 级递归：$OR 内部再嵌套 $AND
+cond := model.Filter{
+    "$OR": ztype.Map{
+        "status": 1,
+        "$AND": ztype.Map{"age >": 18, "name LIKE": "%张%"},
+    },
+}
+users, err := store.Find(cond)
+
+// 2) QueryFilter 递归：Or(..., And(...))
+cond2 := model.Or(
+    model.Eq("status", 1),
+    model.And(
+        model.Gt("age", 18),
+        model.Like("name", "%张%"),
+    ),
+)
+users2, err := store.Find(cond2)
+
+// 3) 深度自定义：三层嵌套（集合用 `字段 IN` 语法）
+cond3 := model.Filter{
+    "$OR": ztype.Map{
+        "vip": true,
+        "$AND": ztype.Map{
+            "balance >":  100,
+            "level IN":   []int{3, 4, 5},
+            "points >=":  10000,
+        },
+    },
+}
+_ = cond3
+```
+
+> 递归解析深度上限为 50，超出会返回错误，请避免构造过深的嵌套条件。
+
 ## CondOptions 与关联装载
 
 查询方法可接受 `func(*model.CondOptions)` 定制：
@@ -605,6 +680,134 @@ err := store.Schema().Storage.Transaction(func(txStorage model.Storageer) error 
 })
 ```
 
+## 运行时 Schema 元信息与 ID 加解密
+
+模块装配完成后，可通过 `Module.Schemas()` / `Module.Stores()` 获取已注册的 `*Schemas` / `*Stores` 容器，再按别名取到 `*Schema` / `*Store`，进而访问 Schema 运行时元信息、执行 ID 加解密等：
+
+```go
+schemas := mod.Schemas()          // *Schemas 容器
+stores := mod.Stores()            // *Stores 容器
+
+s, ok := schemas.Get("user")      // 按别名取 Schema（不存在返回 ok=false）
+s = schemas.MustGet("user")       // 不存在时 panic
+
+st, ok := stores.Get("user")      // 按别名取 Store
+st = stores.MustGet("user")
+
+// 遍历所有已注册 Schema
+schemas.ForEach(func(alias string, sch *model.Schema) bool {
+    // alias == sch.GetName()
+    return true
+})
+```
+
+### Schema 元信息访问
+
+```go
+store := mod.MustGetStore("user")
+schema := store.Schema()          // *Schema
+
+_ = schema.GetName()              // 模型别名，如 "user"
+_ = schema.GetAlias()             // 同 GetName
+_ = schema.GetTableName()         // 真实表名（含前缀），如 "model_users"
+_ = schema.GetComment()           // 表注释
+_ = schema.GetFields()            // 全部可写字段名（默认不含 id 主键）
+_ = schema.GetFields("password")  // 排除指定字段后的字段列表
+_ = schema.GetDefineFields()      // 字段定义的完整 map[string]schema.Field
+_ = schema.GetExtend()            // 模型扩展元信息 ztype.Map（含 views 等）
+
+// 按字段名取字段定义
+if f, ok := schema.GetField("status"); ok {
+    _ = f.Label   // 字段显示名
+    _ = f.Type    // schema.String ...
+}
+
+// 底层 Schema 定义（用于序列化 / 管理端渲染）
+_ = schema.GetDefine()
+
+// 手动触发迁移（一般无需手动，模块 Done 阶段已自动执行）
+// _ = schema.Migration().Auto(model.DealOldColumnNone)
+```
+
+### ID 加解密（运行时 API）
+
+启用 `CryptID` 后，`Store`/`Repository` 会自动完成主键加解密，通常无需手动处理。需要自行校验或对外展示密文 ID 时，可用 Schema 提供的方法：
+
+```go
+schema := mod.MustGetStore("user").Schema()
+
+// 明文主键 -> 密文（URL 友好字符串）
+encrypted, err := schema.EnCryptID("123")
+
+// 密文 -> 明文主键
+decrypted, err := schema.DeCryptID(encrypted)
+// decrypted == "123"
+
+// 行级批量加解密（写前加密 / 读后解密）
+row := ztype.Map{"id": 123, "name": "张三"}
+_ = schema.EnCrypt(&row)    // row["id"] 变为密文
+schema.DeCrypt(row)         // row["id"] 还原为明文
+```
+
+启用 `CryptID` 的 Salt / CryptLen 在**每个 Schema 自己的 `schema.Options`** 上配置（模块级 `model.SchemaOptions` 仅开关 `CryptID`）：
+
+```go
+b := true
+user := schema.New("user", "users")
+user.Options = schema.Options{CryptID: &b, Salt: "my-salt", CryptLen: 8}
+o.Schemas.Append(user)
+```
+
+也可运行时手动指定加密器（内置 HashID，另支持 AES）：
+
+```go
+schema := mod.MustGetStore("user").Schema()
+schema.SetIDCrypter(model.NewHashIDCrypter("my-salt", 8))
+
+// 或 AES（密钥必须为 16/24/32 字节）：
+// crypter, err := model.NewAESCrypter([]byte("0123456789abcdef"))
+// schema.SetIDCrypter(crypter)
+
+// 独立使用加密器：
+crypter := model.NewHashIDCrypter("my-salt", 8)
+encrypted, _ := crypter.Encrypt(1234567890) // string
+decrypted, _ := crypter.Decrypt(encrypted)  // int64
+```
+
+> AES 密钥必须为 16/24/32 字节，否则返回 `ErrInvalidKeyLength`；未启用 `CryptID` 或未配置加密器时 `EnCryptID`/`DeCryptID` 会返回 `ErrCrypterNotSet`。
+
+### 视图（View）运行时示例
+
+视图元信息定义在 `Schema.Extend["views"]`，运行时通过下列 API 读取，供前端动态渲染列表/详情：
+
+```go
+user := schema.NewFromStruct[User]("", "")
+user.Extend = ztype.Map{
+    "views": ztype.Map{
+        "lists": ztype.Map{
+            "fields": []string{"username", "email", "status"},
+            "layouts": []string{"username:姓名", "email:邮箱", "status:状态"},
+        },
+        "info": ztype.Map{
+            "fields": []string{"id", "username", "email", "status", "created_at"},
+            "title":  "用户详情",
+        },
+    },
+}
+o.Schemas.Append(user)
+
+store := mod.MustGetStore("user")
+schema := store.Schema()
+
+_ = schema.GetViews()               // 解析后的视图元数据 ztype.Map
+_ = schema.GetViewFields("lists")   // []string{"username","email","status","id"}（自动补齐主键）
+_ = schema.GetViewFields("info")    // 视图字段列表
+
+// 查询后做枚举标签映射，为行追加 <field>_label
+rows, _ := store.Find(model.Filter{"status": 1})
+rows = schema.ParseLables(rows)     // 若 status 为枚举，会附带 status_label
+```
+
 ## Schema API 与视图元数据
 
 设置 `Options.SchemaApi` 后会注册 `schemaController`：
@@ -619,6 +822,61 @@ err := store.Schema().Storage.Transaction(func(txStorage model.Storageer) error 
 - `model.Common.VarPages(c *znet.Context)`：从请求参数解析 `page` / `pagesize`。
 - `model.GetEngine[*zdb.DB](store)`：获取底层 `*zdb.DB` 引擎。
 - `store.Schema(Storageer)`：临时替换存储实现（例如事务内使用新的 SQL 实例）。
+
+## 错误处理与异常场景
+
+Model 的公开 API 均返回 `error`，上层应显式处理。常见的错误来源与哨兵错误如下：
+
+```go
+repo := model.NewMapRepository(mod.MustGetStore("user"))
+
+// 1) 查询无匹配：FindOne 返回 (零值, err)
+_, err := repo.FindOne(model.Filter{"username": "不存在的人"})
+if err != nil {
+    // 处理未命中（不同存储实现下错误可能为 NoRecord 类）
+}
+
+// 2) 主键缺失 / 校验失败：写入前 VerifiData 校验不通过
+_, err = repo.Insert(ztype.Map{"email": "不是一个邮箱"})
+if err != nil {
+    // 校验错误，如 zerror.InvalidInput
+}
+
+// 3) 关联/存储错误通常被包装为 ModelError / QueryError，可用 errors.Is/As 判断
+_, err = repo.Insert(ztype.Map{"username": "john"})
+if err != nil {
+    var me *model.ModelError
+    if errors.As(err, &me) {
+        // me.Op   操作名
+        // me.Table 表名
+        // me.Err  底层原因
+    }
+}
+```
+
+各错误哨兵（可直接 `errors.Is` 判断）：
+
+- `model.ErrNoRecord`：未找到记录。
+- `model.ErrCrypterNotSet`：启用了 `CryptID` 但未配置加密器。
+- `model.ErrInvalidKeyLength`：AES 密钥长度非法。
+- `zerror.InvalidInput`：字段校验失败。
+
+异常场景完整示例：
+
+```go
+schema := mod.MustGetStore("user").Schema()
+
+// 删除不存在的主键：返回受影响行数 0（无错误）
+affected, _ := repo.DeleteByID(99999)
+
+// 加密器未配置时手动加解密会报错
+encrypted, err := schema.EnCryptID("123") // 若未启用 CryptID / 未配置 crypter，err == model.ErrCrypterNotSet
+
+// 更新用零值结构体会被忽略（使用指针或 omitempty 避免覆盖）
+_, err = repo.UpdateByID(1, ztype.Map{"email": "new@example.com"})
+```
+
+> 涉及写入/迁移失败时，建议把底层错误包装为带上下文的 `ModelError`；涉及 SQL 构造失败时用 `NewQueryError` 包装 SQL 与参数，便于排查。可参照上述 `errors.As` 方式在网关层统一降级处理。
 
 ## 最佳实践
 
