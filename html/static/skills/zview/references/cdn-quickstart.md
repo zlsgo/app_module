@@ -107,3 +107,37 @@ window.$z
 <input z-on-input.debounce.300="$query = event.target.value" />
 <button z-on-click.prevent.stop="submitSearch()">搜索</button>
 ```
+
+## morph / preserve 示例
+
+局部刷新时用 `z-swap="morph"`，已复用节点会保留用户输入、焦点和选区；第三方组件等不可重建节点用 `z-preserve`（响应里也必须返回同 id 的占位节点）：
+
+```html
+<section>
+  <form>
+    <input type="text" z-bind="query" />
+    <button
+      z-req="GET /partials/results"
+      z-trigger="submit"
+      z-swap="morph"
+      z-target="#results"
+    >
+      搜索
+    </button>
+  </form>
+
+  <div id="results">
+    <div id="player" z-preserve><!-- 第三方播放器实例，不重建 --></div>
+    <ul><!-- 结果列表 --></ul>
+  </div>
+</section>
+```
+
+服务端响应示例（播放器占位仍带 marker + 同 id）：
+
+```html
+<div id="results">
+  <div id="player" z-preserve></div>
+  <ul><li>新结果</li></ul>
+</div>
+```

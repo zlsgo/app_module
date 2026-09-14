@@ -9,7 +9,8 @@ import (
 )
 
 // RenderNode 渲染单个 Node，并将输出写入 io.Writer。
-// 该方法内部会处理 ChunkWriter 以及节点的释放，便于直接输出节点内容。
+// 渲染不会自动释放 node，因此同一棵元素树可以安全地重复渲染；不再使用时
+// 可由调用方显式调用 node.Release()。
 func RenderNode(ctx context.Context, w io.Writer, node Node) error {
 	if node == nil || w == nil {
 		return nil
@@ -18,7 +19,6 @@ func RenderNode(ctx context.Context, w io.Writer, node Node) error {
 	cw := NewChunkWriter()
 	node.Render(cw)
 	chunks := cw.Chunks()
-	defer node.Release()
 
 	ctx = ensureContext(ctx)
 	for _, chunk := range chunks {
@@ -68,7 +68,10 @@ func RenderBytes(ctx context.Context, items ...Item) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	return buf.Bytes(), nil
+	// The pooled buffer is reset when returned, so detach the result before
+	// putting it back in the pool. Rendered nodes are intentionally not
+	// released here: callers may render the same tree more than once.
+	return append([]byte(nil), buf.Bytes()...), nil
 }
 
 // MustRenderBytes 渲染并返回字节结果，并在出现错误时 panic，适合初始化时使用。

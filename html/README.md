@@ -5,7 +5,9 @@ HTML 模块提供基于 Go 语言的 HTML 组件化 DSL，与 `znet` 路由和 `
 ## 功能特性
 
 - **声明式组件 DSL**: 借助 `pkg/app_module/html/el/` 提供的大量元素与属性构造器，在 Go 代码中声明 DOM 结构。
-- **增强的属性系统**: `Attr` 和 `Data` 函数支持多种类型（string、Map、bool），自动处理 JSON 序列化和转义。
+- **HTMX 2.x 集成**: `pkg/app_module/html/htmx/` 提供完整的 HTMX 属性常量、事件属性与 JSON 属性构造器，可直接组合到 `el` 元素。
+- **CSS 样式支持**: `pkg/app_module/html/styles/` 提供确定性行内样式、CSS 值辅助函数和可选的样式表管理器。
+- **增强的属性系统**: `Attr` 和 `Data` 函数支持字符串、数字、布尔值和 Map，自动处理 JSON 序列化和转义。
 - **模块化接入**: `Module` 实现 `service.ModuleLifeCycle`，注册后自动绑定渲染器与依赖注入。
 - **多返回模式**: 支持直接返回 `*el.Element`、状态码与元素组合，以及注入 `html.ZViewJS` 的高级用法。
 - **ZView.js 集成**: 前后端协同的增强交互能力，支持局部更新、重定向、历史记录管理等。
@@ -16,13 +18,17 @@ HTML 模块提供基于 Go 语言的 HTML 组件化 DSL，与 `znet` 路由和 `
 ```
 html/
 ├── el/            # HTML 元素 DSL 与渲染引擎
+├── htmx/          # HTMX 2.x 属性常量与构造器
+├── styles/        # CSS 声明、值辅助函数与 StyleManager
 ├── module.go      # 模块生命周期定义
 ├── options.go     # Options 配置
 ├── render.go      # 渲染器注册与实现
 ├── static/        # 静态资源源文件（zcss.js / zview.js）
 ├── gen.go         # 静态资源生成脚本（go generate）
 ├── static_data.go # 由脚本生成的静态资源 Go 文件（勿手改）
-└── static.go      # 静态资源路由注册（znet 直接输出）
+├── static.go      # 静态资源路由注册（znet 直接输出）
+├── static_disabled.go # nostatic 构建标签下的静态资源空实现
+└── zview/         # ZView 请求上下文与交换策略
 ```
 
 ## 快速开始
@@ -88,6 +94,10 @@ func main() {
 
 `pkg/app_module/html/render.go` 注册了常见的处理函数签名：
 
+渲染器会设置 `Content-Type: text/html`。当处理函数返回 `error` 或元素渲染失败时，
+如果配置了 `Options.ErrorPage`，会以 500 状态输出兜底页面；否则将错误交给 znet
+的错误处理流程。
+
 ### 基础模式
 
 - `func(c *znet.Context) *el.Element` — 直接返回元素，状态码为 200
@@ -140,6 +150,98 @@ if err != nil {
 }
 ```
 
+## HTMX 局部更新
+
+HTMX 属性可以通过 `html/htmx` 子包类型安全地加入元素。该子包只负责生成属性，不会自动加载 HTMX 脚本；请在页面中按需引入 HTMX 2.x。
+
+```go
+import (
+    "github.com/zlsgo/app_module/html/el"
+    "github.com/zlsgo/app_module/html/htmx"
+)
+
+page := el.DIV(
+    el.BUTTON(
+        htmx.Get("/users"),
+        htmx.Target("#users"),
+        htmx.Swap("innerHTML"),
+        el.Text("加载用户"),
+    ),
+    el.DIV(el.ID("users"), el.Text("尚未加载")),
+)
+```
+
+核心请求、目标、交换、触发器、表单参数、确认、指示器、历史记录、SSE/WebSocket 扩展和 `hx-on--<event>` 事件属性均有对应常量。需要 JSON 的 `hx-vals`、`hx-headers`、`hx-request` 等属性可传入 `ztype.Map`，渲染器会在最终输出阶段统一进行 HTML 转义。
+
+更多属性列表与示例见 [`html/htmx/README.md`](./htmx/README.md)。
+
+## CSS 样式
+
+`html/styles` 是独立的服务端 CSS 辅助包，不依赖 HTMX，也不替代 `html/static` 中
+的前端 `zcss.js`。简单场景可以使用 `Props.Attr()` 生成行内样式：
+
+```go
+import "github.com/zlsgo/app_module/html/styles"
+
+buttonStyle := styles.Props{
+    styles.BackgroundColor: "#2563eb",
+    styles.Color:            "white",
+    styles.Padding:          styles.Pixels(12) + " " + styles.Pixels(20),
+}
+
+button := el.BUTTON(buttonStyle.Attr(), el.Text("保存"))
+```
+
+需要复用 class、伪类、媒体查询或 keyframes 时使用 `StyleManager`：
+
+```go
+manager := styles.NewStyleManager()
+buttonClass := manager.AddCompositeStyle(styles.CompositeStyle{
+    Default: styles.Props{
+        styles.BackgroundColor: "#2563eb",
+        styles.Color:            "white",
+    },
+    PseudoClasses: map[string]styles.Props{
+        styles.PseudoHover: {styles.BackgroundColor: "#1d4ed8"},
+    },
+})
+
+page := el.HTML(
+    el.HEAD(manager.StyleTag()),
+    el.BODY(el.BUTTON(el.Class(buttonClass), el.Text("保存"))),
+)
+```
+
+`StyleManager.GenerateCSS()` 和 `Props.ToInline()` 都会稳定排序输出，适合缓存、
+快照测试和服务端渲染。CSS 值默认按原文输出，动态/不受信任内容应先在业务层校验。
+`StyleManager.Class(...)` 和 `StyleManager.CompositeClass(...)` 可以直接返回可传入
+`el.DIV(...)` 的 class 属性。
+
+## HTML 元素与属性增强
+
+除了标准元素构造器，`html/el` 还提供了一组适合动态页面的通用工具：
+
+```go
+page := el.DIV(
+    el.Attrs(map[string]string{"data-page": "users", "aria-label": "用户列表"})...,
+    el.On("click", "loadUsers()"),
+    el.Width(320),
+)
+
+page.SetAttribute("data-state", "ready")
+page.RemoveAttribute("data-state")
+```
+
+`Attrs` 会按键名排序后生成属性，保证测试和缓存输出稳定；`HasAttribute`、
+`RemoveAttribute` 可用于组件更新。属性值为空时，只有合法布尔属性（如
+`disabled`、`checked`、`hidden`、`required`）会渲染为裸属性，普通属性会保留为
+`key=""`，避免丢失 HTML 语义。对于自定义协议或扩展需要的裸属性，可使用通用
+`el.BareAttr("data-ready")`；HTMX 专用属性由 `html/htmx` 自己构造，不会污染
+`html/el` 的通用属性规则。
+
+渲染不会自动释放传入的元素树，因此同一个组件可以安全地重复渲染；如果明确不再
+使用，可调用顶层节点的 `Release()` 将元素归还对象池。
+
 ## 最佳实践
 
 1. **封装常用结构**: 将重复出现的元素组合提炼为函数，保持代码可读性。
@@ -176,20 +278,24 @@ el.INPUT(
 )
 ```
 
-**类型约束**: `AttrValue` 接口限定为 `string | ztype.Map | bool`
+**类型约束**: `AttrValue` 支持 `string`、`ztype.Map`、`bool` 以及常用整数和浮点数类型。
 
 **自动处理**:
 - `string`: 直接使用原始值
 - `bool`: 转换为字符串 `"true"` 或 `"false"`
 - `ztype.Map`: JSON 序列化，失败时使用 `"{}"`
+- 数字类型：转换为十进制字符串，可直接写 `Width(320)`、`Step(0.5)` 等属性
 
 **统一转义**: 所有属性值（含 `SetAttribute`、`DeferredAttr`）都在渲染输出阶段统一执行 HTML 转义，`Attribute.Value` 与 `GetAttribute` 始终返回未经转义的原始值，因此值中包含双引号、尖括号等字符（例如 JSON 文本）时也能保证最终 HTML 合法。浏览器解析后会还原为原始值，不影响前端读取。
+
+`JSON(data)` 适合把服务端数据嵌入页面；当数据无法编码为 JSON（例如包含函数或循环引用）时，渲染器会输出 `null`，不会终止宿主进程。
 
 ## ZView.js 增强交互
 
 ### 注入 ZViewJS 对象
 
-在高级模式下，可注入 `*html.ZViewJS` 来实现前后端协同交互：
+在高级模式下，可注入 `*html.ZViewJS` 来实现前后端协同交互。`ZViewJS` 是
+`*html/zview.Context` 的兼容别名：
 
 ```go
 r.GET("/partial", func(c *znet.Context, z *html.ZViewJS) *el.Element {

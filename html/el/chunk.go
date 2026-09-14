@@ -95,15 +95,17 @@ func NewChunkWriter() ChunkWriter {
 	return &cw{}
 }
 
+// teecw is retained for compatibility with the package's internal tests and
+// older in-package extensions. ChunkWriter.Write cannot return callback errors,
+// so callers should use RenderChunk when error propagation is required.
 type teecw struct {
 	ChunkWriter
 	fn func(Chunk) error
 }
 
-// Write 先调用回调处理每个 Chunk，再写入基础 ChunkWriter。
 func (cw *teecw) Write(chunks ...Chunk) {
 	for _, chunk := range chunks {
-		cw.fn(chunk)
+		_ = cw.fn(chunk)
 	}
 	cw.ChunkWriter.Write(chunks...)
 }

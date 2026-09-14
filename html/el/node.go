@@ -8,10 +8,13 @@ import (
 	"html"
 	"io"
 	"iter"
-	"log"
+	"maps"
 	"slices"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zstring"
@@ -60,14 +63,18 @@ func (Frag) Item() {}
 // Release 逐个释放片段中的子节点，帮助复用资源。
 func (f Frag) Release() {
 	for _, node := range f {
-		node.Release()
+		if node != nil {
+			node.Release()
+		}
 	}
 }
 
 // Render 按序渲染片段中的每个子节点。
 func (f Frag) Render(w ChunkWriter) {
 	for _, node := range f {
-		node.Render(w)
+		if node != nil {
+			node.Render(w)
+		}
 	}
 }
 
@@ -95,6 +102,11 @@ type Proper interface {
 type Attribute struct {
 	Key   string
 	Value string
+	// Bare forces an attribute to render without an explicit value. It is
+	// useful for boolean HTML attributes and extension attributes whose
+	// presence is meaningful even when they are not part of this package's
+	// standard-attribute list.
+	Bare bool
 }
 
 // Item 方法确保 Attribute 可作为元素构建参数传入。
@@ -108,6 +120,8 @@ func (*Attribute) LifeCycle() ProperLifeCycle {
 func (a *Attribute) Apply(el *Element) {
 	if a.Key == "class" {
 		el.AddClass(a.Value)
+	} else if a.Bare {
+		el.SetBareAttribute(a.Key)
 	} else {
 		el.SetAttribute(a.Key, a.Value)
 	}
@@ -128,11 +142,12 @@ func (*DeferredAttribute) LifeCycle() ProperLifeCycle {
 
 // Apply 方法在渲染阶段按需生成属性值。
 func (a *DeferredAttribute) Apply(ctx context.Context, w io.Writer) error {
+	if !isValidAttributeName(a.key) {
+		return fmt.Errorf("html: invalid attribute name %q", a.key)
+	}
 	rhs := ""
 	value := a.fn(ctx)
-	if len(value) > 0 {
-		rhs = "=" + "\"" + html.EscapeString(value) + "\""
-	}
+	rhs = "=\"" + html.EscapeString(value) + "\""
 	_, err := fmt.Fprintf(w, " %s%s", a.key, rhs)
 	return err
 }
@@ -143,7 +158,10 @@ func DeferredAttr(key string, fn func(context.Context) string) *DeferredAttribut
 }
 
 type AttrValue interface {
-	string | ztype.Map | bool
+	string | ztype.Map | bool |
+		int | int8 | int16 | int32 | int64 |
+		uint | uint8 | uint16 | uint32 | uint64 |
+		float32 | float64
 }
 
 // Attr 创建属性节点，支持字符串、Map、布尔值。
@@ -163,8 +181,69 @@ func Attr[T AttrValue](key string, value T) *Attribute {
 		} else {
 			valueStr = zstring.Bytes2String(b)
 		}
+	case int:
+		valueStr = strconv.FormatInt(int64(v), 10)
+	case int8:
+		valueStr = strconv.FormatInt(int64(v), 10)
+	case int16:
+		valueStr = strconv.FormatInt(int64(v), 10)
+	case int32:
+		valueStr = strconv.FormatInt(int64(v), 10)
+	case int64:
+		valueStr = strconv.FormatInt(v, 10)
+	case uint:
+		valueStr = strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		valueStr = strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		valueStr = strconv.FormatUint(uint64(v), 10)
+	case uint32:
+		valueStr = strconv.FormatUint(uint64(v), 10)
+	case uint64:
+		valueStr = strconv.FormatUint(v, 10)
+	case float32:
+		valueStr = strconv.FormatFloat(float64(v), 'f', -1, 32)
+	case float64:
+		valueStr = strconv.FormatFloat(v, 'f', -1, 64)
 	}
 	return &Attribute{Key: key, Value: valueStr}
+}
+
+// BareAttr creates an attribute without an explicit value, for example
+// `checked` or a protocol extension's presence-only attribute. Use Attr for
+// ordinary empty-valued attributes such as `id=""`.
+func BareAttr(key string) *Attribute {
+	return &Attribute{Key: key, Bare: true}
+}
+
+// Attrs converts a map into deterministic attribute items. It is intended for
+// dynamic attributes and can be expanded into an element constructor:
+//
+//	DIV(Attrs(map[string]string{"id": "app"})...)
+func Attrs(values map[string]string) []Item {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	items := make([]Item, 0, len(keys))
+	for _, key := range keys {
+		if !isValidAttributeName(key) {
+			continue
+		}
+		items = append(items, Attr(key, values[key]))
+	}
+	return items
+}
+
+// On creates a DOM inline event handler attribute. For HTMX event handlers,
+// use the html/htmx package instead.
+func On(event, script string) *Attribute {
+	event = strings.TrimSpace(event)
+	if !strings.HasPrefix(strings.ToLower(event), "on") {
+		event = "on" + event
+	}
+	return Attr(event, script)
 }
 
 // Component 表示延迟渲染的组件函数，可在执行阶段生成节点。
@@ -211,6 +290,7 @@ type Element struct {
 	attributelist []*Attribute
 	name          string
 	meta          map[string]any
+	released      bool
 }
 
 // Tag 返回元素的标签名称，并对常规标签进行小写化处理。
@@ -233,18 +313,59 @@ func (e *Element) Get(key string) any {
 
 // SetAttribute 设置或覆盖元素的属性值。
 func (e *Element) SetAttribute(key, value string) {
+	e.setAttribute(key, value, false)
+}
+
+// SetBareAttribute sets a presence-only attribute.
+func (e *Element) SetBareAttribute(key string) {
+	e.setAttribute(key, "", true)
+}
+
+func (e *Element) setAttribute(key, value string, bare bool) {
+	if !isValidAttributeName(key) {
+		return
+	}
 	for i, attr := range e.attributelist {
 		if attr.Key == key {
 			e.attributelist[i].Value = value
+			e.attributelist[i].Bare = bare
 			return
 		}
 	}
-	e.attributelist = append(e.attributelist, &Attribute{Key: key, Value: value})
+	e.attributelist = append(e.attributelist, &Attribute{Key: key, Value: value, Bare: bare})
+}
+
+// RemoveAttribute removes an attribute and reports whether it existed.
+func (e *Element) RemoveAttribute(key string) bool {
+	for i, attr := range e.attributelist {
+		if attr.Key == key {
+			copy(e.attributelist[i:], e.attributelist[i+1:])
+			e.attributelist = e.attributelist[:len(e.attributelist)-1]
+			return true
+		}
+	}
+	return false
+}
+
+// HasAttribute reports whether an attribute is present, including empty-valued
+// and boolean attributes.
+func (e *Element) HasAttribute(key string) bool {
+	for _, attr := range e.attributelist {
+		if attr.Key == key {
+			return true
+		}
+	}
+	return false
 }
 
 // AddClass 为元素追加 class 值，自动处理空值和空格。
 func (e *Element) AddClass(class string) {
+	class = strings.TrimSpace(class)
+	if class == "" {
+		return
+	}
 	attr := e.GetAttribute("class")
+	attr = strings.TrimSpace(attr)
 	if len(attr) == 0 {
 		attr = class
 	} else {
@@ -275,7 +396,13 @@ func (e *Element) GetAttributes() map[string]string {
 // SetAttributes 根据提供的键值映射重建属性列表。
 func (e *Element) SetAttributes(list map[string]string) {
 	e.attributelist = []*Attribute{}
-	for key, value := range list {
+	keys := make([]string, 0, len(list))
+	for key := range list {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := list[key]
 		e.attributelist = append(e.attributelist, &Attribute{Key: key, Value: value})
 	}
 }
@@ -295,19 +422,28 @@ func (*Element) Item() {}
 
 // Release 将元素放回对象池，便于内存复用。
 func (e *Element) Release() {
+	if e.released {
+		return
+	}
+	e.reset()
+	e.released = true
 	elpool.Put(e)
 }
 
 // reset 清理对象池复用元素的旧状态，避免上一次使用残留的子节点、属性与元数据
 // 污染下一次构造。sync.Pool 复用不保证 LIFO，未重置的元素可能带回历史内容。
 func (e *Element) reset() {
+	e.released = false
 	if e.nodes != nil {
+		clear(e.nodes)
 		e.nodes = e.nodes[:0]
 	}
 	if e.properties != nil {
+		clear(e.properties)
 		e.properties = e.properties[:0]
 	}
 	if e.attributelist != nil {
+		clear(e.attributelist)
 		e.attributelist = e.attributelist[:0]
 	}
 	clear(e.meta)
@@ -315,9 +451,28 @@ func (e *Element) reset() {
 
 var voidelements = []string{"!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
+var booleanAttributes = map[string]struct{}{
+	"allowfullscreen": {}, "async": {}, "autofocus": {}, "autoplay": {}, "checked": {},
+	"compact": {}, "contenteditable": {}, "controls": {}, "declare": {}, "default": {}, "defer": {}, "disabled": {},
+	"formnovalidate": {}, "hidden": {}, "inert": {}, "ismap": {}, "itemscope": {}, "loop": {},
+	"multiple": {}, "muted": {}, "nomodule": {}, "novalidate": {}, "open": {}, "playsinline": {},
+	"readonly": {}, "required": {}, "reversed": {}, "selected": {},
+}
+
+func isBooleanAttribute(key string) bool {
+	_, ok := booleanAttributes[strings.ToLower(key)]
+	return ok
+}
+
 // Render 顺序输出标签、属性、子节点，并处理延迟属性与自闭合标签。
 func (e *Element) Render(w ChunkWriter) {
 	w.Write(StaticChunk(fmt.Appendf(nil, "<%s", e.Tag())))
+	deferredKeys := make(map[string]struct{}, len(e.properties))
+	for _, prop := range e.properties {
+		if attr, ok := prop.(*DeferredAttribute); ok {
+			deferredKeys[attr.key] = struct{}{}
+		}
+	}
 
 	if len(e.properties) > 0 {
 		for _, prop := range e.properties {
@@ -335,9 +490,16 @@ func (e *Element) Render(w ChunkWriter) {
 	}
 
 	for _, attr := range e.attributelist {
+		if _, deferred := deferredKeys[attr.Key]; deferred {
+			continue
+		}
 		var rhs string
-		if len(attr.Value) != 0 {
+		if attr.Bare {
+			// Presence-only attribute.
+		} else if len(attr.Value) != 0 {
 			rhs = "=" + "\"" + html.EscapeString(attr.Value) + "\""
+		} else if !isBooleanAttribute(attr.Key) && e.Tag() != "!DOCTYPE" {
+			rhs = "=\"\""
 		}
 		w.Write(StaticChunk(fmt.Appendf(nil, " %s%s", attr.Key, rhs)))
 	}
@@ -349,7 +511,9 @@ func (e *Element) Render(w ChunkWriter) {
 	}
 
 	for _, node := range e.nodes {
-		node.Render(w)
+		if node != nil {
+			node.Render(w)
+		}
 	}
 
 	w.Write(StaticChunk(fmt.Appendf(nil, "</%s>", e.Tag())))
@@ -357,18 +521,37 @@ func (e *Element) Render(w ChunkWriter) {
 
 // Clone 创建当前元素的浅拷贝，复制属性列表并复用子节点与属性引用。
 func (e *Element) Clone() *Element {
+	nodes := slices.Clone(e.nodes)
+	properties := slices.Clone(e.properties)
 	attributelist := make([]*Attribute, len(e.attributelist))
 	for i, attr := range e.attributelist {
-		attributelist[i] = &Attribute{Key: attr.Key, Value: attr.Value}
+		attributelist[i] = &Attribute{Key: attr.Key, Value: attr.Value, Bare: attr.Bare}
 	}
 
+	meta := make(map[string]any, len(e.meta))
+	maps.Copy(meta, e.meta)
+
 	return &Element{
-		nodes:         e.nodes,
-		properties:    e.properties,
+		nodes:         nodes,
+		properties:    properties,
 		attributelist: attributelist,
 		name:          e.name,
-		meta:          e.meta,
+		meta:          meta,
 	}
+}
+
+// isValidAttributeName accepts HTML/custom attribute names while rejecting
+// characters that can change the structure of the opening tag.
+func isValidAttributeName(key string) bool {
+	if key == "" {
+		return false
+	}
+	for _, r := range key {
+		if unicode.IsSpace(r) || unicode.IsControl(r) || strings.ContainsRune("\"'<>/=`", r) {
+			return false
+		}
+	}
+	return true
 }
 
 var propspool = sync.Pool{
@@ -395,11 +578,24 @@ func El(name string, items ...Item) *Element {
 	el.name = name
 
 	immediate := propspool.New().(*[]Proper)
-	defer propspool.Put(immediate)
+	*immediate = (*immediate)[:0]
+	defer func() {
+		clear(*immediate)
+		*immediate = (*immediate)[:0]
+		propspool.Put(immediate)
+	}()
 	static := propspool.New().(*[]Proper)
-	defer propspool.Put(static)
+	*static = (*static)[:0]
+	defer func() {
+		clear(*static)
+		*static = (*static)[:0]
+		propspool.Put(static)
+	}()
 
 	for _, item := range items {
+		if item == nil {
+			continue
+		}
 		switch item := item.(type) {
 		case Node:
 			el.nodes = append(el.nodes, item)
@@ -411,20 +607,19 @@ func El(name string, items ...Item) *Element {
 			case LifeCycleStatic:
 				*static = append(*static, item)
 			case LifeCycleDeferred:
-				// TODO: Deferred properties have a serious bug
 				el.properties = append(el.properties, item)
 			default:
-				log.Fatalf("Illegal property lifecycle: %T", item)
+				panic(fmt.Errorf("html: illegal property lifecycle %T", item))
 			}
 		default:
-			log.Fatalf("Illegal item type: %T", item)
+			panic(fmt.Errorf("html: illegal item type %T", item))
 		}
 	}
 
 	for _, prop := range *immediate {
 		applier, ok := prop.(interface{ Apply(*Element) })
 		if !ok {
-			log.Fatalf("Property with immediate life cycle (%T) is not implementing the applier interface correctly, add a Apply(*Element) method", prop)
+			panic(fmt.Errorf("html: property with immediate life cycle (%T) does not implement Apply(*Element)", prop))
 		}
 		applier.Apply(el)
 	}
@@ -432,7 +627,7 @@ func El(name string, items ...Item) *Element {
 	for _, prop := range *static {
 		applier, ok := prop.(interface{ Apply(*Element) })
 		if !ok {
-			log.Fatalf("Property with static life cycle (%T) is not implementing the applier interface correctly, add a Apply(*Element) method", prop)
+			panic(fmt.Errorf("html: property with static life cycle (%T) does not implement Apply(*Element)", prop))
 		}
 		applier.Apply(el)
 	}
@@ -582,7 +777,10 @@ func (n *JSONNode) Render(w ChunkWriter) {
 	enc := json.NewEncoder(buf)
 	enc.SetIndent("", n.Indent)
 	if err := enc.Encode(n.Data); err != nil {
-		log.Fatal(err)
+		// Node.Render cannot return an error. Render invalid data as JSON null
+		// instead of terminating the hosting process.
+		buf.Reset()
+		buf.WriteString("null\n")
 	}
 	w.Write(StaticChunk(buf.Bytes()))
 }
@@ -595,7 +793,7 @@ func JSON(data any) *JSONNode {
 // Raw 表示原始内容，不进行转义。
 type Raw string
 
-// Item 方法声明 RawUnsafe 可直接作为元素项使用。
+// Item 方法声明 Raw 可直接作为元素项使用。
 func (Raw) Item() {}
 
 // Release 为占位实现，原始节点无需释放。

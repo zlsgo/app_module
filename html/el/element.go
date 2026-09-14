@@ -1307,7 +1307,7 @@ height 属性定义用户坐标系统中元素的垂直长度。
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/height
 */
-func Height(value string) *Attribute { return Attr("height", value) }
+func Height[T AttrValue](value T) *Attribute { return Attr("height", value) }
 
 /*
 # HTML hidden 全局属性
@@ -1597,7 +1597,7 @@ width 属性定义元素在用户坐标系中的水平长度。
 
 https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/width
 */
-func Width(value string) *Attribute { return Attr("width", value) }
+func Width[T AttrValue](value T) *Attribute { return Attr("width", value) }
 
 /*
 # `<input>` value 属性
@@ -1643,3 +1643,39 @@ https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#target
 */
 func Target(value string) *Attribute   { return Attr("target", value) }
 func Property(value string) *Attribute { return Attr("property", value) }
+
+// Additional HTML attributes commonly used by forms, media, accessibility,
+// and modern popover APIs.
+func Selected(value string) *Attribute       { return Attr("selected", value) }
+func ReadOnly(value string) *Attribute       { return Attr("readonly", value) }
+func Open(value string) *Attribute           { return Attr("open", value) }
+func RowSpan(value string) *Attribute        { return Attr("rowspan", value) }
+func Span(value string) *Attribute           { return Attr("span", value) }
+func Scope(value string) *Attribute          { return Attr("scope", value) }
+func Rows(value string) *Attribute           { return Attr("rows", value) }
+func Step[T AttrValue](value T) *Attribute   { return Attr("step", value) }
+func Pattern(value string) *Attribute        { return Attr("pattern", value) }
+func Size(value string) *Attribute           { return Attr("size", value) }
+func Wrap(value string) *Attribute           { return Attr("wrap", value) }
+func Poster(value string) *Attribute         { return Attr("poster", value) }
+func Preload(value string) *Attribute        { return Attr("preload", value) }
+func Loading(value string) *Attribute        { return Attr("loading", value) }
+func Decoding(value string) *Attribute       { return Attr("decoding", value) }
+func ReferrerPolicy(value string) *Attribute { return Attr("referrerpolicy", value) }
+func Nonce(value string) *Attribute          { return Attr("nonce", value) }
+func Sandbox(value string) *Attribute        { return Attr("sandbox", value) }
+func Allow(value string) *Attribute          { return Attr("allow", value) }
+
+// Fullscreen sets the iframe allowfullscreen attribute.
+func Fullscreen(value string) *Attribute      { return Attr("allowfullscreen", value) }
+func AllowFullscreen(value string) *Attribute { return Attr("allowfullscreen", value) }
+func Srcdoc(value string) *Attribute          { return Attr("srcdoc", value) }
+func FormNoValidate(value string) *Attribute  { return Attr("formnovalidate", value) }
+func FormMethod(value string) *Attribute      { return Attr("formmethod", value) }
+func FormTarget(value string) *Attribute      { return Attr("formtarget", value) }
+func FormEnctype(value string) *Attribute     { return Attr("formenctype", value) }
+func Popover(value string) *Attribute         { return Attr("popover", value) }
+func PopoverTarget(value string) *Attribute   { return Attr("popovertarget", value) }
+func PopoverTargetAction(value string) *Attribute {
+	return Attr("popovertargetaction", value)
+}

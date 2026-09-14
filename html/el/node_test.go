@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"iter"
+	"strings"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
@@ -81,6 +82,15 @@ func TestRenderHelpers(t *testing.T) {
 			t.Fatalf("RenderNode returned error: %v", err)
 		}
 		tt.Equal(`<div id="main">Hello</div>`, buf.String())
+	})
+
+	t.Run("RenderBytes detaches pooled buffer and keeps node reusable", func(t *testing.T) {
+		node := DIV(ID("stable"), Text("value"))
+		first := MustRenderBytes(context.Background(), node)
+		second := MustRenderBytes(context.Background(), node)
+		if string(first) != `<div id="stable">value</div>` || string(second) != string(first) {
+			t.Fatalf("reused node output mismatch: first=%q second=%q", first, second)
+		}
 	})
 
 	t.Run("RenderMultiple", func(t *testing.T) {
@@ -169,6 +179,92 @@ func TestNodeChunks(t *testing.T) {
 	for _, test := range tests {
 		test.Assert(tt)
 	}
+}
+
+func TestTextEscaping(t *testing.T) {
+	got := string(MustRenderBytes(context.Background(), Text(`<script>alert("x")</script>`)))
+	want := `&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;`
+	if got != want {
+		t.Fatalf("escaped text = %q, want %q", got, want)
+	}
+}
+
+func TestAttributeSemanticsAndHelpers(t *testing.T) {
+	if got := string(MustRenderBytes(context.Background(), DIV(nil))); got != "<div></div>" {
+		t.Fatalf("nil item output = %q", got)
+	}
+
+	div := DIV(Attr("id", ""), Attr("aria-label", ""), Attr("hidden", ""))
+	got := string(MustRenderBytes(context.Background(), div))
+	want := `<div id="" aria-label="" hidden></div>`
+	if got != want {
+		t.Fatalf("rendered attributes = %q, want %q", got, want)
+	}
+
+	if !div.HasAttribute("id") || !div.RemoveAttribute("id") || div.HasAttribute("id") {
+		t.Fatal("attribute presence/removal helpers failed")
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(Attrs(map[string]string{"z": "1", "a": "2"})...))); got != `<div a="2" z="1"></div>` {
+		t.Fatalf("Attrs output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(On("click", "go()"), Width(42), Step(0.5)))); !strings.Contains(got, `onclick="go()"`) || !strings.Contains(got, `width="42"`) || !strings.Contains(got, `step="0.5"`) {
+		t.Fatalf("On/numeric attributes output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), IFRAME(Fullscreen("true")))); got != `<iframe allowfullscreen="true"></iframe>` {
+		t.Fatalf("Fullscreen output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(Attr("hx-disable", "")))); got != `<div hx-disable=""></div>` {
+		t.Fatalf("generic extension-looking attribute output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(BareAttr("hx-disable")))); got != `<div hx-disable></div>` {
+		t.Fatalf("bare custom attribute output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(DeferredAttr("id", func(context.Context) string { return "" })))); got != `<div id=""></div>` {
+		t.Fatalf("empty deferred attribute output = %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(Attrs(map[string]string{
+		`x onmouseover="alert(1)" data-x`: "v",
+	})...))); got != `<div></div>` {
+		t.Fatalf("invalid dynamic attribute was rendered: %q", got)
+	}
+	if got := string(MustRenderBytes(context.Background(), DIV(Attr(`x onmouseover="alert(1)"`, "v")))); got != `<div></div>` {
+		t.Fatalf("invalid attribute was rendered: %q", got)
+	}
+	if _, err := RenderBytes(context.Background(), DIV(DeferredAttr(`x onmouseover="alert(1)"`, func(context.Context) string {
+		return "v"
+	}))); err == nil {
+		t.Fatal("invalid deferred attribute did not return an error")
+	}
+}
+
+func TestCloneSurvivesOriginalRelease(t *testing.T) {
+	original := DIV(ID("original"), Text("content"), DeferredAttr("data-state", func(context.Context) string {
+		return "ready"
+	}))
+	clone := original.Clone()
+	original.Release()
+
+	got, err := RenderBytes(context.Background(), clone)
+	if err != nil {
+		t.Fatalf("render clone: %v", err)
+	}
+	want := `<div data-state="ready" id="original">content</div>`
+	if string(got) != want {
+		t.Fatalf("clone after original release = %q, want %q", got, want)
+	}
+}
+
+func TestJSONInvalidDataDoesNotTerminateProcess(t *testing.T) {
+	got := string(MustRenderBytes(context.Background(), JSON(func() {})))
+	if got != "null\n" {
+		t.Fatalf("invalid JSON output = %q, want null", got)
+	}
+}
+
+func TestElementReleaseIsIdempotent(t *testing.T) {
+	node := DIV(Text("owned"))
+	node.Release()
+	node.Release()
 }
 
 func TestMap(t *testing.T) {

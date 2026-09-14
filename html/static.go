@@ -1,5 +1,4 @@
 //go:build !nostatic
-// +build !nostatic
 
 // 静态资源由脚本生成：go generate ./html
 //go:generate go run gen.go
@@ -7,6 +6,7 @@
 package html
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +29,11 @@ func registerStatic(r *znet.Engine, prefix string) error {
 	if prefix == "" {
 		prefix = defaultStaticPrefix
 	}
-	prefix = "/" + strings.Trim(prefix, "/") + "/"
+	prefix = "/" + strings.Trim(prefix, "/")
+	if prefix == "/" {
+		prefix = ""
+	}
+	prefix += "/"
 
 	now := time.Now()
 	for i := range staticFiles {
@@ -40,6 +44,14 @@ func registerStatic(r *znet.Engine, prefix string) error {
 			}
 			c.SetContentType(zfile.GetMimeType(file.Name, file.Data))
 			c.Byte(200, file.Data)
+		})
+		r.HEAD(prefix+file.Name, func(c *znet.Context) {
+			if !znet.Utils.IsModified(c, now) {
+				return
+			}
+			c.SetContentType(zfile.GetMimeType(file.Name, file.Data))
+			c.SetHeader("Content-Length", strconv.Itoa(len(file.Data)))
+			c.Byte(200, nil)
 		})
 	}
 	return nil

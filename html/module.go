@@ -2,6 +2,7 @@ package html
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/znet"
@@ -13,27 +14,31 @@ type Module struct {
 	service.ModuleLifeCycle
 }
 
+var moduleOptions sync.Map // map[*znet.Engine]Options
+
 var (
 	_ service.Module = &Module{}
-	_                = reflect.TypeOf(&Module{})
+	_                = reflect.TypeFor[*Module]()
 )
 
 func New(opt ...func(*Options)) (m *Module) {
-	options = zutil.Optional(Options{}, opt...)
+	localOptions := zutil.Optional(Options{}, opt...)
 
-	service.DefaultConf = append(service.DefaultConf, &options)
+	service.DefaultConf = append(service.DefaultConf, &localOptions)
 
-	return &Module{
-		ModuleLifeCycle: service.ModuleLifeCycle{
-			OnStart: func(di zdi.Invoker) error {
-				return di.InvokeWithErrorOnly(func(r *znet.Engine, conf *service.Conf) error {
-					return registerStatic(r, options.StaticPrefix)
-				})
-			},
-			OnDone: func(di zdi.Invoker) error {
-				return di.InvokeWithErrorOnly(func(r *znet.Engine) {
-				})
-			},
+	m = &Module{}
+	m.ModuleLifeCycle = service.ModuleLifeCycle{
+		OnStart: func(di zdi.Invoker) error {
+			return di.InvokeWithErrorOnly(func(r *znet.Engine, conf *service.Conf) error {
+				moduleOptions.Store(r, localOptions)
+				return registerStatic(r, localOptions.StaticPrefix)
+			})
+		},
+		OnDone: func(di zdi.Invoker) error {
+			return di.InvokeWithErrorOnly(func(r *znet.Engine) {
+				moduleOptions.Delete(r)
+			})
 		},
 	}
+	return m
 }

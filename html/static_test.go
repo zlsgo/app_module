@@ -1,5 +1,4 @@
 //go:build !nostatic
-// +build !nostatic
 
 package html
 
@@ -47,5 +46,32 @@ func TestRegisterStaticCustomPrefix(t *testing.T) {
 	e.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("custom prefix GET code=%d", w.Code)
+	}
+}
+
+func TestRegisterStaticRootPrefix(t *testing.T) {
+	e := znet.New("test-root")
+	if err := registerStatic(e, "/"); err != nil {
+		t.Fatalf("registerStatic: %v", err)
+	}
+	w := httptest.NewRecorder()
+	e.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/zcss.js", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("root prefix GET code=%d", w.Code)
+	}
+}
+
+func TestRegisterStaticHead(t *testing.T) {
+	e := znet.New("test-head")
+	if err := registerStatic(e, "/assets"); err != nil {
+		t.Fatalf("registerStatic: %v", err)
+	}
+	w := httptest.NewRecorder()
+	e.ServeHTTP(w, httptest.NewRequest(http.MethodHead, "/assets/zcss.js", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("HEAD code=%d", w.Code)
+	}
+	if w.Header().Get("Content-Length") == "" {
+		t.Fatal("HEAD response missing Content-Length")
 	}
 }
