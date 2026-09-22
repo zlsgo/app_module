@@ -56,6 +56,10 @@ func (m *Module) getJWTForCache(schema *model.Schema, token, jwtKey string) (str
 			return [2]interface{}{}, false
 		}
 
+		if len(info.Info) <= saltLen {
+			return [2]interface{}{}, false
+		}
+
 		salt := info.Info[:saltLen]
 		uid := info.Info[saltLen:]
 		f, err := model.FindCols[string](schema.Model(), "salt", model.ID(uid))

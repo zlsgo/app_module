@@ -41,8 +41,10 @@ func newTestModule(t *testing.T, opt ...func(o *Options)) (*Module, func()) {
 
 func TestRebuildRBACPreservesFileRules(t *testing.T) {
 	tt := zlsgo.NewTest(t)
+	rbacFile, err := filepath.Abs(filepath.Join("rbac", "testdata", "rbac.toml"))
+	tt.NoError(err)
 	mod, cleanup := newTestModule(t, func(o *Options) {
-		o.RBACFile = filepath.Join("rbac", "testdata", "rbac.toml")
+		o.RBACFile = rbacFile
 	})
 	defer cleanup()
 

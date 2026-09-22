@@ -82,6 +82,10 @@ func (h *Index) refreshToken(c *znet.Context) (interface{}, error) {
 		return nil, zerror.InvalidInput.Text("refresh_token 无效")
 	}
 
+	if len(info.Info) <= saltLen {
+		return nil, zerror.InvalidInput.Text("refresh_token 无效")
+	}
+
 	salt := info.Info[:saltLen]
 	uid := info.Info[saltLen:]
 	f, err := model.FindCols[string](h.accountModel.Model(), "salt", model.ID(uid))

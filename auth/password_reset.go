@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -213,12 +214,19 @@ func (m *Module) validateResetToken(token string) (ztype.Map, ztype.Map, error) 
 	return row, user, nil
 }
 
+// 合法的 host（hostname/IP/IPv6 + 可选端口），拒绝 userinfo、路径、空白等注入字符
+var validResetHostRe = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?(:[0-9]{1,5})?$|^\[[0-9a-fA-F:]+\](:[0-9]{1,5})?$`)
+
+func isValidResetHost(host string) bool {
+	return len(host) > 0 && len(host) <= 253 && validResetHostRe.MatchString(host)
+}
+
 func (m *Module) resetPasswordURL(c *znet.Context, token string) string {
 	path := m.Options.ResetPasswordPath + "?token=" + url.QueryEscape(token)
 	base := strings.TrimSuffix(m.Options.BaseURL, "/")
 	if base == "" && c != nil && c.Request != nil {
 		scheme := "http"
-		if forwarded := strings.TrimSpace(strings.Split(c.Request.Header.Get("X-Forwarded-Proto"), ",")[0]); forwarded != "" {
+		if forwarded := strings.TrimSpace(strings.Split(c.Request.Header.Get("X-Forwarded-Proto"), ",")[0]); forwarded == "http" || forwarded == "https" {
 			scheme = forwarded
 		} else if c.Request.TLS != nil {
 			scheme = "https"
@@ -228,7 +236,9 @@ func (m *Module) resetPasswordURL(c *znet.Context, token string) string {
 		if host == "" {
 			host = c.Request.Host
 		}
-		if host != "" {
+		// 请求头可被伪造，严格校验 host 防止重置链接指向恶意域名，
+		// 生产环境建议通过 base_url 显式配置可信域名
+		if host != "" && isValidResetHost(host) {
 			base = scheme + "://" + host
 		}
 	}

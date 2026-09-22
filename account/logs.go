@@ -7,6 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/ztime"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/common"
+	"github.com/zlsgo/app_module/account/jwt"
 	"github.com/zlsgo/app_module/model"
 )
 
@@ -56,7 +57,14 @@ func (m *Module) logRequest(c *znet.Context, logModel *model.Schema, u ztype.Map
 	}
 	method := c.Request.Method
 	path := c.Request.URL.String()
-	params := c.Request.URL.Query().Encode()
+	query := c.Request.URL.Query()
+	// 脱敏敏感参数，避免凭证持久化到日志
+	for _, k := range []string{jwt.AuthorizationKey, "token", "access_token", "refresh_token", "password"} {
+		if query.Has(k) {
+			query.Set(k, "***")
+		}
+	}
+	params := query.Encode()
 
 	go func() {
 		_, _ = insertLog(logModel, account, ip, method, path, status, msgStr, params, remark)

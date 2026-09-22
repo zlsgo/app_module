@@ -14,6 +14,7 @@ Database 模块提供了统一的数据库连接和管理功能，支持多种�
 - 🔄 数据库驱动管理
 - 📊 基础连接池功能
 - 🗃️ 数据库配置管理
+- 🔒 固定连接事务（一致性读快照 / 写事务）
 - 🛠️ 模块化设计
 
 ## 模块结构
@@ -29,6 +30,7 @@ database/
 ├── service.go         # 服务封装
 ├── assign.go          # 单数据库连接
 ├── module.go          # 模块定义
+├── tx.go              # 固定连接事务（读快照 / 写事务）
 ```
 
 ## 快速开始
@@ -116,6 +118,35 @@ database:
   mode:
     delete_column: false             # 是否删除未使用的列
 ```
+
+### 固定连接事务
+
+`database.RunPinnedTx` 将事务内全部语句绑定到同一连接，并按方言下发对应的开启语句：
+
+| 驱动 | 写事务（`TxWrite`） | 读快照（`TxReadSnapshot`） |
+| --- | --- | --- |
+| sqlite | `BEGIN IMMEDIATE` | `BEGIN` |
+| mysql | `BEGIN` | `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ` + `START TRANSACTION WITH CONSISTENT SNAPSHOT` |
+| postgres | `BEGIN` | `BEGIN ISOLATION LEVEL REPEATABLE READ` |
+
+```go
+err := database.RunPinnedTx(ctx, db, database.TxOptions{
+    Mode:      database.TxReadSnapshot,
+    Operation: "查询报表",
+}, func(tx *database.Tx) error {
+    rows, err := tx.QueryToMaps(ctx, "SELECT * FROM orders")
+    if err != nil {
+        return err
+    }
+    fmt.Println(rows)
+    return nil
+})
+```
+
+- `TxOptions.Driver` 留空时自动推导，也可显式传入 `sqlite` / `mysql` / `postgres`。
+- `TxOptions.Operation` 非空时会作为前缀拼入错误信息，便于定位失败操作。
+- `TxOptions.CleanupTimeout` 控制回滚等清理动作的超时，默认 1 秒。
+- `BEGIN` 前的 `SET TRANSACTION` 只作用于该连接的下一个事务；开启失败时连接会被丢弃，防止隔离级别泄漏到连接池。
 
 ## 注意事项
 
