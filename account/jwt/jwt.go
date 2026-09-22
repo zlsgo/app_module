@@ -79,23 +79,20 @@ func GetToken(c *znet.Context) string {
 	}
 
 	if authorization != "" {
-		// Bearer <token>
-		if strings.HasPrefix(authorization, "Bearer ") {
-			return zstring.TrimSpace(authorization[len("Bearer "):])
+		if i := strings.IndexByte(authorization, ' '); i > 0 {
+			authorization = zstring.TrimSpace(authorization[i+1:])
 		}
-		// Basic <base64(user:pass)>
-		if strings.HasPrefix(authorization, "Basic ") {
-			v, err := zstring.Base64Decode(zstring.String2Bytes(authorization[len("Basic "):]))
-			if err != nil {
-				return ""
-			}
-			return strings.Split(zstring.Bytes2String(v), ":")[0]
-		}
-		// 兼容无前缀的裸 token
+
 		if len(strings.Split(authorization, ".")) == 3 {
 			return authorization
 		}
-		return ""
+
+		// 兼容 Basic base64(user:pass)
+		v, err := zstring.Base64Decode(zstring.String2Bytes(authorization))
+		if err != nil {
+			return ""
+		}
+		return strings.Split(zstring.Bytes2String(v), ":")[0]
 	}
 
 	return c.DefaultFormOrQuery(AuthorizationKey, "")
