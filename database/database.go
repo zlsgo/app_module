@@ -40,7 +40,17 @@ func New(o ...Options) *Plugin {
 	return &Plugin{}
 }
 
-// Reload 重新加载配置并初始化数据库
+// Reload 重新加载配置并刷新数据库连接。
+//
+// 关键约束：DI 里 Map 的 p.db 指针要在整个进程生命期内保持不变。
+// 所有下游模块（app_module/model 的仓储、业务 store）在各自 Load 时
+// 把 *zdb.DB 存进结构体，如果这里换成新对象，它们手里的旧指针就
+// 永远指向一个已 Close 的库，之后每次查询都报 `sql: database is closed`。
+//
+// 因此 Reload 只做“同一个句柄换内部连接池”：
+//  1. 用新配置建一个临时 *zdb.DB（会 Ping，失败直接返回，旧池不动）；
+//  2. 把它的池摘下来换进 p.db，原子生效；
+//  3. 旧池交给 ClosePools：sql.DB.Close 会等在途查询结束，形成排空屏障。
 func (p *Plugin) Reload(conf *service.Conf) error {
 	if conf.Get(options.ConfKey()).Value() == nil {
 		return nil
@@ -53,19 +63,26 @@ func (p *Plugin) Reload(conf *service.Conf) error {
 		return err
 	}
 
-	db, err := initDB(nOptions)
+	nOptions.Mode = normalizeMode(nOptions.Mode)
+
+	if p.db == nil {
+		return errors.New("database not init")
+	}
+
+	fresh, err := initDB(nOptions)
 	if err != nil {
 		return zerror.With(err, "新配置初始化数据库失败")
 	}
 
-	nOptions.Mode = normalizeMode(nOptions.Mode)
 	applyMode(nOptions.Mode)
 
-	if p.db != nil {
-		_ = p.db.Close()
+	// 旧池必须先排空再关闭，且关闭不能阻塞 Reload 的调用方（配置热重载
+	// 走的是 HTTP 请求），所以放在独立 goroutine 里等。
+	old := p.db.SwapPools(fresh.TakePools())
+	if len(old) > 0 {
+		go func() { _ = zdb.ClosePools(old) }()
 	}
 
-	p.db = db
 	options = nOptions
 	return nil
 }

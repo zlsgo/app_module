@@ -6,11 +6,11 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/sohaha/zlsgo v1.7.21-0.20260120110311-515b12153146
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20250709060923-a5d9a7b0e1ce
+	github.com/zlsgo/app_core v0.0.0-20261029101922-0ad8e2dedca8
 	github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f
-	github.com/zlsgo/zdb v0.0.0-20260515051601-e13883217278
+	github.com/zlsgo/zdb v0.0.0-20261030114447-ade64042de40
 	golang.org/x/crypto v0.38.0
 )
 

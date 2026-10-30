@@ -58,7 +58,9 @@ func (p *Plugin) Start(zdi.Invoker) error {
 	return nil
 }
 
-// Done 停止模块
+// Done 在启动阶段（Load/Start 之后）被框架调用，不是退出钩子，
+// 这里不能释放连接。真正的关闭由 Stop 负责，而 Stop 由业务方
+// （如 app_core 的 RunWeb 退出路径）显式调用。
 func (p *Plugin) Done(zdi.Invoker) error {
 	return nil
 }
