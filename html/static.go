@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/zlsgo/app_module/html/zview"
 )
@@ -45,6 +46,8 @@ func registerStatic(r *znet.Engine, prefix string) error {
 			c.SetContentType(zfile.GetMimeType(file.Name, file.Data))
 			c.Byte(200, file.Data)
 		})
+		level := r.Log.GetLogLevel()
+		r.Log.SetLogLevel(zlog.LogNot)
 		r.HEAD(prefix+file.Name, func(c *znet.Context) {
 			if !znet.Utils.IsModified(c, now) {
 				return
@@ -53,6 +56,7 @@ func registerStatic(r *znet.Engine, prefix string) error {
 			c.SetHeader("Content-Length", strconv.Itoa(len(file.Data)))
 			c.Byte(200, nil)
 		})
+		r.Log.SetLogLevel(level)
 	}
 	return nil
 }

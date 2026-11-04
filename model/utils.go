@@ -183,7 +183,9 @@ func initModels(m *Module, di zdi.Invoker) (err error) {
 
 	_ = mapper.Maps(m.schemas, m.stores)
 
-	zlog.Debugf("Models %s\n", m.schemas)
+	if m.schemas != nil && m.schemas.data != nil {
+		zlog.Debugf("Models %s\n", m.schemas)
+	}
 
 	return nil
 }

@@ -14,8 +14,8 @@ type InitFunc func(di zdi.Invoker) (*zdb.DB, error)
 
 // options 保存默认配置
 var options = Options{
-	disableWrite: true,
-	Driver:       "sqlite",
+	DisableAutoBringConfig: true,
+	Driver:                 "sqlite",
 	Sqlite: &Sqlite{
 		Path:       "data/db.db",
 		Parameters: "",

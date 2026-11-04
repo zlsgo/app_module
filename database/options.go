@@ -3,12 +3,12 @@ package database
 type (
 	// Options 定义模块配置
 	Options struct {
-		Sqlite       *Sqlite   `json:"sqlite,omitempty"`
-		MySQL        *Mysql    `json:"mysql,omitempty"`
-		Postgres     *Postgres `json:"postgres,omitempty"`
-		Mode         *Mode     `json:"mode,omitempty"`
-		Driver       string    `json:"driver,omitempty"`
-		disableWrite bool      `json:"-"`
+		Sqlite                 *Sqlite   `json:"sqlite,omitempty"`
+		MySQL                  *Mysql    `json:"mysql,omitempty"`
+		Postgres               *Postgres `json:"postgres,omitempty"`
+		Mode                   *Mode     `json:"mode,omitempty"`
+		Driver                 string    `json:"driver,omitempty"`
+		DisableAutoBringConfig bool      `json:"-"`
 	}
 
 	// Mysql 定义 MySQL 配置
@@ -51,5 +51,5 @@ func (Options) ConfKey() string {
 
 // DisableWrite 返回是否禁写
 func (o Options) DisableWrite() bool {
-	return o.disableWrite
+	return o.DisableAutoBringConfig
 }
