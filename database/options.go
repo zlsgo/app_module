@@ -53,3 +53,24 @@ func (Options) ConfKey() string {
 func (o Options) DisableWrite() bool {
 	return o.DisableAutoBringConfig
 }
+
+// cloneOptions 复制指针配置，让分区的配置回调与懒打开不共享可变状态。
+func cloneOptions(o Options) Options {
+	if o.Sqlite != nil {
+		v := *o.Sqlite
+		o.Sqlite = &v
+	}
+	if o.MySQL != nil {
+		v := *o.MySQL
+		o.MySQL = &v
+	}
+	if o.Postgres != nil {
+		v := *o.Postgres
+		o.Postgres = &v
+	}
+	if o.Mode != nil {
+		v := *o.Mode
+		o.Mode = &v
+	}
+	return o
+}

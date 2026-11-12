@@ -1,17 +1,17 @@
 module github.com/zlsgo/app_module
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/sohaha/zlsgo v1.7.21-0.20260120110311-515b12153146
+	github.com/sohaha/zlsgo v1.7.23-0.20261111035719-647ce39929fa
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20261029101922-0ad8e2dedca8
-	github.com/zlsgo/conf v0.0.0-20250421042600-ef858c116f8e
+	github.com/zlsgo/app_core v0.0.0-20261112075337-9fd09bdeeb96
+	github.com/zlsgo/conf v0.0.0-20261112072038-c64a451ba82f
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f
 	github.com/zlsgo/zdb v0.0.0-20261030114447-ade64042de40
-	golang.org/x/crypto v0.38.0
+	golang.org/x/crypto v0.52.0
 )
 
 require (
@@ -42,10 +42,10 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.66.10 // indirect

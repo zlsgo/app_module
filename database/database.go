@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/zerror"
@@ -12,32 +13,75 @@ import (
 // InitFunc 定义数据库初始化函数
 type InitFunc func(di zdi.Invoker) (*zdb.DB, error)
 
-// options 保存默认配置
-var options = Options{
-	DisableAutoBringConfig: true,
-	Driver:                 "sqlite",
-	Sqlite: &Sqlite{
-		Path:       "data/db.db",
-		Parameters: "",
-	},
-	MySQL: &Mysql{
-		Host:       "127.0.0.1",
-		Port:       3306,
-		User:       "root",
-		Password:   "",
-		DBName:     "zls",
-		Parameters: "charset=utf8mb4&parseTime=True&loc=Local",
-	},
-}
+// options 保存默认配置，读写都经过 optionsMu。
+//
+// 配置热重载在 HTTP 请求里发生，分区管理器构造可能同时在另一处读这份配置，
+// 所以不能直接暴露结构体：撕裂的快照会拿到上一代的 driver 配这一代的连接参数。
+var (
+	optionsMu sync.RWMutex
+	dbMu      sync.RWMutex
+	options   = Options{
+		DisableAutoBringConfig: true,
+		Driver:                 "sqlite",
+		Sqlite: &Sqlite{
+			Path:       "data/db.db",
+			Parameters: "",
+		},
+		MySQL: &Mysql{
+			Host:       "127.0.0.1",
+			Port:       3306,
+			User:       "root",
+			Password:   "",
+			DBName:     "zls",
+			Parameters: "charset=utf8mb4&parseTime=True&loc=Local",
+		},
+	}
+	currentDB *zdb.DB
+)
 
 // New 返回数据库插件
 func New(o ...Options) *Plugin {
 	if len(o) > 0 {
-		options = o[0]
+		setOptions(o[0])
 	}
 
-	registerDefaultConf(options)
+	registerDefaultConf(CurrentOptions())
 	return &Plugin{}
+}
+
+// CurrentOptions 返回当前生效的数据库配置。
+//
+// 分区管理器需要知道 driver 与连接参数才能建出同类型的副库，而这两项只有
+// database 模块自己知道。注意这是浅拷贝：Sqlite / MySQL 等指针字段仍指向
+// 同一份配置，调用方不应修改它们。NewPartitions 会自动复制当前配置，
+// 自定义分区配置时直接使用它的可选回调即可，无需先调用 CurrentOptions。
+func CurrentOptions() Options {
+	optionsMu.RLock()
+	defer optionsMu.RUnlock()
+	return options
+}
+
+// CurrentDB 返回数据库模块当前连接，尚未初始化时返回 nil。
+//
+// NewPartitions 默认使用它作为默认分区的连接；多模块各自建库时，
+// 最后 Load 的那个生效，需要固定连接时通过 PartitionOptions.DB 显式指定。
+func CurrentDB() *zdb.DB {
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+	return currentDB
+}
+
+func setCurrentDB(db *zdb.DB) {
+	dbMu.Lock()
+	currentDB = db
+	dbMu.Unlock()
+}
+
+// setOptions 替换当前模块配置。
+func setOptions(o Options) {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+	options = o
 }
 
 // Reload 重新加载配置并刷新数据库连接。
@@ -52,13 +96,14 @@ func New(o ...Options) *Plugin {
 //  2. 把它的池摘下来换进 p.db，原子生效；
 //  3. 旧池交给 ClosePools：sql.DB.Close 会等在途查询结束，形成排空屏障。
 func (p *Plugin) Reload(conf *service.Conf) error {
-	if conf.Get(options.ConfKey()).Value() == nil {
+	confKey := (Options{}).ConfKey()
+	if conf.Get(confKey).Value() == nil {
 		return nil
 	}
 
 	var nOptions Options
 
-	err := conf.Unmarshal(nOptions.ConfKey(), &nOptions)
+	err := conf.Unmarshal(confKey, &nOptions)
 	if err != nil {
 		return err
 	}
@@ -83,7 +128,8 @@ func (p *Plugin) Reload(conf *service.Conf) error {
 		go func() { _ = zdb.ClosePools(old) }()
 	}
 
-	options = nOptions
+	setOptions(nOptions)
+	setCurrentDB(p.db)
 	return nil
 }
 

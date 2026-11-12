@@ -12,10 +12,10 @@ import (
 func TestOptionsHelpers(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	o := Options{disableWrite: true}
+	o := Options{DisableAutoBringConfig: true}
 	tt.Equal("database", o.ConfKey())
 	tt.Equal(true, o.DisableWrite())
-	o.disableWrite = false
+	o.DisableAutoBringConfig = false
 	tt.Equal(false, o.DisableWrite())
 }
 

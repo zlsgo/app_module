@@ -1,6 +1,6 @@
 # HTML Styles
 
-`html/styles` 为 `html/el` 提供独立的 CSS 辅助能力。
+`html/styles` 为 `html/el` 提供独立的 CSS 辅助能力，支持行内样式、可复用样式表与常用 CSS 值辅助函数。
 
 ## 行内样式
 
@@ -14,8 +14,8 @@ style := styles.Props{
 button := el.BUTTON(style.Attr(), el.Text("确定"))
 ```
 
-`Props.ToInline()` 会按 CSS 属性名排序，生成确定性的 `key: value;` 声明。`Merge`
-可用于组合基础样式和覆盖样式，后者优先。
+- `Props.ToInline()` 会按 CSS 属性名排序，生成确定性的 `key: value;` 声明。
+- `Merge` 可用于组合基础样式和覆盖样式，后者优先。
 
 ## 可复用样式表
 
@@ -34,8 +34,7 @@ page := el.HTML(
 )
 ```
 
-如果只需要将样式注册后直接应用到元素，也可以使用 `manager.Class(props)` 或
-`manager.CompositeClass(style)`，它们直接返回 `*el.Attribute`：
+如果只需要将样式注册后直接应用到元素，也可以使用 `manager.Class(props)` 或 `manager.CompositeClass(style)`，它们直接返回 `*el.Attribute`：
 
 ```go
 button := el.BUTTON(
@@ -44,7 +43,7 @@ button := el.BUTTON(
 )
 ```
 
-`StyleManager` 支持：
+### `StyleManager` 能力
 
 - `AddStyle`：普通 class
 - `AddCompositeStyle`：伪类、伪元素和媒体查询
@@ -52,10 +51,21 @@ button := el.BUTTON(
 - `GenerateCSS` / `StyleTag`：生成 CSS 或 `<style>` 元素
 - 相同样式去重，并生成稳定 class 名
 
-CSS 选择器和值按稳定顺序输出，便于缓存和快照测试。CSS 原文不会被转义或清洗，
-请不要直接把不可信用户输入拼入 CSS。
+## 输出与安全说明
+
+- CSS 选择器和值按稳定顺序输出，便于缓存和快照测试。
+- CSS 原文不会被转义或清洗，请不要直接把不可信用户输入拼入 CSS。
 
 ## CSS 值辅助函数
 
-包提供常用的 `Pixels`、`Percent`、`Em`、`Rem`、`ViewportWidth`、`RGB`、`RGBA`、
-`HSL`、`URL`、`Var` 等函数，避免在业务代码中重复拼接单位。
+包提供常用函数，避免在业务代码中重复拼接单位：
+
+- 尺寸：`Pixels`、`Percent`、`Em`、`Rem`、`ViewportWidth`
+- 颜色：`RGB`、`RGBA`、`HSL`
+- 其他：`URL`、`Var` 等
+
+## 最佳实践
+
+- 公共样式优先使用 `StyleManager` 复用，减少重复内联声明。
+- 动态样式值需在业务层做校验，避免引入不可信 CSS 内容。
+- 需要稳定快照或缓存命中时，依赖 `Props.ToInline()` 与 `StyleManager` 的确定性输出。

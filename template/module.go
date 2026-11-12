@@ -22,7 +22,7 @@ var (
 )
 
 func New(opt ...func(*Options)) (m *Module) {
-	options = zutil.Optional(Options{}, opt...)
+	options := zutil.Optional(defaultOptions(), opt...)
 
 	service.DefaultConf = append(service.DefaultConf, &options)
 
@@ -49,6 +49,9 @@ func New(opt ...func(*Options)) (m *Module) {
 					}
 
 					r.SetTemplate(j)
+					// 先发布引擎再加载：目录缺失时 Load 失败但不算错误，
+					// 此时 Render 仍应走 jet 的报错路径，而不是踩空指针。
+					m.engine = j
 					if err := j.Load(); err != nil {
 						if !zfile.DirExist(dir) {
 							return nil
@@ -57,7 +60,6 @@ func New(opt ...func(*Options)) (m *Module) {
 						return err
 					}
 
-					m.engine = j
 					return nil
 				})
 			},

@@ -50,6 +50,9 @@ func (p *Single) Tasks() []service.Task {
 func (p *Single) Load(di zdi.Invoker) (any, error) {
 	err := di.InvokeWithErrorOnly(func(c *service.Conf) (err error) {
 		p.db, err = p.initDB(p.DI)
+		if err == nil {
+			setCurrentDB(p.db)
+		}
 		return
 	})
 

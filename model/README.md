@@ -258,9 +258,7 @@ _ = paged
 - **表非空**：仍会尝试插入所有**不带 `id`** 的条目，带 `id` 的跳过。
 - 写入失败（如撞唯一键）会中断本次迁移并返回 `初始化数据失败` 错误，导致模块 `Done` 失败、服务无法启动。
 
-**注意**：表有唯一约束（如 `unique` 字段或组合唯一键）时请谨慎使用 `Values`，
-非空表启动插入极易撞键。需要"仅补缺失"语义的初始化请绕开 `Values`，
-在应用层启动钩子中自行执行幂等写入。
+**注意**：表有唯一约束（如 `unique` 字段或组合唯一键）时请谨慎使用 `Values`，非空表启动插入极易撞键。需要"仅补缺失"语义的初始化请绕开 `Values`，在应用层启动钩子中自行执行幂等写入。
 
 ## 存储与自动迁移
 
@@ -273,7 +271,7 @@ _ = paged
   - 索引：迁移完成后统一创建。
   - 初始值：表为空时全量写入 `Schema.Values`；表非空时仍插入不带 `id` 的条目（见上文注意事项）。
 
-### 旧字段策略 & 软删除
+## 旧字段策略 & 软删除
 
 通过 `SchemaOptions` / `schema.Options` 控制：
 
@@ -449,7 +447,7 @@ age, ok, err := model.FindCol[int](store, "age", model.Q(UserFilter{Status: 1}))
 | `And(...)`  | 条件组合 AND | `And(Q(UserFilter{Status: 1}), Gt("b", 2))` |
 | `Or(...)`   | 条件组合 OR  | `Or(Eq("status", 1), Eq("status", 2))`  |
 
-## Query Builder（链式查询）
+### Query Builder（链式查询）
 
 `Query[T, F, C, U]` 提供流畅的链式 API 构建复杂查询：
 
@@ -520,7 +518,7 @@ affected, err := repo.Query().
 | `Update(data)`              | 执行更新                   |
 | `Delete()`                  | 执行删除                   |
 
-## 批量操作
+### 批量操作
 
 `Repository[T, F, C, U]` 提供批量操作方法，适用于大数据量场景：
 
@@ -556,7 +554,7 @@ affected, err := repo.BatchDelete(model.Lt("created_at", expireTime))
 
 > 默认批量大小 `DefaultBatchSize = 1000`，可通过 `BatchSize(n)` 调整。
 
-## 查询与过滤器
+### 查询与过滤器
 
 当 F 为 `QueryFilter` 时可直接使用 QueryFilter 构建条件，结构体/Map 需通过 `Q(...)` 或 `Filter` 转换：
 
@@ -621,7 +619,7 @@ _ = cond3
 
 > 递归解析深度上限为 50，超出会返回错误，请避免构造过深的嵌套条件。
 
-## CondOptions 与关联装载
+### CondOptions 与关联装载
 
 查询方法可接受 `func(*model.CondOptions)` 定制：
 
@@ -813,7 +811,7 @@ rows, _ := store.Find(model.Filter{"status": 1})
 rows = schema.ParseLables(rows)     // 若 status 为枚举，会附带 status_label
 ```
 
-## Schema API 与视图元数据
+### Schema API 与视图元数据
 
 设置 `Options.SchemaApi` 后会注册 `schemaController`：
 
@@ -822,7 +820,7 @@ rows = schema.ParseLables(rows)     // 若 status 为枚举，会附带 status_l
 
 视图元数据会在响应中返回，便于前端/管理端动态生成列表与详情页面。
 
-## 辅助方法
+### 辅助方法
 
 - `model.Common.VarPages(c *znet.Context)`：从请求参数解析 `page` / `pagesize`。
 - `model.GetEngine[*zdb.DB](store)`：获取底层 `*zdb.DB` 引擎。

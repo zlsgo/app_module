@@ -34,18 +34,21 @@ func (p *Plugin) Tasks() []service.Task {
 // Load 初始化模块
 func (p *Plugin) Load(zdi.Invoker) (any, error) {
 	return nil, p.DI.InvokeWithErrorOnly(func(d zdi.TypeMapper, c *service.Conf) (err error) {
-		err = c.Unmarshal((Options{}).ConfKey(), &options)
+		var loaded Options
+		err = c.Unmarshal((Options{}).ConfKey(), &loaded)
 		if err != nil {
 			return
 		}
 
-		options.Mode = normalizeMode(options.Mode)
-		applyMode(options.Mode)
+		loaded.Mode = normalizeMode(loaded.Mode)
+		setOptions(loaded)
+		applyMode(loaded.Mode)
 
-		p.db, err = initDB(options)
+		p.db, err = initDB(loaded)
 		if err != nil {
 			return err
 		}
+		setCurrentDB(p.db)
 
 		d.Map(p.db)
 

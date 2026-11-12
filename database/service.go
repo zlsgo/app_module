@@ -61,7 +61,9 @@ func initDB(db Options) (*zdb.DB, error) {
 }
 
 func resolveDriver(db Options) (string, error) {
-	d := db.Driver
+	// 驱动注册与查询都用 normalizeName，这里也返回规范化结果：上层按
+	// "sqlite" 判断是否需要分库，配置里写 "SQLite" 不能静默走分表路径。
+	d := normalizeName(db.Driver)
 	if d != "" {
 		return d, nil
 	}

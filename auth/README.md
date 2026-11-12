@@ -1,14 +1,18 @@
 # Auth 认证模块
 
-`auth` 模块提供面向业务站点的完整认证能力，使用 `znet/session + cookie` 维护登录态，并补齐密码找回、OAuth 登录、绑定解绑等能力。
+`auth` 模块提供面向业务站点的完整认证能力，使用 `znet/session + cookie` 维护登录态，并支持密码找回、OAuth 登录、绑定与解绑等功能。
 
-在当前仓库的统一重构方向里，`auth` 是唯一身份中心（canonical identity）。
+在当前仓库的统一重构方向中，`auth` 是**唯一身份中心（canonical identity）**。
 
-它与现有的 `account`、`member` 的分工是：
+## 与其他模块的关系
 
-- `account` 侧重后台账号、权限与 RBAC
-- `member` 侧重业务会员资料，不再承担任何登录能力
-- `auth` 负责通用站点认证基础设施、服务端会话与第三方登录真源
+| 模块 | 定位 | 职责 |
+| --- | --- | --- |
+| `auth` | 身份中心 | 通用站点认证、服务端会话、第三方登录真源、密码找回与重置 |
+| `account` | 后台账号体系 | 后台用户、权限、RBAC、JWT 访问控制（面向管理端场景） |
+| `member` | 业务资料层 | 会员 profile / 业务资料，不承担登录能力，依赖 `auth` 会话 |
+
+> 业务站点如需“当前会员资料”，应先建立有效的 `auth` session，再访问 `member` 资料接口。
 
 ## 功能特性
 
@@ -44,7 +48,6 @@ import (
     accountauth "github.com/zlsgo/app_module/account/auth"
     "github.com/zlsgo/app_module/database"
     "github.com/zlsgo/app_core/service"
-    "github.com/zlsgo/zdb"
 )
 
 func main() {
@@ -78,40 +81,42 @@ func main() {
 
 ## 配置项
 
+### 配置文件（YAML）
+
 ```yaml
 auth:
-  prefix: "/auth"                     # 路由前缀
-  model_prefix: "auth_"               # 数据表前缀
-  base_url: "https://example.com"     # reset 页面站点基准地址
+  prefix: "/auth"                        # 路由前缀
+  model_prefix: "auth_"                  # 数据表前缀
+  base_url: "https://example.com"        # reset 页面站点基准地址
   reset_password_path: "/reset-password" # reset 页面路径
-  cookie_name: "auth_session"         # session cookie 名称
-  session_ttl: 2592000                # 会话有效期（秒）
-  password_reset_token_ttl: 3600      # reset token 有效期（秒）
+  cookie_name: "auth_session"            # session cookie 名称
+  session_ttl: 2592000                   # 会话有效期（秒）
+  password_reset_token_ttl: 3600         # reset token 有效期（秒）
   enabled_providers:
     - "weapp"
 ```
 
-代码注入配置：
+### 代码注入配置
 
 - `Options.InitDB`：自定义数据库初始化
 - `Options.Session`：自定义 `znet/session` store
 - `Options.Providers`：第三方登录 provider 列表
 - `Options.SendResetPassword`：发送 reset 邮件的回调
-- `Options.ResetPasswordPath`：邮件里生成的前端 reset 页面路径
+- `Options.ResetPasswordPath`：邮件中生成的前端 reset 页面路径
 
 ## 对外复用
 
-当其他模块希望复用 `auth` 的登录态时，可以直接依赖当前模块暴露的两个集成入口：
+当其他模块希望复用 `auth` 的登录态时，可直接依赖以下集成入口：
 
 - `Module.SessionMiddleware()`：挂载与 `auth` 控制器一致的 session 解析逻辑
 - `Module.CurrentUser(c)`：在当前请求上下文中读取已登录的 auth 用户
 
-`member` 模块当前直接依赖这两个入口来读取当前登录用户，并把 `auth user` 映射成自己的 profile。
+`member` 模块当前直接依赖这两个入口读取当前登录用户，并将 `auth user` 映射为自己的 profile。
 
 注意：
 
 - `member` 不再保留自己的登录入口、JWT 或 provider 路径。
-- 业务站点如果需要“当前会员资料”，应先拿到有效的 `auth` session，再访问 `member` 资料接口。
+- 业务站点如需“当前会员资料”，应先拿到有效的 `auth` session，再访问 `member` 资料接口。
 
 ## API 接口
 
@@ -205,3 +210,10 @@ curl -X POST http://127.0.0.1:8080/auth/user/oauth/add \
 ```bash
 go test ./auth/...
 ```
+
+## 最佳实践
+
+- 生产环境务必配置 `BaseURL` 与 `SendResetPassword`，确保密码重置流程可用。
+- 为 session cookie 配置合理的 `session_ttl`，并在 HTTPS 环境下使用安全 Cookie。
+- 接入 OAuth 时仅启用实际需要的 provider，并妥善保管 `AppId`/`AppSecret`。
+- 业务资料与身份认证分离：认证逻辑统一走 `auth`，资料扩展放在 `member` 或业务模块。

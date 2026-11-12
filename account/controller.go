@@ -40,6 +40,7 @@ var _ = reflect.TypeOf(&Index{})
 const saltLen = 4
 
 func (h *Index) Init(r *znet.Engine) error {
+	h.module.useDefaultErrorHandler(r)
 	r.Use(limiter.IPMiddleware())
 
 	noPermRoutes := []string{

@@ -81,7 +81,7 @@ func main() {
 }
 ```
 
-### 配置文件
+### 配置选项
 
 ```yaml
 account:
@@ -112,11 +112,12 @@ account:
 | POST  | `{prefix}/base/password`      | 修改当前用户密码       | 认证 |
 | PATCH | `{prefix}/base/me`            | 更新当前用户资料       | 认证 |
 | POST  | `{prefix}/base/avatar`        | 上传当前用户头像       | 认证 |
+| GET   | `{prefix}/user`               | 用户列表               | 用户管理 |
+| POST  | `{prefix}/user`               | 创建用户               | 用户管理 |
+| PATCH | `{prefix}/user/{uid}`         | 更新用户               | 用户管理 |
+| DELETE| `{prefix}/user/{uid}`         | 删除用户               | 用户管理 |
 
-> `register` 接口仅当 `Options.EnableRegister` 为 `true` 时可访问。
->
-> `GET {prefix}/base/site`（公开）返回系统信息，字段包括：`name`（模块名）、`prefix`（API 前缀）、
-> `register`（是否开放注册）、`time`（服务器当前时间）。
+> `uid` 为用户的加密主键，框架会自动解析。
 
 ### 消息通知
 
@@ -163,7 +164,6 @@ package main
 
 import (
     "github.com/sohaha/zlsgo/znet"
-    "github.com/sohaha/zlsgo/ztype"
     "github.com/zlsgo/app_core/service"
     "github.com/zlsgo/app_module/account"
 )
@@ -225,9 +225,10 @@ func requireRole(acc *account.Module, role string) znet.Handler {
         return nil
     }
 }
-```
 
 通过 `acc.Request.IgnorePerm(c)` 可以在特定处理函数中临时放行权限校验，适用于公开接口或自定义鉴权流程。
+```
+
 ## RBAC 配置
 
 创建 `rbac.yaml` 文件：
@@ -279,3 +280,14 @@ permissions:
 2. **权限最小化**: 只授予必要的权限
 3. **定期审计**: 定期检查用户权限和操作日志
 4. **安全配置**: 在生产环境中禁用调试模式
+
+## 生产环境部署建议
+
+- 使用环境变量管理敏感配置（如密钥、默认密码）
+- 启用日志记录并定期审计
+- 配置合理的速率限制以防止暴力破解
+- 设置安全的 Cookie 属性（HttpOnly, Secure, SameSite）
+- 定期备份用户数据和 RBAC 配置
+- 监控登录失败率和可疑活动
+- 使用 HTTPS 传输敏感信息，设置合理的 Session TTL
+- 定期审计 RBAC 配置，确保权限分配符合最小权限原则

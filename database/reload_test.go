@@ -21,8 +21,10 @@ func TestReloadKeepsHandleUsable(t *testing.T) {
 
 	oldMode := model.DefaultSchemaOptions
 	defer func() { model.DefaultSchemaOptions = oldMode }()
-	oldOptions := options
-	defer func() { options = oldOptions }()
+	oldOptions := CurrentOptions()
+	defer setOptions(oldOptions)
+	oldDB := CurrentDB()
+	defer setCurrentDB(oldDB)
 
 	path := filepath.Join(t.TempDir(), "reload.db")
 
@@ -32,7 +34,7 @@ func TestReloadKeepsHandleUsable(t *testing.T) {
 
 	p := New(Options{Driver: "sqlite", Sqlite: &Sqlite{Path: path}})
 
-	db, err := initDB(options)
+	db, err := initDB(CurrentOptions())
 	tt.NoError(err)
 	p.db = db
 
@@ -41,6 +43,8 @@ func TestReloadKeepsHandleUsable(t *testing.T) {
 
 	tt.NoError(p.Reload(conf))
 	tt.Equal(true, p.db == handle)
+	// 零参数 NewPartitions 依赖这个入口拿到默认连接。
+	tt.Equal(true, CurrentDB() == handle)
 
 	// 旧指针必须仍然能查询（池已被原子换成新池）。
 	rows, err := handle.Query("SELECT 1")

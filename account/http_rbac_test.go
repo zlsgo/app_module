@@ -28,9 +28,10 @@ func newHTTPTestEnv(t *testing.T) *httpTestEnv {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	conf := &service.Conf{Base: service.BaseConf{}}
-	app := service.NewApp()(conf, di)
-	web, engine := service.NewWeb()(app, nil, nil)
+	di.Map(&service.Conf{Base: service.BaseConf{}})
+	app := service.NewApp()(di)
+	web := service.NewWeb()(app, nil, nil)
+	engine := web.Engine
 	di.Map(web)
 
 	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
