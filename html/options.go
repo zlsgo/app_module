@@ -11,11 +11,11 @@ const defaultStaticPrefix = "/__static_html"
 type Options struct {
 	// ErrorPage is rendered with HTTP 500 when a handler returns an error or
 	// the page element cannot be rendered.
-	ErrorPage *el.Element
+	ErrorPage *el.Element `z:"error_page"`
 
-	// StaticPrefix 指定 zcss.js / zview.js 等静态资源的路由前缀，
-	// 为空时使用默认值 /__static_html。前端引用时需与此保持一致。
-	StaticPrefix string
+	// StaticPrefix specifies the route prefix for static assets like zcss.js / zview.js.
+	// Defaults to /__static_html when empty. Frontend references must match this prefix.
+	StaticPrefix string `z:"static_prefix"`
 }
 
 // ZViewJS is kept as a compatibility alias for the name used by older
