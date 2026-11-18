@@ -48,6 +48,52 @@ func TestIPMiddlewareLimitsPerIP(t *testing.T) {
 	}
 }
 
+func TestNewIPMiddlewareCustomRate(t *testing.T) {
+	r := znet.New()
+	r.Use(NewIPMiddleware(2))
+	r.GET("/ping", func(c *znet.Context) error {
+		c.String(200, "pong")
+		return nil
+	})
+
+	for i := 0; i < 2; i++ {
+		if code := doRequest(t, r, "10.3.3.3:1234"); code != 200 {
+			t.Fatalf("request %d status = %d, want 200", i+1, code)
+		}
+	}
+
+	if code := doRequest(t, r, "10.3.3.3:1234"); code != 429 {
+		t.Fatalf("request over custom limit status = %d, want 429", code)
+	}
+}
+
+func TestIPMiddlewareInstancesAreIsolated(t *testing.T) {
+	newEngine := func() *znet.Engine {
+		r := znet.New()
+		r.Use(NewIPMiddleware(1))
+		r.GET("/ping", func(c *znet.Context) error {
+			c.String(200, "pong")
+			return nil
+		})
+		return r
+	}
+
+	r1 := newEngine()
+	r2 := newEngine()
+
+	if code := doRequest(t, r1, "10.4.4.4:1234"); code != 200 {
+		t.Fatalf("first engine first request status = %d, want 200", code)
+	}
+	if code := doRequest(t, r1, "10.4.4.4:1234"); code != 429 {
+		t.Fatalf("first engine second request status = %d, want 429", code)
+	}
+
+	// 第二个引擎使用独立限流器，不应受第一个引擎计数影响
+	if code := doRequest(t, r2, "10.4.4.4:1234"); code != 200 {
+		t.Fatalf("second engine first request status = %d, want 200", code)
+	}
+}
+
 func TestIPMiddlewarePassesThrough(t *testing.T) {
 	r := znet.New()
 	r.Use(IPMiddleware())
