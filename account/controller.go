@@ -26,6 +26,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// dummyPasswordHash 是固定 cost 的占位密码哈希，仅用于账号不存在时消耗等量 bcrypt 时间，
+// 避免通过响应耗时差异枚举已注册账号。由 bcrypt.GenerateFromPassword([]byte("auth-dummy-password"), bcrypt.DefaultCost) 生成。
+var dummyPasswordHash = []byte("$2a$10$t3NQr/D9NJe3ITTwtTn1fOMc1V.2ErAeSuur70hEXIVYeBdp0R69a")
+
 type Index struct {
 	service.App
 	accountModel *model.Schema
@@ -166,9 +170,6 @@ func (m *Module) isBusyLogin(c *znet.Context) (b bool) {
 	}
 
 	b = ztype.ToInt(total) >= 5
-	if b {
-		m.loginFailed(c)
-	}
 	return
 }
 
@@ -205,6 +206,9 @@ func (h *Index) login(c *znet.Context) (result interface{}, err error) {
 	})
 	if err != nil {
 		if errors.Is(err, model.ErrNoRecord) {
+			// 账号不存在也执行一次 bcrypt 并计入失败次数，避免耗时差异与绕过限流
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, zstring.String2Bytes(password))
+			h.module.loginFailed(c)
 			return nil, zerror.InvalidInput.Text("账号或密码错误")
 		}
 		return nil, zerror.InvalidInput.Text(err.Error())

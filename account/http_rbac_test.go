@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
@@ -202,5 +203,31 @@ func TestHTTPRBACRoleUpdate(t *testing.T) {
 	w = env.request("GET", "/api/user", nil, userToken)
 	if w.Code == 200 {
 		t.Fatalf("expected deny /api/user after role update")
+	}
+}
+
+func TestHTTPLoginUnknownAccountCountsFailure(t *testing.T) {
+	env := newHTTPTestEnv(t)
+	defer env.cleanup()
+
+	body, _ := json.Marshal(map[string]string{
+		"account":  "ghost-account",
+		"password": "{{SECRET_goy3qnru}}",
+	})
+
+	for i := 0; i < 5; i++ {
+		w := env.request("POST", "/api/base/login", body, "")
+		if w.Code == 200 {
+			t.Fatalf("attempt %d should fail: %s", i+1, w.Body.String())
+		}
+	}
+
+	// 账号不存在也计入失败次数，达到阈值后即使密码正确也会被拦截
+	w := env.request("POST", "/api/base/login", body, "")
+	if w.Code == 200 {
+		t.Fatalf("login should be blocked after repeated failures: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "登录失败次数过多") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
 	}
 }
