@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zdi"
@@ -18,6 +19,7 @@ import (
 	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/driver/sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type httpTestEnv struct {
@@ -517,4 +519,79 @@ func TestHTTPOAuthOnlyUserCanSetPasswordAndThenUnlink(t *testing.T) {
 		"password": "Cc123456",
 	})
 	tt.Equal(200, w.Code)
+}
+
+func TestDummyPasswordHashUsesDefaultCost(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	cost, err := bcrypt.Cost(dummyPasswordHash)
+	tt.NoError(err)
+	tt.Equal(bcrypt.DefaultCost, cost)
+
+	if err := bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte("auth-dummy-password")); err != nil {
+		t.Fatalf("dummy hash should match its own source password: %v", err)
+	}
+}
+
+func TestHTTPAuthUnknownEmailCountsLoginFailure(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	env := newHTTPTestEnv(t)
+	defer env.cleanup()
+
+	body := map[string]string{
+		"email":    "nobody@example.com",
+		"password": "{{SECRET_goy3qnru}}",
+	}
+
+	for i := 0; i < loginMaxAttemptsPerEmail; i++ {
+		w := env.request("POST", "/auth/user/auth", body)
+		if w.Code != 401 {
+			t.Fatalf("attempt %d status = %d, want 401: %s", i+1, w.Code, w.Body.String())
+		}
+	}
+
+	// 账号不存在同样计入失败次数，超过阈值返回 429
+	w := env.request("POST", "/auth/user/auth", body)
+	tt.Equal(429, w.Code)
+}
+
+func TestSessionActivityWritesAreThrottled(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	env := newHTTPTestEnv(t)
+	defer env.cleanup()
+
+	w := env.request("POST", "/auth/user/create", map[string]string{
+		"email":    "throttle@example.com",
+		"password": "{{SECRET_goy3qnru}}",
+	})
+	tt.Equal(200, w.Code)
+
+	sessions, ok := env.module.SessionModel()
+	if !ok {
+		t.Fatal("session model not ready")
+	}
+
+	row, err := sessions.FindOne(model.Filter{})
+	tt.NoError(err)
+	sessionKey := row.Get("session_key").String()
+	if sessionKey == "" {
+		t.Fatal("session key empty")
+	}
+
+	// 首次调用立即写入活跃时间
+	env.module.updateSessionActivity(sessionKey)
+
+	_, err = sessions.UpdateMany(model.Filter{"session_key": sessionKey}, ztype.Map{"last_seen_at": time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)})
+	tt.NoError(err)
+
+	marked, err := sessions.FindOne(model.Filter{"session_key": sessionKey})
+	tt.NoError(err)
+	before := marked.Get("last_seen_at").String()
+
+	// 节流间隔内再次调用不应写库
+	env.module.updateSessionActivity(sessionKey)
+
+	after, err := sessions.FindOne(model.Filter{"session_key": sessionKey})
+	tt.NoError(err)
+	tt.Equal(before, after.Get("last_seen_at").String())
 }

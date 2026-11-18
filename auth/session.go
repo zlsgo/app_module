@@ -71,8 +71,19 @@ func (m *Module) validateSession(session zsession.Session, user ztype.Map) error
 	return nil
 }
 
-// updateSessionActivity 更新会话活跃时间
+// sessionTouchInterval 控制 last_seen_at 的最小写入间隔。
+// 已登录请求都会走到更新活跃时间，若每次都写库会造成明显写放大，因此按会话节流。
+const sessionTouchInterval = time.Minute
+
+// updateSessionActivity 更新会话活跃时间（按会话节流）
 func (m *Module) updateSessionActivity(sessionKey string) {
+	if m.sessionTouch != nil {
+		if _, ok := m.sessionTouch.Get(sessionKey); ok {
+			return
+		}
+		m.sessionTouch.Set(sessionKey, true, sessionTouchInterval)
+	}
+
 	sessions, ok := m.SessionModel()
 	if !ok {
 		return

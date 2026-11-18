@@ -46,6 +46,10 @@ const (
 // 邮箱验证正则
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
+// dummyPasswordHash 是固定 cost 的占位密码哈希，仅用于账号不存在时消耗等量 bcrypt 时间，
+// 避免通过响应耗时差异枚举已注册邮箱。由 bcrypt.GenerateFromPassword([]byte("auth-dummy-password"), bcrypt.DefaultCost) 生成。
+var dummyPasswordHash = []byte("$2a$10$t3NQr/D9NJe3ITTwtTn1fOMc1V.2ErAeSuur70hEXIVYeBdp0R69a")
+
 type UserController struct {
 	service.App
 	module *Module
@@ -165,6 +169,8 @@ func (h *UserController) auth(c *znet.Context) (any, error) {
 	user, err := h.module.userByEmail(email)
 	if err != nil {
 		if errors.Is(err, model.ErrNoRecord) {
+			// 账号不存在也执行一次 bcrypt，保持与密码错误分支相近的耗时
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 			h.module.markFailed(loginKey, "login")
 			h.module.markFailed(loginIPKey, "login")
 			return nil, toHTTPError(ErrInvalidCredentials)

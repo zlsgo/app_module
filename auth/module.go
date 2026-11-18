@@ -19,14 +19,15 @@ import (
 type Module struct {
 	service.ModuleLifeCycle
 	service.App
-	db          *zdb.DB
-	schemas     *model.Schemas
-	models      *model.Stores
-	controllers []service.Controller
-	loginLimit  *zcache.FastCache
-	forgotLimit *zcache.FastCache
-	resetLimit  *zcache.FastCache
-	Options     Options
+	db           *zdb.DB
+	schemas      *model.Schemas
+	models       *model.Stores
+	controllers  []service.Controller
+	loginLimit   *zcache.FastCache
+	forgotLimit  *zcache.FastCache
+	resetLimit   *zcache.FastCache
+	sessionTouch *zcache.FastCache
+	Options      Options
 }
 
 var (
@@ -81,9 +82,10 @@ func New(opt ...func(o *Options)) *Module {
 			SessionTTL:            30 * 24 * 60 * 60,
 			PasswordResetTokenTTL: 60 * 60,
 		}, opt...),
-		loginLimit:  zcache.NewFast(),
-		forgotLimit: zcache.NewFast(),
-		resetLimit:  zcache.NewFast(),
+		loginLimit:   zcache.NewFast(),
+		forgotLimit:  zcache.NewFast(),
+		resetLimit:   zcache.NewFast(),
+		sessionTouch: zcache.NewFast(),
 	}
 
 	service.DefaultConf = append(service.DefaultConf, &m.Options)
