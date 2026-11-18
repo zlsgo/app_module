@@ -54,5 +54,11 @@ func defaultErrorHandler(c *znet.Context, err error) {
 
 // useDefaultErrorHandler 始终安装默认错误处理器，确保账户模块有效错误渲染。
 func (m *Module) useDefaultErrorHandler(r *znet.Engine) {
+	if m.DI != nil {
+		var customHandler znet.ErrHandlerFunc
+		if err := m.DI.Resolve(&customHandler); err == nil && customHandler != nil {
+			return
+		}
+	}
 	r.Use(znet.RewriteErrorHandler(defaultErrorHandler))
 }

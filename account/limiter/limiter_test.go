@@ -51,7 +51,7 @@ func TestIPMiddlewareLimitsPerIP(t *testing.T) {
 func TestIPMiddlewarePassesThrough(t *testing.T) {
 	r := znet.New()
 	r.Use(IPMiddleware())
-	r.GET("/ok", func(c *znet.Context) error {
+	r.GET("/ping", func(c *znet.Context) error {
 		c.String(200, "ok")
 		return nil
 	})

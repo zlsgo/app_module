@@ -16,6 +16,8 @@ import (
 )
 
 func (m *Module) UsePermisMiddleware(r *znet.Engine, authErrHandler func(c *znet.Context, err error) error, ignore ...string) error {
+	m.useDefaultErrorHandler(r)
+
 	if m.verifyPermissions == nil {
 		return errors.New("middleware not initialized, please call Init first")
 	}
