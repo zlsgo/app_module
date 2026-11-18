@@ -12,7 +12,7 @@ type (
 	// Schemas 模型集合类型
 	Schemas []Schema
 	// Schema 模型结构定义
-	Schema  struct {
+	Schema struct {
 		Options    Options    `json:"options,omitempty"`
 		Fields     Fields     `json:"fields"`
 		Extend     ztype.Map  `json:"extend,omitempty"`
@@ -74,7 +74,7 @@ type (
 	// Relations 关系集合类型
 	Relations map[string]Relation
 	// Relation 关系定义
-	Relation  struct {
+	Relation struct {
 		Filter      ztype.Map          `json:"filter,omitempty"`
 		Comment     string             `json:"comment,omitempty"`
 		Label       string             `json:"label"`

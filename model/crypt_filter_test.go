@@ -18,8 +18,8 @@ func TestCryptIDFilterOperators(t *testing.T) {
 			Name: "crypt_users",
 		},
 		Options: schema.Options{
-			CryptID: &b,
-			Salt:    "test-salt",
+			CryptID:  &b,
+			Salt:     "test-salt",
 			CryptLen: 8,
 		},
 		Fields: map[string]schema.Field{

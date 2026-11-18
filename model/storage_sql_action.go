@@ -203,7 +203,8 @@ func neCond(d *builder.BuildCond, field string, value any) string {
 
 // groupFilterItems 提取 $OR/$AND 分组值中的子条件组列表（数组形式）。
 // 非数组值（单个 map 条件组、标量等）返回 ok=false，按单个条件组解析。
-func groupFilterItems(value any) ([]ztype.Map, bool) {	switch v := value.(type) {
+func groupFilterItems(value any) ([]ztype.Map, bool) {
+	switch v := value.(type) {
 	case ztype.Maps:
 		return v, true
 	case []ztype.Map:
