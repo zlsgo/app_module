@@ -197,6 +197,9 @@ curl -X POST http://127.0.0.1:8080/auth/user/oauth/add \
 
 - 登录成功、注册成功、OAuth callback 成功后都会写入 session cookie。
 - 修改密码与 reset password 都会提升 `session_version`，并让历史会话失效。
+- reset token 在库里只保存哈希，明文只出现在发送给用户的链接中；token 通过事务内的条件更新原子消费，重复使用（含并发重放）会直接报错而不会重复改密。
+- 登录与 `forgotpassword` 按邮箱 + 客户端 IP 双维度限流，`resetpassword` 按客户端 IP 限流，超限返回 `429` 并逐步退避；登录成功会清零对应计数。
+- `last_seen_at` 按会话最多每分钟写一次，避免每个已登录请求都产生一次数据库写入；监控里的活跃时间精度即为 1 分钟。
 - `forgotpassword` 默认对外返回统一成功结构；是否真正发送邮件由 `SendResetPassword` 回调决定，`ResetURL` 指向前端 reset 页面而不是 POST API。
 - `/oauth/login/{provider}` 与 `/oauth/add` 都会写入一次性 `state`；callback 必须带回匹配的 `state` 才会继续。
 - `/oauth/add` 只负责发起第三方绑定流程，真正的绑定发生在 provider callback 且当前用户已登录，且 flow 意图必须是 `bind`。
