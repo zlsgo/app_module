@@ -337,6 +337,82 @@ func TestIter2(t *testing.T) {
 	}.Assert(tt)
 }
 
+func TestFlatMap(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	items := []int{1, 2, 3}
+	node := FlatMap(items, func(n int) []Node {
+		if n == 2 {
+			return nil
+		}
+		return []Node{Textf("[%d]", n), Text("-")}
+	})
+
+	ChunkTest{
+		Node:     node,
+		Rendered: "[1]-[3]-",
+	}.Assert(tt)
+
+	tt.Equal(0, len(FlatMap([]int{}, func(n int) []Node { return []Node{Text("x")} }).(Frag)))
+	tt.Equal(0, len(FlatMap([]int{1}, nil).(Frag)))
+}
+
+func TestRange(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	node := Range(3, func(i int) Node {
+		return Textf("%d", i)
+	})
+	ChunkTest{
+		Node:     node,
+		Rendered: "012",
+	}.Assert(tt)
+
+	tt.Equal(0, len(Range(0, func(i int) Node { return Text("x") }).(Frag)))
+	tt.Equal(0, len(Range(-1, func(i int) Node { return Text("x") }).(Frag)))
+	tt.Equal(0, len(Range(3, nil).(Frag)))
+}
+
+func TestRangeFrom(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	t.Run("ascending", func(t *testing.T) {
+		node := RangeFrom(1, 4, func(i int) Node {
+			return Textf("%d", i)
+		})
+		ChunkTest{
+			Node:     node,
+			Rendered: "123",
+		}.Assert(tt)
+	})
+
+	t.Run("descending", func(t *testing.T) {
+		node := RangeFrom(4, 1, func(i int) Node {
+			return Textf("%d", i)
+		})
+		ChunkTest{
+			Node:     node,
+			Rendered: "432",
+		}.Assert(tt)
+	})
+
+	tt.Equal(0, len(RangeFrom(2, 2, func(i int) Node { return Text("x") }).(Frag)))
+	tt.Equal(0, len(RangeFrom(1, 3, nil).(Frag)))
+}
+
+func TestIterNilDefense(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	tt.Equal(0, len(Iter[string](nil, func(s string) Node { return Text(s) }).(Frag)))
+	tt.Equal(0, len(Iter[string](func(func(string) bool) {}, nil).(Frag)))
+	tt.Equal(0, len(Iter2[int, string](nil, func(k int, v string) Node { return Text(v) }).(Frag)))
+	tt.Equal(0, len(Iter2[int, string](func(func(int, string) bool) {}, nil).(Frag)))
+	tt.Equal(0, len(Map([]string{}, func(s string) Node { return Text(s) }).(Frag)))
+	tt.Equal(0, len(Map([]string{"a"}, nil).(Frag)))
+	tt.Equal(0, len(MapIdx([]string{}, func(s string, i int) Node { return Text(s) }).(Frag)))
+	tt.Equal(0, len(MapIdx([]string{"a"}, nil).(Frag)))
+}
+
 func TestIf(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 

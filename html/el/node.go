@@ -641,6 +641,9 @@ func VoidEl(name string, items ...Item) *Element {
 
 // Map 将切片中的每个元素映射为 Node，并最终组合成片段返回。
 func Map[E any](s []E, fn func(E) Node) Node {
+	if len(s) == 0 || fn == nil {
+		return Fragment()
+	}
 	children := make([]Node, len(s))
 	for i, item := range s {
 		children[i] = fn(item)
@@ -650,6 +653,9 @@ func Map[E any](s []E, fn func(E) Node) Node {
 
 // MapIdx 在映射节点的同时暴露索引，适合需要位置信息的场景。
 func MapIdx[E any](s []E, fn func(E, int) Node) Node {
+	if len(s) == 0 || fn == nil {
+		return Fragment()
+	}
 	children := make([]Node, len(s))
 	for i, item := range s {
 		children[i] = fn(item, i)
@@ -657,8 +663,61 @@ func MapIdx[E any](s []E, fn func(E, int) Node) Node {
 	return Fragment(children...)
 }
 
+// FlatMap 将切片中的每个元素映射为多个 Node 或根据条件过滤展开为片段。
+func FlatMap[E any](s []E, fn func(E) []Node) Node {
+	if len(s) == 0 || fn == nil {
+		return Fragment()
+	}
+	children := make([]Node, 0, len(s))
+	for _, item := range s {
+		nodes := fn(item)
+		if len(nodes) > 0 {
+			children = append(children, nodes...)
+		}
+	}
+	return Fragment(children...)
+}
+
+// Range 从 0 到 n-1 进行循环，将索引映射为 Node 并组合成片段返回。
+// 若 n <= 0 或 fn 为 nil，则直接返回空片段。
+func Range(n int, fn func(i int) Node) Node {
+	if n <= 0 || fn == nil {
+		return Fragment()
+	}
+	children := make([]Node, n)
+	for i := 0; i < n; i++ {
+		children[i] = fn(i)
+	}
+	return Fragment(children...)
+}
+
+// RangeFrom 在区间 [start, end) 内循环，将索引映射为 Node 并组合成片段返回。
+// 支持正向循环（start < end）与逆向循环（start > end）。
+func RangeFrom(start, end int, fn func(i int) Node) Node {
+	if fn == nil || start == end {
+		return Fragment()
+	}
+	if start < end {
+		n := end - start
+		children := make([]Node, n)
+		for i := 0; i < n; i++ {
+			children[i] = fn(start + i)
+		}
+		return Fragment(children...)
+	}
+	n := start - end
+	children := make([]Node, n)
+	for i := 0; i < n; i++ {
+		children[i] = fn(start - i)
+	}
+	return Fragment(children...)
+}
+
 // Iter 遍历迭代器序列，将每个值映射为 Node 并组成片段返回。
 func Iter[T any](s iter.Seq[T], fn func(T) Node) Node {
+	if s == nil || fn == nil {
+		return Fragment()
+	}
 	children := []Node{}
 	for value := range s {
 		children = append(children, fn(value))
@@ -668,6 +727,9 @@ func Iter[T any](s iter.Seq[T], fn func(T) Node) Node {
 
 // Iter2 遍历键值迭代器，将每个键值映射为 Node 并组合成片段。
 func Iter2[K any, V any](s iter.Seq2[K, V], fn func(K, V) Node) Node {
+	if s == nil || fn == nil {
+		return Fragment()
+	}
 	children := []Node{}
 	for key, value := range s {
 		children = append(children, fn(key, value))
