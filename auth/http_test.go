@@ -15,6 +15,7 @@ import (
 	zsession "github.com/sohaha/zlsgo/znet/session"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/model"
 	"github.com/zlsgo/zdb"
 	"github.com/zlsgo/zdb/driver/sqlite3"
 )
@@ -279,6 +280,65 @@ func TestHTTPForgotAndResetPassword(t *testing.T) {
 		"password": "Cc123456",
 	})
 	tt.Equal(401, w.Code)
+}
+
+func TestHTTPResetPasswordStoresOnlyTokenHash(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	capture := &resetCapture{}
+	env := newHTTPTestEnv(t, func(o *Options) {
+		o.SendResetPassword = capture.Send
+	})
+	defer env.cleanup()
+
+	w := env.request("POST", "/auth/user/create", map[string]string{
+		"email":    "hash@example.com",
+		"password": "Aa123456",
+	})
+	tt.Equal(200, w.Code)
+
+	w = env.request("POST", "/auth/user/forgotpassword", map[string]string{
+		"email": "hash@example.com",
+	})
+	tt.Equal(200, w.Code)
+	if capture.job.Token == "" {
+		t.Fatal("expected reset token")
+	}
+
+	tokens, ok := env.module.PasswordResetTokenModel()
+	if !ok {
+		t.Fatal("reset token model not ready")
+	}
+
+	tokenHash := hashToken(capture.job.Token)
+	row, err := tokens.FindOne(model.Filter{"token_hash": tokenHash})
+	tt.NoError(err)
+	tt.Equal(tokenHash, row.Get("token_hash").String())
+
+	// 数据库泄露不应直接得到可用令牌：token 列也只存哈希
+	if stored := row.Get("token").String(); stored == capture.job.Token {
+		t.Fatalf("plaintext reset token must not be stored, got %q", stored)
+	}
+}
+
+func TestHTTPResetPasswordRateLimited(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	env := newHTTPTestEnv(t)
+	defer env.cleanup()
+
+	body := map[string]string{
+		"token":    "invalid-token",
+		"password": "Aa123456",
+	}
+
+	for i := 0; i < resetMaxAttemptsPerIP; i++ {
+		w := env.request("POST", "/auth/user/resetpassword", body)
+		if w.Code != 401 {
+			t.Fatalf("attempt %d status = %d, want 401: %s", i+1, w.Code, w.Body.String())
+		}
+	}
+
+	w := env.request("POST", "/auth/user/resetpassword", body)
+	tt.Equal(429, w.Code)
 }
 
 func TestHTTPOAuthCallbackAutoCreateUser(t *testing.T) {

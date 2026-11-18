@@ -25,6 +25,7 @@ type Module struct {
 	controllers []service.Controller
 	loginLimit  *zcache.FastCache
 	forgotLimit *zcache.FastCache
+	resetLimit  *zcache.FastCache
 	Options     Options
 }
 
@@ -82,6 +83,7 @@ func New(opt ...func(o *Options)) *Module {
 		}, opt...),
 		loginLimit:  zcache.NewFast(),
 		forgotLimit: zcache.NewFast(),
+		resetLimit:  zcache.NewFast(),
 	}
 
 	service.DefaultConf = append(service.DefaultConf, &m.Options)

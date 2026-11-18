@@ -81,8 +81,15 @@ func (h *UserController) resetPassword(c *znet.Context) (any, error) {
 		return nil, respondBadRequest(msg)
 	}
 
+	// 令牌校验同样需要抵抗枚举：按来源 IP 退避，只有失败才累计计数
+	resetIPKey := "reset-ip:" + c.GetClientIP()
+	if h.module.tooManyRequests(resetIPKey, resetMaxAttemptsPerIP, "reset") {
+		return nil, toHTTPError(ErrTooManyRequests)
+	}
+
 	tokenRow, user, err := h.module.validateResetToken(token)
 	if err != nil {
+		h.module.markFailed(resetIPKey, "reset")
 		return nil, toHTTPError(err)
 	}
 
@@ -99,18 +106,23 @@ func (h *UserController) resetPassword(c *znet.Context) (any, error) {
 		txTokens := tokens.Schema(s).Model()
 		txSessions := sessions.Schema(s).Model()
 
-		_, err := txUsers.UpdateByID(user.Get(model.IDKey()).String(), ztype.Map{
-			"password":        password,
-			"session_version": user.Get("session_version").Int() + 1,
-		})
+		// 原子消费令牌：只有把 used_at 从 NULL 改成时间的请求才算抢到令牌，
+		// 并发提交同一个令牌时后续请求影响行数为 0，避免重复修改密码。
+		consumed, err := txTokens.Update(model.Filter{
+			model.IDKey(): tokenRow.Get(model.IDKey()).String(),
+			"used_at":     nil,
+		}, ztype.Map{"used_at": ztime.Now()})
 		if err != nil {
 			return err
 		}
+		if consumed == 0 {
+			return ErrTokenUsed
+		}
 
-		_, err = txTokens.UpdateByID(tokenRow.Get(model.IDKey()).String(), ztype.Map{
-			"used_at": ztime.Now(),
-		})
-		if err != nil {
+		if _, err = txUsers.UpdateByID(user.Get(model.IDKey()).String(), ztype.Map{
+			"password":        password,
+			"session_version": user.Get("session_version").Int() + 1,
+		}); err != nil {
 			return err
 		}
 
@@ -120,8 +132,13 @@ func (h *UserController) resetPassword(c *znet.Context) (any, error) {
 		return err
 	})
 	if err != nil {
+		if errors.Is(err, ErrTokenUsed) {
+			h.module.markFailed(resetIPKey, "reset")
+		}
 		return nil, toHTTPError(err)
 	}
+
+	h.module.clearFailed(resetIPKey, "reset")
 
 	return ztype.Map{"reset": true}, nil
 }
@@ -148,9 +165,10 @@ func (m *Module) createResetPasswordJob(c *znet.Context, user ztype.Map) (ResetP
 			return err
 		}
 
+		// token 列仍保留唯一索引，但只写入哈希：数据库泄露时无法直接拿到可用令牌
 		_, err = txTokens.Insert(ztype.Map{
 			"user_id":    rawUserID,
-			"token":      token,
+			"token":      tokenHash,
 			"token_hash": tokenHash,
 			"expire_at":  ztime.FormatTime(expireAt),
 		})
@@ -186,8 +204,8 @@ func (m *Module) validateResetToken(token string) (ztype.Map, ztype.Map, error) 
 		return nil, nil, err
 	}
 
-	// 二次验证 token 匹配
-	if row.Get("token").String() != token {
+	// 仅用哈希匹配令牌：明文从不落库，行里也没有可用于比对的明文
+	if row.Get("token_hash").String() != tokenHash {
 		return nil, nil, ErrInvalidToken
 	}
 

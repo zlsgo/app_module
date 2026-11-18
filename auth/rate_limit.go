@@ -2,17 +2,27 @@ package auth
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/sohaha/zlsgo/zcache"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 )
 
-func (m *Module) tooManyRequests(cacheKey string, limit int, bucket string) bool {
-	var cache = m.loginLimit
-
-	if bucket == "forgot" {
-		cache = m.forgotLimit
+// limitBucket 返回限流桶对应的缓存与退避参数
+func (m *Module) limitBucket(bucket string) (*zcache.FastCache, time.Duration, time.Duration) {
+	switch bucket {
+	case "forgot":
+		return m.forgotLimit, forgotBaseDelay, forgotMaxDelay
+	case "reset":
+		return m.resetLimit, resetBaseDelay, resetMaxDelay
+	default:
+		return m.loginLimit, loginBaseDelay, loginMaxDelay
 	}
+}
+
+func (m *Module) tooManyRequests(cacheKey string, limit int, bucket string) bool {
+	cache, _, _ := m.limitBucket(bucket)
 
 	total, ok := cache.Get(cacheKey)
 	if !ok {
@@ -22,15 +32,7 @@ func (m *Module) tooManyRequests(cacheKey string, limit int, bucket string) bool
 }
 
 func (m *Module) markFailed(cacheKey string, bucket string) {
-	var cache = m.loginLimit
-	var baseDelay = loginBaseDelay
-	var maxDelay = loginMaxDelay
-
-	if bucket == "forgot" {
-		cache = m.forgotLimit
-		baseDelay = forgotBaseDelay
-		maxDelay = forgotMaxDelay
-	}
+	cache, baseDelay, maxDelay := m.limitBucket(bucket)
 
 	total, _ := cache.Get(cacheKey)
 	count := ztype.ToInt(total) + 1
@@ -38,10 +40,7 @@ func (m *Module) markFailed(cacheKey string, bucket string) {
 }
 
 func (m *Module) clearFailed(cacheKey string, bucket string) {
-	var cache = m.loginLimit
-	if bucket == "forgot" {
-		cache = m.forgotLimit
-	}
+	cache, _, _ := m.limitBucket(bucket)
 
 	cache.Delete(cacheKey)
 }

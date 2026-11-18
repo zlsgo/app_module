@@ -34,6 +34,11 @@ const (
 	forgotBaseDelay           = 30 * time.Second
 	forgotMaxDelay            = time.Hour
 
+	// 重置密码限流（按来源 IP，抵抗令牌枚举）
+	resetMaxAttemptsPerIP = 10
+	resetBaseDelay        = 30 * time.Second
+	resetMaxDelay         = time.Hour
+
 	// OAuth flow
 	oauthFlowTTL = 10 * time.Minute
 )
