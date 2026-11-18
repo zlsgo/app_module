@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -68,7 +69,9 @@ func GenerateSecurePassword(length int, includeSpecial bool) (string, error) {
 
 	// 打乱密码顺序
 	result := []rune(password.String())
-	shuffleRunes(result)
+	if err := shuffleRunes(result); err != nil {
+		return "", err
+	}
 
 	return string(result), nil
 }
@@ -83,14 +86,17 @@ func appendRandomChar(builder *strings.Builder, charset string) error {
 	return nil
 }
 
-// shuffleRunes 使用 Fisher-Yates 算法打乱 rune 数组
-func shuffleRunes(runes []rune) {
-	n := len(runes)
-	for i := n - 1; i > 0; i-- {
-		j, _ := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
-		jIdx := j.Int64()
-		runes[i], runes[jIdx] = runes[jIdx], runes[i]
+// shuffleRunes 使用 Fisher-Yates 算法打乱 rune 数组；随机源失败时返回错误而非 panic
+func shuffleRunes(runes []rune) error {
+	for i := len(runes) - 1; i > 0; i-- {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		if err != nil {
+			return err
+		}
+		j := int(n.Int64())
+		runes[i], runes[j] = runes[j], runes[i]
 	}
+	return nil
 }
 
 // PasswordConfig 密码配置
@@ -124,11 +130,13 @@ var DefaultPasswordConfig = PasswordConfig{
 
 // ValidatePassword 验证密码是否符合配置要求
 func ValidatePassword(password string, config PasswordConfig) (bool, string) {
-	if len(password) < config.MinLength {
+	// 按字符而不是字节计数，避免中文等非 ASCII 密码被误判为超长
+	length := utf8.RuneCountInString(password)
+	if length < config.MinLength {
 		return false, "密码长度不能少于" + strconv.Itoa(config.MinLength) + "位"
 	}
 
-	if len(password) > config.MaxLength {
+	if config.MaxLength > 0 && length > config.MaxLength {
 		return false, "密码长度不能超过" + strconv.Itoa(config.MaxLength) + "位"
 	}
 
