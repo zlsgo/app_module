@@ -35,7 +35,6 @@ func newTestModule(t *testing.T, opt func(*Options)) (*Module, *znet.Engine) {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	app := service.NewApp()(di)
 	web := service.NewWeb()(app, nil, nil)
 	di.Map(web)

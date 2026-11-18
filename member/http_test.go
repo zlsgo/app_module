@@ -33,7 +33,6 @@ func newMemberHTTPTestEnv(t *testing.T, authOpt func(*authmodule.Options), membe
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	app := service.NewApp()(di)
 	web := service.NewWeb()(app, nil, nil)
 	engine := web.Engine
@@ -113,7 +112,6 @@ func TestMemberRequiresAuthModule(t *testing.T) {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	app := service.NewApp()(di)
 	web := service.NewWeb()(app, nil, nil)
 	di.Map(web)

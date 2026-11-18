@@ -17,7 +17,6 @@ func TestModuleInit(t *testing.T) {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	app := service.NewApp()(di)
 
 	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})

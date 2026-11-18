@@ -96,7 +96,6 @@ func TestCustomErrorHandlerIsPreserved(t *testing.T) {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	called := false
 	di.Map(znet.ErrHandlerFunc(func(c *znet.Context, err error) {
 		called = true

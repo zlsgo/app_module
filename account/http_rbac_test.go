@@ -28,7 +28,6 @@ func newHTTPTestEnv(t *testing.T) *httpTestEnv {
 	di := zdi.New()
 	di.Map(&[]service.Task{})
 	di.Map(&[]service.Controller{})
-	di.Map(&service.Conf{Base: service.BaseConf{}})
 	app := service.NewApp()(di)
 	web := service.NewWeb()(app, nil, nil)
 	engine := web.Engine
