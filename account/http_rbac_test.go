@@ -231,3 +231,50 @@ func TestHTTPLoginUnknownAccountCountsFailure(t *testing.T) {
 		t.Fatalf("unexpected body: %s", w.Body.String())
 	}
 }
+
+func TestHTTPLoginLockoutBlocksCorrectPassword(t *testing.T) {
+	env := newHTTPTestEnv(t)
+	defer env.cleanup()
+
+	// httptest 的默认客户端地址，中间件按它做 IP 维度限流
+	const clientIP = "192.0.2.1"
+
+	bad, _ := json.Marshal(map[string]string{
+		"account":  "manage",
+		"password": "wrong-password",
+	})
+	for i := 0; i < 5; i++ {
+		if w := env.request("POST", "/api/base/login", bad, ""); w.Code == 200 {
+			t.Fatalf("attempt %d should fail: %s", i+1, w.Body.String())
+		}
+	}
+
+	total := func() int {
+		raw, _ := env.module.loginLimit.Get(clientIP)
+		return ztype.ToInt(raw)
+	}
+	if got := total(); got != 5 {
+		t.Fatalf("failure count = %d, want 5", got)
+	}
+
+	// 已被限流时继续请求不应累加计数（否则封禁窗口会被无限延长）
+	for i := 0; i < 3; i++ {
+		_ = env.request("POST", "/api/base/login", bad, "")
+	}
+	if got := total(); got != 5 {
+		t.Fatalf("blocked attempts should not increase count, got %d", got)
+	}
+
+	// 正确密码在封禁窗口内同样被拒绝
+	good, _ := json.Marshal(map[string]string{
+		"account":  "manage",
+		"password": "{{SECRET_goy3qnru}}",
+	})
+	w := env.request("POST", "/api/base/login", good, "")
+	if w.Code == 200 {
+		t.Fatalf("locked client should not log in with correct password: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "登录失败次数过多") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}
