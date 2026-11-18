@@ -51,7 +51,11 @@ func (m *Module) getJWTForCache(schema *model.Schema, token, jwtKey string) (str
 			return [2]interface{}{}, false
 		}
 
-		ttl := time.Until(time.Unix(info.ExpiresAt, 0))
+		if info.ExpiresAt == nil {
+			return [2]interface{}{}, false
+		}
+
+		ttl := time.Until(info.ExpiresAt.Time)
 		if ttl <= 0 {
 			return [2]interface{}{}, false
 		}
@@ -67,7 +71,7 @@ func (m *Module) getJWTForCache(schema *model.Schema, token, jwtKey string) (str
 			return [2]interface{}{}, false
 		}
 
-		return [2]interface{}{uid, info.ExpiresAt}, true
+		return [2]interface{}{uid, info.ExpiresAt.Unix()}, true
 	}, time.Hour) // 使用固定1小时，避免重复解析
 
 	v, ok := resp.([2]interface{})

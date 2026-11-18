@@ -3,7 +3,7 @@ module github.com/zlsgo/app_module
 go 1.25.0
 
 require (
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/sohaha/zlsgo v1.7.23-0.20261111035719-647ce39929fa
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zlsgo/app_core v0.0.0-20261113051328-f4dd3a6e7662

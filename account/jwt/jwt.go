@@ -5,28 +5,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 )
 
 type Info struct {
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 	Info      string
 	IsRefresh bool
-	JTI       string
 }
 
 func GenToken(info string, key string, expire, refreshExpire int64) (accessToken, refreshToken string, err error) {
 	if expire == 0 {
 		expire = 86400 // 默认过期时间为 24 小时
 	}
-	expiresAt := time.Now().Add(time.Duration(expire) * time.Second).Unix()
+	expiresAt := time.Now().Add(time.Duration(expire) * time.Second)
 	claims := Info{
 		Info: info,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expiresAt,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
 	}
 
@@ -34,13 +33,14 @@ func GenToken(info string, key string, expire, refreshExpire int64) (accessToken
 		return "", "", zerror.With(err, "failed to generate signature")
 	}
 
-	if refreshExpire == 0 || refreshExpire < expiresAt {
-		refreshExpire = 604800 + expiresAt // refresh token 的默认过期时间为 7 天后
+	expiresAtUnix := expiresAt.Unix()
+	if refreshExpire == 0 || refreshExpire < expiresAtUnix {
+		refreshExpire = 604800 + expiresAtUnix // refresh token 的默认过期时间为 7 天后
 	}
 
-	claims.StandardClaims.ExpiresAt = refreshExpire
+	claims.RegisteredClaims.ExpiresAt = jwt.NewNumericDate(time.Unix(refreshExpire, 0))
 	claims.IsRefresh = true
-	claims.JTI = zstring.Rand(16)
+	claims.ID = zstring.Rand(16)
 	if refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(zstring.String2Bytes(key)); err != nil {
 		return "", "", zerror.With(err, "failed to generate refresh token signature")
 	}
@@ -56,14 +56,13 @@ func Parse(token string, tokenKey string) (*Info, error) {
 		return zstring.String2Bytes(tokenKey), nil
 	})
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, errors.New("token expired")
+		}
 		return nil, errors.New("invalid token")
 	}
 
 	if claims, ok := t.Claims.(*Info); ok && t.Valid {
-		now := time.Now().Unix()
-		if claims.ExpiresAt < now {
-			return nil, errors.New("token expired")
-		}
 		return claims, nil
 	}
 
