@@ -20,6 +20,7 @@ var IPMiddleware = zutil.Once(func() func(c *znet.Context) error {
 	return func(c *znet.Context) error {
 		if !limit.AllowVisitByIP(c.GetClientIP()) {
 			c.String(http.StatusTooManyRequests, "Too many requests")
+			c.Abort()
 			return nil
 		}
 		c.Next()
