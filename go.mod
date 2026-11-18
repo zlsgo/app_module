@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/sohaha/zlsgo v1.7.23-0.20261111035719-647ce39929fa
 	github.com/speps/go-hashids/v2 v2.0.1
-	github.com/zlsgo/app_core v0.0.0-20261112111529-bb5dc5bcf135
+	github.com/zlsgo/app_core v0.0.0-20261113051328-f4dd3a6e7662
 	github.com/zlsgo/conf v0.0.0-20261112111202-d6a38f02f6ea
 	github.com/zlsgo/jet v0.0.0-20240429082803-2ad06f3e0159
 	github.com/zlsgo/wechat v0.0.0-20251222035601-cbf11195680f
