@@ -11,29 +11,7 @@ import (
 	"github.com/zlsgo/app_module/model"
 )
 
-// parseDBTime 解析数据库时间字符串，统一使用 UTC
-func parseDBTimeInSession(value string) (time.Time, error) {
-	// 尝试多种时间格式，优先使用 UTC
-	formats := []string{
-		time.RFC3339,
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04:05Z",
-		"2006-01-02 15:04:05.999999999",
-	}
-
-	for _, format := range formats {
-		if t, err := time.Parse(format, value); err == nil {
-			// 如果格式不包含时区信息，假设为 UTC
-			if format == "2006-01-02 15:04:05" || format == "2006-01-02 15:04:05.999999999" {
-				return t.UTC(), nil
-			}
-			return t, nil
-		}
-	}
-
-	return time.Time{}, errors.New("unsupported time format: " + value)
-}
-
+// currentUser 获取当前登录用户
 func (m *Module) currentUser(c *znet.Context) (ztype.Map, zsession.Session, error) {
 	session, err := zsession.Get(c)
 	if err != nil {
@@ -85,7 +63,7 @@ func (m *Module) validateSession(session zsession.Session, user ztype.Map) error
 	}
 
 	if expireAt := sessionRow.Get("expire_at").String(); expireAt != "" {
-		if exp, err := parseDBTimeInSession(expireAt); err == nil && exp.Before(time.Now()) {
+		if exp, err := parseDBTime(expireAt); err == nil && exp.Before(time.Now()) {
 			return ErrSessionExpired
 		}
 	}

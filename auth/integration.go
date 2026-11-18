@@ -76,7 +76,7 @@ func (m *Module) ValidateSessionBinding(userID, sessionKey string, sessionVersio
 	}
 
 	if expireAt := sessionRow.Get("expire_at").String(); expireAt != "" {
-		if exp, parseErr := parseDBTimeInSession(expireAt); parseErr == nil && exp.Before(time.Now()) {
+		if exp, parseErr := parseDBTime(expireAt); parseErr == nil && exp.Before(time.Now()) {
 			return zerror.Unauthorized.Text("auth session expired")
 		}
 	}
