@@ -7,8 +7,8 @@ import (
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestModuleInit(t *testing.T) {
@@ -19,8 +19,7 @@ func TestModuleInit(t *testing.T) {
 	di.Map(&[]service.Controller{})
 	app := service.NewApp()(di)
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	tt.NoError(err)
+	db := testutil.NewMemoryDB(t)
 	defer func() {
 		_ = db.Close()
 	}()
@@ -29,7 +28,7 @@ func TestModuleInit(t *testing.T) {
 		o.InitDB = func() (*zdb.DB, error) { return db, nil }
 	})
 
-	err = service.InitModule([]service.Module{mod}, app)
+	err := service.InitModule([]service.Module{mod}, app)
 	tt.NoError(err)
 
 	_, ok := mod.UserModel()

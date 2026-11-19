@@ -5,9 +5,9 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func newTestSchemas(t *testing.T, schemas ...schema.Schema) (*zdb.DB, *Schemas) {
@@ -15,14 +15,7 @@ func newTestSchemas(t *testing.T, schemas ...schema.Schema) (*zdb.DB, *Schemas) 
 }
 
 func newTestSchemasWithOptions(t *testing.T, opts SchemaOptions, schemas ...schema.Schema) (*zdb.DB, *Schemas) {
-	db, err := zdb.New(&sqlite3.Config{
-		File:       ":memory:",
-		Memory:     true,
-		Parameters: "_pragma=busy_timeout(3000)",
-	})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 
 	ss := NewSchemas(nil, NewSQL(db, ""), opts)
 	for _, s := range schemas {

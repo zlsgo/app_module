@@ -13,8 +13,8 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 type httpTestEnv struct {
@@ -34,10 +34,7 @@ func newHTTPTestEnv(t *testing.T) *httpTestEnv {
 	engine := web.Engine
 	di.Map(web)
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 
 	mod := New("test-key", func(o *Options) {
 		o.ApiPrefix = "/api"

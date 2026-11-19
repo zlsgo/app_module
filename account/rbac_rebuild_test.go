@@ -7,18 +7,14 @@ import (
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zdi"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func newTestModule(t *testing.T, opt ...func(o *Options)) (*Module, func()) {
 	t.Helper()
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
-
+	db := testutil.NewMemoryDB(t)
 	mod := New("test-key")
 	mod.Options.AdminDefaultPassword = "Aa123456"
 	mod.Options.ApiPrefix = "/api"

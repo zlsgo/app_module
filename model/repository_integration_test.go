@@ -6,9 +6,9 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 type TestUser struct {
@@ -37,14 +37,7 @@ type TestUserFilter struct {
 }
 
 func newTestDB(t *testing.T, tableName string) (*zdb.DB, *Schema) {
-	db, err := zdb.New(&sqlite3.Config{
-		File:       ":memory:",
-		Memory:     true,
-		Parameters: "_pragma=busy_timeout(3000)",
-	})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 
 	b := true
 	userSchema := schema.Schema{

@@ -5,20 +5,14 @@ import (
 	"testing"
 
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/app_module/model/hook"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func newHookTestDB(t *testing.T, tableName string, hookFn func(hook.Event, ...any) error) (*zdb.DB, *Schema) {
-	db, err := zdb.New(&sqlite3.Config{
-		File:   ":memory:",
-		Memory: true,
-	})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 
 	b := true
 	testSchema := schema.Schema{

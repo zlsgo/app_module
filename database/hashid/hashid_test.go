@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/sohaha/zlsgo"
+	"github.com/zlsgo/app_module/internal/testutil"
 )
 
 func TestNew(t *testing.T) {
@@ -30,12 +31,15 @@ func TestNew(t *testing.T) {
 func TestSetGet(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	tt.Equal(false, h.Has("test"))
+	// 注册表是进程级全局的，用唯一名称保证 `-count=N` 重复运行时不报重复注册
+	name := testutil.UniqueName(t, "hashid")
 
-	tt.NoError(Set("test", "1"))
-	tt.EqualTrue(Set("test", "1") != nil)
+	tt.Equal(false, h.Has(name))
 
-	h, ok := Get("test")
+	tt.NoError(Set(name, "1"))
+	tt.EqualTrue(Set(name, "1") != nil)
+
+	h, ok := Get(name)
 	tt.Equal(true, ok)
 	tt.EqualTrue(h != nil)
 }

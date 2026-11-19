@@ -4,20 +4,14 @@ import (
 	"testing"
 
 	"github.com/sohaha/zlsgo"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/app_module/model/schema"
-	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestSchemasModelsRefresh(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	db, err := zdb.New(&sqlite3.Config{
-		File:       ":memory:",
-		Memory:     true,
-		Parameters: "_pragma=busy_timeout(3000)",
-	})
-	tt.NoError(err)
+	db := testutil.NewMemoryDB(t)
 
 	ss := NewSchemas(nil, NewSQL(db, ""), SchemaOptions{})
 
@@ -41,7 +35,7 @@ func TestSchemasModelsRefresh(t *testing.T) {
 		},
 	}
 
-	_, err = ss.Reg("reg_a", first, false)
+	_, err := ss.Reg("reg_a", first, false)
 	tt.NoError(err)
 
 	models := ss.Models()

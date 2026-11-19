@@ -15,8 +15,8 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/app_core/service"
 	authmodule "github.com/zlsgo/app_module/auth"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 type memberHTTPTestEnv struct {
@@ -38,10 +38,7 @@ func newMemberHTTPTestEnv(t *testing.T, authOpt func(*authmodule.Options), membe
 	engine := web.Engine
 	di.Map(web)
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 
 	authMod := authmodule.New(func(o *authmodule.Options) {
 		o.InitDB = func() (*zdb.DB, error) { return db, nil }
@@ -116,17 +113,14 @@ func TestMemberRequiresAuthModule(t *testing.T) {
 	web := service.NewWeb()(app, nil, nil)
 	di.Map(web)
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 	defer func() { _ = db.Close() }()
 
 	memberMod := New(func(o *Options) {
 		o.InitDB = func() (*zdb.DB, error) { return db, nil }
 	})
 
-	err = service.InitModule([]service.Module{memberMod}, app)
+	err := service.InitModule([]service.Module{memberMod}, app)
 	if err == nil {
 		t.Fatal("expected member module to require auth module")
 	}

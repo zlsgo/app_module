@@ -12,8 +12,8 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/zlsgo/app_core/service"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestStatusFromError(t *testing.T) {
@@ -106,10 +106,7 @@ func TestCustomErrorHandlerIsPreserved(t *testing.T) {
 	web := service.NewWeb()(app, nil, nil)
 	di.Map(web)
 
-	db, err := zdb.New(&sqlite3.Config{File: ":memory:", Memory: true, Parameters: "_pragma=busy_timeout(3000)"})
-	if err != nil {
-		t.Fatalf("create db: %v", err)
-	}
+	db := testutil.NewMemoryDB(t)
 	defer db.Close()
 
 	mod := New("test-key", func(o *Options) {

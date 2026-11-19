@@ -5,9 +5,9 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/zlsgo/app_module/internal/testutil"
 	"github.com/zlsgo/app_module/model/schema"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/driver/sqlite3"
 )
 
 func TestSet(t *testing.T) {
@@ -65,17 +65,14 @@ func TestSet(t *testing.T) {
 		},
 	}
 
-	db, _ := zdb.New(&sqlite3.Config{
-		File:       "data/db.db",
-		Memory:     true,
-		Parameters: "_pragma=busy_timeout(3000)",
-	})
+	db := testutil.NewMemoryDB(t)
 	model := NewSchemas(nil, NewSQL(db, "model_"), SchemaOptions{})
 
 	m, err := model.Reg("test_model", data, false)
 	tt.NoError(err)
 
 	zdb.Debug.Store(true)
+	defer zdb.Debug.Store(false)
 
 	err = m.Migration().Auto(DealOldColumnNone)
 	tt.NoError(err)

@@ -8,10 +8,11 @@ import (
 
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/zlsgo/app_module/html/el"
+	"github.com/zlsgo/app_module/internal/testutil"
 )
 
 func TestHTMLRenderersAndErrorPage(t *testing.T) {
-	e := znet.New("html-render-test")
+	e := znet.New(testutil.UniqueName(t, "html-render"))
 	defer moduleOptions.Delete(e)
 	moduleOptions.Store(e, Options{ErrorPage: el.DIV(el.ID("error"), el.Text("fallback"))})
 
@@ -47,7 +48,7 @@ func TestHTMLRenderersAndErrorPage(t *testing.T) {
 }
 
 func TestHTMLRenderersKeepElementsReusable(t *testing.T) {
-	e := znet.New("html-render-reuse-test")
+	e := znet.New(testutil.UniqueName(t, "html-reuse"))
 	defer moduleOptions.Delete(e)
 	e.GET("/reuse", func(c *znet.Context) *el.Element {
 		return reusablePage
@@ -63,8 +64,8 @@ func TestHTMLRenderersKeepElementsReusable(t *testing.T) {
 }
 
 func TestHTMLRenderersUsePerEngineOptions(t *testing.T) {
-	first := znet.New("html-options-first")
-	second := znet.New("html-options-second")
+	first := znet.New(testutil.UniqueName(t, "html-options-first"))
+	second := znet.New(testutil.UniqueName(t, "html-options-second"))
 	defer moduleOptions.Delete(first)
 	defer moduleOptions.Delete(second)
 	moduleOptions.Store(first, Options{ErrorPage: el.DIV(el.Text("first"))})

@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"github.com/sohaha/zlsgo/znet"
+	"github.com/zlsgo/app_module/internal/testutil"
 )
 
 func TestRegisterStaticDefaultPrefix(t *testing.T) {
-	e := znet.New("test")
+	e := znet.New(testutil.UniqueName(t, "html-static-default"))
 	if err := registerStatic(e, ""); err != nil {
 		t.Fatalf("registerStatic: %v", err)
 	}
@@ -37,7 +38,7 @@ func TestRegisterStaticDefaultPrefix(t *testing.T) {
 }
 
 func TestRegisterStaticCustomPrefix(t *testing.T) {
-	e := znet.New("test-custom")
+	e := znet.New(testutil.UniqueName(t, "html-static-custom"))
 	if err := registerStatic(e, "/assets"); err != nil {
 		t.Fatalf("registerStatic: %v", err)
 	}
@@ -50,7 +51,7 @@ func TestRegisterStaticCustomPrefix(t *testing.T) {
 }
 
 func TestRegisterStaticRootPrefix(t *testing.T) {
-	e := znet.New("test-root")
+	e := znet.New(testutil.UniqueName(t, "html-static-root"))
 	if err := registerStatic(e, "/"); err != nil {
 		t.Fatalf("registerStatic: %v", err)
 	}
@@ -62,7 +63,7 @@ func TestRegisterStaticRootPrefix(t *testing.T) {
 }
 
 func TestRegisterStaticHead(t *testing.T) {
-	e := znet.New("test-head")
+	e := znet.New(testutil.UniqueName(t, "html-static-head"))
 	if err := registerStatic(e, "/assets"); err != nil {
 		t.Fatalf("registerStatic: %v", err)
 	}
