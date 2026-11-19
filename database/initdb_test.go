@@ -180,6 +180,9 @@ func TestInitDBSqliteCreateDir(t *testing.T) {
 
 func TestSetBuilderDialectMultiple(t *testing.T) {
 	tt := zlsgo.NewTest(t)
+	// 方言登记是进程级的，测完要还原，否则后面的 SQLite 用例会以为进程里
+	// 已经混用过 MySQL，触发完全无关的冲突告警。
+	snapshotDialect(t)
 
 	tt.NoError(setBuilderDialect(dialectA{}))
 	tt.NoError(setBuilderDialect(dialectB{}))

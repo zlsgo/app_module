@@ -2,15 +2,11 @@ package database
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/sohaha/zlsgo/zerror"
 	"github.com/zlsgo/zdb"
-	"github.com/zlsgo/zdb/builder"
 	"github.com/zlsgo/zdb/driver"
 )
-
-var builderDialectMu sync.Mutex
 
 // initDB 根据配置创建数据库实例
 func initDB(db Options) (*zdb.DB, error) {
@@ -86,14 +82,4 @@ func resolveDriver(db Options) (string, error) {
 		return candidates[0], nil
 	}
 	return "", nil
-}
-
-func setBuilderDialect(dialect driver.Dialect) error {
-	if dialect == nil {
-		return errors.New("数据库配置失败: driver Dialect 为空")
-	}
-	builderDialectMu.Lock()
-	defer builderDialectMu.Unlock()
-	builder.DefaultDriver = dialect
-	return nil
 }
