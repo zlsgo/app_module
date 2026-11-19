@@ -68,7 +68,9 @@ func (m *Module) ConsoleUsers(keyword string, page, pageSize int) ([]ConsoleUser
 	}
 
 	data, err := m.accountModel.Pages(page, pageSize, filter, func(co *model.CondOptions) {
-		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "ASC"}}
+		// 主键倒序：新建的账号排在最前。分页需要稳定的排序，
+		// 按 created_at 排会在同秒批量导入时抖动。
+		co.OrderBy = []model.OrderByItem{{Field: model.IDKey(), Direction: "DESC"}}
 		co.Fields = m.accountModel.m.GetFields("password", "salt")
 	})
 	if err != nil {
