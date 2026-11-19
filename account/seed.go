@@ -24,13 +24,14 @@ type PermissionRule struct {
 // （部署方在管理界面人工调整过的规则不被种子覆盖）。返回与 rules 一一对应的
 // permission 行 ID。
 //
-// 必须在模块 Start 之后调用（此时模型才装配完成）。写入后会重建 RBAC，
-// 中间件立即生效。
+// 必须在模块 Start 之后调用（此时模型才装配完成）。只要本次有新增行就会重建
+// RBAC，中间件立即生效；全部已存在时不重复重建。
 func (m *Module) EnsurePermissionRules(rules []PermissionRule) ([]int, error) {
 	if m == nil || m.index == nil || m.index.permModel == nil {
 		return nil, errors.New("account: permission model is not initialized (call after Start)")
 	}
 	ids := make([]int, 0, len(rules))
+	inserted := false
 	for _, r := range rules {
 		if r.Alias == "" || r.Action == "" || r.Target == "" {
 			return nil, errors.New("account: permission rule requires alias/action/target")
@@ -56,7 +57,13 @@ func (m *Module) EnsurePermissionRules(rules []PermissionRule) ([]int, error) {
 		if err != nil {
 			return nil, err
 		}
+		inserted = true
 		ids = append(ids, ztype.ToInt(id))
+	}
+	if inserted {
+		if err := m.rebuildRBAC(); err != nil {
+			return ids, err
+		}
 	}
 	return ids, nil
 }
