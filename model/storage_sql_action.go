@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zstring"
@@ -376,7 +377,9 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 		}
 	}
 
-	rows, p, err := s.db.Pages(table, page, pagesize, func(b *builder.SelectBuilder) error {
+	// apply 把 CondOptions 落到 zdb 的查询构建器上；空页要多查一次总数，
+	// 所以独立成变量而不是内联闭包。
+	apply := func(b *builder.SelectBuilder) error {
 		var fieldPrefix string
 		hasJoin := len(o.Join) > 0
 		if hasJoin {
@@ -417,15 +420,44 @@ func (s *SQL) Pages(table string, page, pagesize int, filter ztype.Map, fn ...fu
 		}
 
 		return nil
-	})
+	}
+
+	rows, p, err := s.db.Pages(table, page, pagesize, apply)
 
 	if err != nil && err != zdb.ErrNotFound {
 		return rows, PageInfo{}, err
 	}
 
+	if err != nil {
+		// 页码越界时没有命中的行，zdb.Pages 返回 ErrNotFound，并把已经统计好的
+		// 分页信息一起丢掉，调用方只会看到 total=0。前端分页器据此会认定「没有
+		// 数据」并把当前页码重置到第一页，翻到最后一页再往后一页就跳回去了，
+		// 所以这里补一次只取 total 的查询把分页信息复原。
+		p = s.emptyPageInfo(table, page, pagesize, apply)
+	}
+
 	return rows, PageInfo{
 		p,
 	}, nil
+}
+
+// emptyPageInfo 复原空页（页码越界）的分页信息。
+//
+// 只查第一页的第一条记录来拿 total：查询条件与空页一致，代价是一次带索引的
+// 单行查询，且只在空页时发生。pagesize 由调用方给出，页数按它重算，避免直接
+// 复用 zdb 里按 1 条一页算出来的 count。
+func (s *SQL) emptyPageInfo(table string, page, pagesize int, apply func(*builder.SelectBuilder) error) zdb.Pages {
+	pages := zdb.Pages{Curpage: uint(page)}
+	if pagesize < 1 {
+		return pages
+	}
+
+	if _, p, err := s.db.Pages(table, 1, 1, apply); err == nil || errors.Is(err, zdb.ErrNotFound) {
+		pages.Total = p.Total
+		pages.Count = uint(math.Ceil(float64(p.Total) / float64(pagesize)))
+	}
+
+	return pages
 }
 
 func (s *SQL) Update(table string, data ztype.Map, filter ztype.Map, fn ...func(*CondOptions)) (int64, error) {
