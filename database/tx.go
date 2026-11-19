@@ -43,7 +43,7 @@ const (
 // 返回值依次执行在同一固定连接上，用于在 BEGIN 前设置一次性隔离级别。
 func TxStatements(driverName string, mode TxMode) ([]string, error) {
 	switch normalizeName(driverName) {
-	case "sqlite":
+	case "sqlite", "sqlite3":
 		if mode == TxReadSnapshot {
 			return []string{"BEGIN"}, nil
 		}
