@@ -10,11 +10,14 @@ type Options struct {
 	SoftDeleteIsTime *bool `json:"soft_delete_is_time,omitempty"`
 	Timestamps       *bool `json:"timestamps,omitempty"`
 	CryptID          *bool `json:"crypt_id,omitempty"`
-	Hook             func(event hook.Event, data ...any) error
-	Salt             string   `json:"crypt_salt,omitempty"`
-	LowFields        []string `json:"low_fields,omitempty"`
-	FieldsSort       []string `json:"fields_sort,omitempty"`
-	CryptLen         int      `json:"crypt_len,omitempty"`
+	// Hook 是函数值，encoding/json 无法序列化；不加 json:"-" 时，
+	// 只要模型配了 Hook，json.Marshal(schema)（Schema.MarshalJSON 就走这条
+	// 路径）会直接报 unsupported type 而不是输出模型定义。
+	Hook       func(event hook.Event, data ...any) error `json:"-"`
+	Salt       string                                    `json:"crypt_salt,omitempty"`
+	LowFields  []string                                  `json:"low_fields,omitempty"`
+	FieldsSort []string                                  `json:"fields_sort,omitempty"`
+	CryptLen   int                                       `json:"crypt_len,omitempty"`
 }
 
 func (o *Options) SetDisabledMigrator(b bool) *Options {
